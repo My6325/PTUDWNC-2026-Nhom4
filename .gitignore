@@ -1,0 +1,57 @@
+# ==========================================
+# 1. DÀNH CHO .NET 10 / C# (BACKEND)
+# ==========================================
+# Thư mục sinh tự động khi build (rất nặng, không push)
+bin/
+obj/
+*.binlog
+# File cấu hình riêng của Visual Studio / VS Code / Rider
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+# File nén và cài đặt cục bộ
+*.nupkg
+packages/
+# ==========================================
+# 2. DÀNH CHO NEXT.JS / NODE.JS (FRONTEND)
+# ==========================================
+# Thư mục thư viện npm (chỉ cần package.json là đủ)
+node_modules/
+.pnp
+.pnp.js
+# Thư mục build tự động của Next.js
+.next/
+out/
+build/
+dist/
+# File log của npm/yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+# File biến môi trường chứa mật khẩu/secret cục bộ
+.env*.local
+.env
+# ==========================================
+# 3. DÀNH CHO DOCKER & DATABASE & LOGS
+# ==========================================
+# Dữ liệu volume của PostgreSQL, Redis, MinIO (nếu mount thư mục local)
+pgdata/
+redisdata/
+miniodata/
+seqdata/
+# Các file log hệ thống
+*.log
+logs/
+# File rác của hệ điều hành Windows / macOS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
