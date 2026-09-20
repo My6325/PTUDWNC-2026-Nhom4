@@ -326,15 +326,15 @@ d:\Nhom4_WebNangCao/src/
 | 1. Nguyễn Thị Trà My    | FR-CAT (001 -> 005)  | 8 chức năng        | Trung bình đến Khá |
 | (Trưởng nhóm - 2312693) | FR-OBS (001,002,003) |                    | (Kèm điều phối Git)|
 |                         |                      |                    |                    |
-| 2. Phan Khánh Vương     | FR-AUTH (001 -> 007) | 8 chức năng        | Khá                |
-| (Thành viên - 2312802)  | FR-JOB-001           |                    | (Bảo mật & Mailer) |
+| 2. Hoàng Trịnh Việt Linh| FR-AUTH (001 -> 007) | 8 chức năng        | Khá                |
+| (Thành viên - 2312664)  | FR-JOB-001           |                    | (Bảo mật & Mailer) |
 |                         |                      |                    |                    |
-| 3. Lê Phạm Mi Đoan      | FR-RCP (003,004,007-010)| 9 chức năng      | Khá                |
-| (Thành viên - 2312597)  | FR-FILE (001,002)    |                    | (Aggregate Root &  |
+| 3. Phan Khánh Vương     | FR-RCP (003,004,007-010)| 9 chức năng     | Khá                |
+| (Thành viên - 2312802)  | FR-FILE (001,002)    |                    | (Aggregate Root &  |
 |                         | FR-JOB-002           |                    |  Supabase Storage) |
 |                         |                      |                    |                    |
-| 4. Hoàng Trịnh Việt Linh| FR-RCP (001,002,005,006)| 9 chức năng     | Khá                |
-| (Thành viên - 2312664)  | FR-SRCH (001 -> 004) |                    | (FTS Tiếng Việt,   |
+| 4. Lê Phạm Mi Đoan      | FR-RCP (001,002,005,006)| 9 chức năng     | Khá                |
+| (Thành viên - 2312597)  | FR-SRCH (001 -> 004) |                    | (FTS Tiếng Việt,   |
 |                         | FR-JOB-003           |                    |  Faceted & Sitemap)|
 +-------------------------+----------------------+--------------------+--------------------+
 | TỔNG CỘNG               | 7 MODULES CỐT LÕI    | 34 ĐẦU MỤC CHI TIẾT| 100% CÂN BẰNG      |
