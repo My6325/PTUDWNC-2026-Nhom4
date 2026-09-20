@@ -97,8 +97,7 @@ Hệ thống sử dụng **Entity Framework Core 10** với nhà cung cấp **`N
 
 ```csharp
 // Đăng ký kết nối Supabase PostgreSQL trong CulinaryBlog.Infrastructure/DependencyInjection.cs
-var connectionString = configuration.GetConnectionString("DefaultConnection") 
-    ?? "Host=db.ckhzgvwmaldvbxgoimjo.supabase.co;Port=5432;Database=postgres;Username=postgres;SSL Mode=Require;Trust Server Certificate=true;";
+    ?? Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING");
 
 services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
