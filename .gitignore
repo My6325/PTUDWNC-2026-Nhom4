@@ -12,6 +12,7 @@
 .env.test.local
 .env.production.local
 appsettings.Production.json
+appsettings.Development.json
 *.pem
 *.key
 *.pfx

@@ -1,10 +1,10 @@
 # BẢNG PHÂN RÃ CÔNG VIỆC CHI TIẾT THEO TÍNH NĂNG (WORK BREAKDOWN STRUCTURE - WBS)
 ## DỰ ÁN: CULINARY BLOG (.NET 10 MINIMAL APIS + NEXT.JS 15 + SUPABASE)
-> **Mã định danh:** `WBS-CULINARY-BLOG-V2.1`  
-> **Môn học:** Phát triển Ứng dụng Web Nâng cao (PTUDWNC) – Nhóm 4  
-> **Căn cứ yêu cầu:** Bám sát 100% tài liệu đặc tả gốc **SRS v1.0.0 (IEEE 830)** gồm đúng **27 Yêu cầu Chức năng (FR)** cốt lõi.  
-> **Cơ chế phân bổ cân bằng:** Chuyển giao 2 chức năng Giám sát & Quan sát (`FR-OBS-002` và `FR-OBS-003`) từ Thành viên 4 sang Trưởng nhóm nhằm gom trọn Module FR-OBS về Trưởng nhóm phụ trách, nâng độ khó của Trưởng nhóm lên **Trung bình đến Khá** và giảm tải cho Thành viên 4 để đảm bảo khối lượng công việc đồng đều toàn đội ngũ.  
-> **Vị trí lưu trữ:** `docs/tasks_breakdown.md`  
+> **Mã định danh:** `WBS-CULINARY-BLOG-V2.1`
+> **Môn học:** Phát triển Ứng dụng Web Nâng cao (PTUDWNC) – Nhóm 4
+> **Căn cứ yêu cầu:** Bám sát 100% tài liệu đặc tả gốc **SRS v1.0.0 (IEEE 830)** gồm đúng **27 Yêu cầu Chức năng (FR)** cốt lõi.
+> **Cơ chế phân bổ cân bằng:** Chuyển giao 2 chức năng Giám sát & Quan sát (`FR-OBS-002` và `FR-OBS-003`) từ Thành viên 4 sang Trưởng nhóm nhằm gom trọn Module FR-OBS về Trưởng nhóm phụ trách, nâng độ khó của Trưởng nhóm lên **Trung bình đến Khá** và giảm tải cho Thành viên 4 để đảm bảo khối lượng công việc đồng đều toàn đội ngũ.
+> **Vị trí lưu trữ:** `docs/tasks_breakdown.md`
 
 ---
 
@@ -53,22 +53,71 @@ d:\Nhom4_WebNangCao/src/
 └── .env                                           # Biến môi trường & mật khẩu thật (được .gitignore bảo vệ)
 ```
 
+### 1.1. Danh sách Bảng CSDL Thực tế trên Supabase Cloud (Khởi tạo bởi EF Core Migration)
+
+Toàn bộ CSDL trên Supabase Cloud PostgreSQL bao gồm 14 bảng chuẩn mực:
+
+```text
+Danh sách bảng trên Supabase:
+├── 📁 BẢNG NGHIỆP VỤ (Khớp 100% với ERD đặc tả)
+│   ├── Categories            --> Bảng Danh mục ẩm thực (CATEGORY trong ERD)
+│   ├── Recipes               --> Bảng Công thức (RECIPE trong ERD, đã nhúng luôn Dinh dưỡng)
+│   ├── RecipeSteps           --> Bảng Các bước nấu (RECIPE_STEP trong ERD)
+│   ├── RecipeIngredients     --> Bảng Nguyên liệu (RECIPE_INGREDIENT trong ERD)
+│   ├── RecipeImages          --> Bảng Hình ảnh món ăn (RECIPE_IMAGE trong ERD)
+│   ├── RefreshTokens         --> Bảng Token bảo mật (REFRESH_TOKEN trong ERD)
+│   └── AspNetUsers           --> Bảng Tài khoản người dùng (APPLICATION_USER trong ERD)
+│
+├── 📁 HỆ THỐNG BẢNG BẢO MẬT CHUẨN CỦA ASP.NET CORE IDENTITY
+│   ├── AspNetRoles           --> Lưu danh sách vai trò (Admin, Author, User)
+│   ├── AspNetUserRoles       --> Bảng liên kết N-N: Người dùng nào giữ vai trò nào
+│   ├── AspNetRoleClaims      --> Lưu quyền hạn chi tiết (Permissions/Claims) theo vai trò
+│   ├── AspNetUserClaims      --> Lưu quyền hạn riêng biệt của từng người dùng
+│   ├── AspNetUserLogins      --> Lưu thông tin khi đăng nhập qua Google, Facebook OAuth
+│   └── AspNetUserTokens      --> Quản lý mã OTP, Token đổi mật khẩu, xác nhận email
+│
+└── 📁 BẢNG QUẢN TRỊ NỘI BỘ CỦA ENTITY FRAMEWORK
+    └── __EFMigrationsHistory --> Ghi nhớ bản migration nào đã chạy (giúp không chạy trùng lặp)
+```
+
 ---
 
-## 2. BẢNG PHÂN RÃ TỪNG BƯỚC CẦN LÀM CHO 4 THÀNH VIÊN (ACTION STEPS ONLY)
+## 2. MA TRẬN PHÂN ĐỊNH TRÁCH NHIỆM DATABASE & ĐẢM NHẬN 3 VAI TRÒ (FE - BE - DB)
+
+Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3 vai trò: **Frontend (UI/Hooks)**, **Backend (CQRS/Services/APIs)** và **Database (Entity/Configuration/Seeder)** theo đúng phân rã nghiệp vụ:
+
+| Thành viên | 🎨 Vai trò FRONTEND | ⚙️ Vai trò BACKEND | 🗄️ Vai trò DATABASE (Entity, Config, Seeder) | Bảng CSDL phụ trách |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Nguyễn Thị Trà My** (Trưởng nhóm - 2312693) — Module: **Category & Observability** | Giao diện danh mục (`/categories`); Trang chi tiết danh mục; Trang Admin quản trị Category | Category CRUD (CQRS, MediatR); In-Memory Cache `categories:all`; HealthChecks, Serilog, Tracing | Entity: `BaseEntity.cs`, `Category.cs`; Config: `CategoryConfiguration.cs`; DbContext: `ApplicationDbContext.cs` (Khung chung); Seeder: `CategorySeeder.cs` ($\ge 20$ danh mục ẩm thực) | `Categories`, `SlugRedirects` |
+| **2. Hoàng Trịnh Việt Linh** (Thành viên - 2312664) — Module: **Auth & Background Job** | Trang Đăng ký (`/register`); Trang Đăng nhập (`/login`); Trang Profile cá nhân; Nút Google OAuth PKCE | Đăng ký, Đăng nhập Local/Google; Token Rotation, Grace Period 30s; JwtService (HS256, CSPRNG); WelcomeEmailJob (Hangfire) | Entity: `ApplicationUser.cs`, `RefreshToken.cs`; Config: Identity Core, Index `RefreshToken`; Seeder: `UserSeeder.cs` (tài khoản Admin & Author mẫu làm tác giả bài viết) | `AspNetUsers`, `RefreshTokens` |
+| **3. Phan Khánh Vương** (Thành viên - 2312802) — Module: **Recipe Core & Media Storage** | Trang soạn thảo nháp Recipe; Trang chỉnh sửa công thức; Giao diện thêm Steps, Ingredients; Component upload ảnh | Recipe CRUD, Concurrency (OCC); Tự động renumbering Steps; Supabase Storage Upload/Delete; ImageResizeJob (Hangfire) | Entity: `Recipe.cs`, `RecipeStep.cs`, `RecipeIngredient.cs`, `RecipeImage.cs`, `RecipeNutrition.cs`; Config: `RecipeConfiguration.cs` (Cascade Delete, OCC); Seeder: `RecipeSeeder.cs` ($\ge 100$ Recipes, $\ge 10$ nguyên liệu, $\ge 5$ bước) | `Recipes`, `RecipeSteps`, `RecipeIngredients`, `RecipeImages` |
+| **4. Lê Phạm Mi Đoan** (Thành viên - 2312597) — Module: **FTS Search, Publish & Sitemap** | Trang chủ hiển thị danh sách Recipe; Thanh tìm kiếm tiếng Việt không dấu; Bộ lọc đa tiêu chí (Faceted Search); Phân trang giao diện | Repository FTS (unaccent, plainto_tsquery); Logic Publish ($\ge 1$ step, $\ge 1$ ingr); Projection bỏ qua Nutrition khi list; SitemapGenerationJob | PostgreSQL Extensions: Kích hoạt `unaccent`, `pg_trgm`; Config: Cột `SearchVector` (tsvector) & GIN Index trong `RecipeConfiguration.cs`; Data Testing: Kiểm thử dữ liệu phân trang & FTS trên 100 công thức | Đồng sở hữu `Recipes` (Tối ưu Index & FTS) |
+
+> ⚠️ **Quy tắc phối hợp CSDL & Git:**
+> 1. Mỗi thành viên chỉ code Entity/Configuration trên nhánh Git của mình, tuyệt đối **không tự chạy lệnh CLI migration cá nhân lên Supabase Cloud** để tránh xung đột lịch sử `__EFMigrationsHistory`.
+> 2. Thứ tự nạp dữ liệu (Seeder): **TV2 (UserSeeder)** $\rightarrow$ **TV1 (CategorySeeder)** $\rightarrow$ **TV3 (RecipeSeeder)** $\rightarrow$ **TV4 (FTS Data Validation)**.
+> 3. Khi toàn bộ code của các bạn đã merge vào nhánh `main`, **Trưởng nhóm (TV1)** đại diện chạy lệnh EF Core Migration và điều phối Seeder tập trung.
+
+---
+
+## 3. BẢNG PHÂN RÃ TỪNG BƯỚC CẦN LÀM CHO 4 THÀNH VIÊN (ACTION STEPS ONLY)
 
 ---
 
 ### 👤 THÀNH VIÊN 1 (TRƯỞNG NHÓM): NGUYỄN THỊ TRÀ MY — MSSV: 2312693
-**Module đảm nhiệm:** Module Quản lý Danh mục (FR-CAT) & Module Giám sát & Quan sát Hệ thống (FR-OBS)  
-**Phạm vi chức năng:** `FR-CAT-001` đến `FR-CAT-005` và `FR-OBS-001`, `FR-OBS-002`, `FR-OBS-003` (**Tổng cộng 8 chức năng**)  
+**Module đảm nhiệm:** Module Quản lý Danh mục (FR-CAT) & Module Giám sát & Quan sát Hệ thống (FR-OBS)
+**Phạm vi chức năng:** `FR-CAT-001` đến `FR-CAT-005` và `FR-OBS-001`, `FR-OBS-002`, `FR-OBS-003` (**Tổng cộng 8 chức năng**)
 **Mức độ phức tạp:** **Trung bình đến Khá** (CRUD Danh mục, Thuật toán Slug, Health Checks, Structured Logging và Distributed Tracing)
 
-#### Bước 1: Khởi tạo Solution và Cấu hình Kết nối Supabase
+#### Bước 1: Khởi tạo Solution, Cấu hình Kết nối Supabase & Hạ Tầng CSDL (Đảm nhận phần Database của TV1)
 - [x] Tạo file Solution `CulinaryBlog.slnx` liên kết 4 project: `CulinaryBlog.Domain`, `CulinaryBlog.Application`, `CulinaryBlog.Infrastructure`, `CulinaryBlog.API`.
 - [x] Cấu hình bảo mật biến môi trường Supabase Cloud PostgreSQL trong `.env.example` và `.env` (`SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_DB_PASSWORD`).
 - [x] Tạo lớp `BaseEntity.cs` trong `CulinaryBlog.Domain/Common/` (`Id`, `CreatedAt`, `UpdatedAt`, `IsDeleted`, `RowVersion`).
 - [x] Tạo hàm tiện ích `GenerateSlug(string text)` trong `CulinaryBlog.Domain/Common/SlugHelper.cs` (chuyển đổi tiếng Việt có dấu thành chuỗi URL không dấu).
+- [x] Tạo lớp `ApplicationDbContext.cs` trong `CulinaryBlog.Infrastructure/Persistence/` (Kế thừa `IdentityDbContext<ApplicationUser>`, quản lý các DbSet: `Categories`, `Recipes`, `RecipeSteps`, `RecipeIngredients`, `RecipeImages`, `RefreshTokens`, kích hoạt `unaccent`/`pg_trgm`).
+- [x] Tạo cấu hình Fluent API `CategoryConfiguration.cs` trong `CulinaryBlog.Infrastructure/Persistence/Configurations/`.
+- [x] Viết `CategorySeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Sinh danh sách dữ liệu mẫu $\ge 20$ danh mục ẩm thực thực tế (Món Việt, Món Á, Món Âu, Món Chay, Đồ Uống...).
+- [x] Tích hợp và điều phối chạy EF Core Migration (`InitialCreate`) và bộ Seeder tổng hợp trong `Program.cs`.
 
 #### Bước 2: Hiện thực FR-CAT-001 & FR-CAT-002 (Xem Danh sách & Chi tiết Danh mục)
 - [ ] **Domain Entity:** Tạo thực thể `Category.cs` trong `CulinaryBlog.Domain/Entities/` (`Name`, `Slug`, `Description`, `ImageUrl`, `OrderIndex`).
@@ -126,19 +175,20 @@ d:\Nhom4_WebNangCao/src/
 ---
 
 ### 👤 THÀNH VIÊN 2: Hoàng Trịnh Việt Linh — MSSV: 2312664
-**Module đảm nhiệm:** Module Xác thực, Quản lý Người dùng (FR-AUTH) & Background Email (FR-JOB)  
-**Phạm vi chức năng:** `FR-AUTH-001` đến `FR-AUTH-007` và `FR-JOB-001` (**Tổng cộng 8 chức năng**)  
+**Module đảm nhiệm:** Module Xác thực, Quản lý Người dùng (FR-AUTH) & Background Email (FR-JOB)
+**Phạm vi chức năng:** `FR-AUTH-001` đến `FR-AUTH-007` và `FR-JOB-001` (**Tổng cộng 8 chức năng**)
 **Mức độ** (Xử lý an ninh mật mã, Token Rotation, Grace Period, Reuse Detection, OAuth 2.0 PKCE, Hangfire Mailer)
 
-#### Bước 1: Cấu hình Identity Core & JWT Token Service
-- [ ] **Domain Entities:**
+#### Bước 1: Cấu hình Identity Core, JWT Token Service & Database Auth (Đảm nhận phần Database của TV2)
+- [x] **Domain Entities:**
   - Tạo `ApplicationUser.cs` trong `CulinaryBlog.Domain/Entities/` (kế thừa `IdentityUser` bổ sung `DisplayName`, `AvatarUrl`, `Bio`, `IsActive`, `CreatedAt`).
   - Tạo `RefreshToken.cs` (`Id`, `UserId`, `TokenHash`, `ExpiresAt`, `RevokedAt`, `ReplacedByTokenHash`, `CreatedByIp`).
-- [ ] **JWT Service:** Tạo interface `IJwtService` và cài đặt `JwtService.cs` trong Infrastructure:
+- [x] **JWT Service:** Tạo interface `IJwtService` và cài đặt `JwtService.cs` trong Infrastructure:
   - Phương thức `GenerateAccessToken(ApplicationUser user, IList<string> roles)` (HS256, hạn 15 phút).
   - Phương thức `GenerateRefreshToken()` (chuỗi ngẫu nhiên 64 bytes).
   - Phương thức `HashToken(string token)` (mã hóa băm SHA-256 lưu CSDL).
   - Phương thức `GetPrincipalFromExpiredToken(string token)` (giải mã token đã hết hạn).
+- [ ] **Database Seeder:** Viết `UserSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) có `PasswordHash` chuẩn ASP.NET Core Identity để TV3 lấy `AuthorId` làm tác giả sở hữu công thức.
 
 #### Bước 2: Hiện thực FR-AUTH-001 & FR-AUTH-002 (Đăng ký & Đăng nhập Local)
 - [ ] **Request Records:**
@@ -195,21 +245,22 @@ d:\Nhom4_WebNangCao/src/
 ---
 
 ### 👤 THÀNH VIÊN 3: Phan Khánh Vương — MSSV: 2312802
-**Module đảm nhiệm:** Module Quản lý Công thức Lõi (FR-RCP), Tệp tin (FR-FILE) & Resize Ảnh (FR-JOB)  
-**Phạm vi chức năng:** `FR-RCP-003`, `FR-RCP-004`, `FR-RCP-007`, `FR-RCP-008`, `FR-RCP-009`, `FR-RCP-010`, `FR-FILE-001`, `FR-FILE-002`, `FR-JOB-002` (**Tổng cộng 9 chức năng**)  
+**Module đảm nhiệm:** Module Quản lý Công thức Lõi (FR-RCP), Tệp tin (FR-FILE) & Resize Ảnh (FR-JOB)
+**Phạm vi chức năng:** `FR-RCP-003`, `FR-RCP-004`, `FR-RCP-007`, `FR-RCP-008`, `FR-RCP-009`, `FR-RCP-010`, `FR-FILE-001`, `FR-FILE-002`, `FR-JOB-002` (**Tổng cộng 9 chức năng**)
 **Mức độ** (Aggregate Root phức hợp, Concurrency Token, Tự động renumber bước nấu, Tích hợp Supabase Storage, Cascade Delete)
 
-#### Bước 1: Thiết kế Domain Entity Recipe và Aggregate Root
-- [ ] **Domain Entities:**
+#### Bước 1: Thiết kế Domain Entity Recipe, Aggregate Root & Database Recipe (Đảm nhận phần Database của TV3)
+- [x] **Domain Entities:**
   - Tạo Aggregate Root `Recipe.cs` trong `CulinaryBlog.Domain/Entities/` (`Title`, `Slug`, `Description`, `Instructions`, `PrepTimeMinutes`, `CookTimeMinutes`, `Servings`, `Difficulty`, `Status`, `CategoryId`, `AuthorId`, `RowVersion`).
   - Tạo Owned Entity `RecipeNutrition.cs` (`Calories`, `Protein`, `Carbohydrates`, `Fat`, `Fiber`, `Sodium`).
   - Tạo Entity `RecipeStep.cs` (`StepNumber`, `Title`, `Description`, `TimerMinutes`, `ImageUrl`).
   - Tạo Entity `RecipeIngredient.cs` (`Name`, `Quantity`, `Unit`, `Notes`, `OrderIndex`).
   - Tạo Entity `RecipeImage.cs` (`OriginalUrl`, `MediumUrl`, `ThumbnailUrl`, `IsPrimary`, `OrderIndex`).
-- [ ] **EF Core Configurations:** Tạo `RecipeConfiguration.cs` trong `Infrastructure/Persistence/Configurations/` cấu hình:
+- [x] **EF Core Configurations:** Tạo `RecipeConfiguration.cs` trong `Infrastructure/Persistence/Configurations/` cấu hình:
   - Khóa ngoại `CategoryId` là **Nullable** (`builder.HasOne(r => r.Category).WithMany().HasForeignKey(r => r.CategoryId).OnDelete(DeleteBehavior.SetNull);`).
   - Cấu hình Concurrency Token: `builder.Property(r => r.RowVersion).IsRowVersion();`.
   - Cấu hình Cascade Delete cho Steps, Ingredients, Images.
+- [ ] **Database Seeder:** Viết `RecipeSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/` sử dụng thư viện `Bogus`: Sinh tự động $\ge 100$ Recipes ngẫu nhiên (lấy `CategoryId` từ TV1 và `AuthorId` từ TV2; mỗi Recipe tự động sinh từ 10–14 `RecipeIngredient` và từ 5–8 `RecipeStep` có `StepNumber = 1, 2, 3...` tăng dần, nhúng đầy đủ `RecipeNutrition`).
 
 #### Bước 2: Hiện thực FR-RCP-003 & FR-RCP-004 (Tạo Bản Nháp & Cập nhật Công thức)
 - [ ] **Request Records:**
@@ -268,16 +319,17 @@ d:\Nhom4_WebNangCao/src/
 ---
 
 ### 👤 THÀNH VIÊN 4: Lê Phạm Mi Đoan — MSSV: 2312597
-**Module đảm nhiệm:** Module Xuất bản, Tìm kiếm & Phân trang (FR-SRCH) & SEO Sitemap (FR-JOB)  
-**Phạm vi chức năng:** `FR-RCP-001`, `FR-RCP-002`, `FR-RCP-005`, `FR-RCP-006`, `FR-SRCH-001` đến `FR-SRCH-004`, `FR-JOB-003` (**Tổng cộng 9 chức năng**)  
+**Module đảm nhiệm:** Module Xuất bản, Tìm kiếm & Phân trang (FR-SRCH) & SEO Sitemap (FR-JOB)
+**Phạm vi chức năng:** `FR-RCP-001`, `FR-RCP-002`, `FR-RCP-005`, `FR-RCP-006`, `FR-SRCH-001` đến `FR-SRCH-004`, `FR-JOB-003` (**Tổng cộng 9 chức năng**)
 **Mức độ** (Tối ưu hóa FTS tiếng Việt unaccent, phân trang đa tiêu chí, Projection và Schema.org)
 
-#### Bước 1: Hiện thực FR-SRCH-001 (Cấu hình FTS Tiếng Việt Supabase PostgreSQL)
-- [ ] **Cấu hình CSDL:**
-  - Kích hoạt extension `unaccent` và `pg_trgm` trong `ApplicationDbContext.OnModelCreating`.
-  - Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
-  - Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
+#### Bước 1: Hiện thực FR-SRCH-001 (Cấu hình FTS Tiếng Việt Supabase & Kiểm thử Dữ liệu CSDL - Đảm nhận phần Database của TV4)
+- [ ] **Cấu hình CSDL FTS:**
+  - [x] Kích hoạt extension `unaccent` và `pg_trgm` trong `ApplicationDbContext.OnModelCreating` (TV1 đã tạo khung sườn).
+  - [ ] Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
+  - [ ] Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
 - [ ] **Repository LINQ FTS:** Tạo `IRecipeRepository` và cài đặt `RecipeRepository.cs` sử dụng `EF.Functions.ToTsVector()` kết hợp `EF.Functions.PlainToTsQuery()` và hàm `unaccent()` để hỗ trợ tìm kiếm không dấu tiếng Việt bản địa hóa.
+- [ ] **Kiểm thử Toàn vẹn Dữ liệu CSDL:** Viết kịch bản kiểm thử/nghiệm thu chất lượng dữ liệu FTS không dấu (`unaccent`) và thuật toán phân trang (`PaginatedResult`) trên tập dữ liệu 100 công thức sau khi được Seed vào Supabase.
 
 #### Bước 2: Hiện thực FR-SRCH-002, 003, 004 (Lọc Đa Tiêu Chí, Sắp Xếp & Phân Trang)
 - [ ] **Request Model:** Tạo `public record SearchRecipesQueryParams(string? SearchTerm, Guid? CategoryId, RecipeDifficulty? Difficulty, int? MaxCookTime, int Page = 1, int PageSize = 12);`

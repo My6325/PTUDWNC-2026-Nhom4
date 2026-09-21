@@ -1,9 +1,9 @@
 # TÀI LIỆU ĐẶC TẢ TÍCH HỢP HỆ THỐNG VÀ TÍCH HỢP SUPABASE
 ## DỰ ÁN: CULINARY BLOG – BLOG ẨM THỰC VÀ NẤU ĂN
-> **Mã định danh:** `SPEC-TICH-HOP-V2.0`  
-> **Môn học:** Phát triển Ứng dụng Web Nâng cao (PTUDWNC) – Nhóm 4  
-> **Hạ tầng Dữ liệu:** **Supabase Cloud (PostgreSQL 16 + Supabase Storage)**  
-> **Vị trí lưu trữ:** `docs/spec_TichHop/SPEC_TichHop.md`  
+> **Mã định danh:** `SPEC-TICH-HOP-V2.0`
+> **Môn học:** Phát triển Ứng dụng Web Nâng cao (PTUDWNC) – Nhóm 4
+> **Hạ tầng Dữ liệu:** **Supabase Cloud (PostgreSQL 16 + Supabase Storage)**
+> **Vị trí lưu trữ:** `docs/spec_TichHop/SPEC_TichHop.md`
 
 ---
 
