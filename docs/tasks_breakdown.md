@@ -328,8 +328,8 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
   - [x] Kích hoạt extension `unaccent` và `pg_trgm` trong `ApplicationDbContext.OnModelCreating` (TV1 đã tạo khung sườn).
   - [ ] Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
   - [ ] Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
-- [ ] **Repository LINQ FTS:** Tạo `IRecipeRepository` và cài đặt `RecipeRepository.cs` sử dụng `EF.Functions.ToTsVector()` kết hợp `EF.Functions.PlainToTsQuery()` và hàm `unaccent()` để hỗ trợ tìm kiếm không dấu tiếng Việt bản địa hóa.
-- [ ] **Kiểm thử Toàn vẹn Dữ liệu CSDL:** Viết kịch bản kiểm thử/nghiệm thu chất lượng dữ liệu FTS không dấu (`unaccent`) và thuật toán phân trang (`PaginatedResult`) trên tập dữ liệu 100 công thức sau khi được Seed vào Supabase.
+- [x] **Repository LINQ FTS:** Tạo `IRecipeRepository` và cài đặt `RecipeRepository.cs` sử dụng `EF.Functions.ToTsVector()` kết hợp `EF.Functions.PlainToTsQuery()` và hàm `unaccent()` để hỗ trợ tìm kiếm không dấu tiếng Việt bản địa hóa.
+- [x] **Kiểm thử Toàn vẹn Dữ liệu CSDL:** Đã viết kịch bản kiểm thử/nghiệm thu chất lượng dữ liệu FTS không dấu (`unaccent`) và thuật toán phân trang (`PaginatedResult`) trên tập dữ liệu 100 công thức sau khi được Seed vào Supabase. Việc chạy nghiệm thu cần môi trường có kết nối Supabase.
 
 #### Bước 2: Hiện thực FR-SRCH-002, 003, 004 (Lọc Đa Tiêu Chí, Sắp Xếp & Phân Trang)
 - [ ] **Request Model:** Tạo `public record SearchRecipesQueryParams(string? SearchTerm, Guid? CategoryId, RecipeDifficulty? Difficulty, int? MaxCookTime, int Page = 1, int PageSize = 12);`
