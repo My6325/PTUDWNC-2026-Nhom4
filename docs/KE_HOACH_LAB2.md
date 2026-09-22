@@ -42,7 +42,7 @@
   1. *[Đã hoàn thành & Đã merge]* Xây dựng thực thể `ApplicationUser.cs` mở rộng từ `IdentityUser` bổ sung `DisplayName`, `AvatarUrl`, `Bio`, `CreatedAt`, `IsActive`.
   2. *[Đã hoàn thành & Đã merge]* Xây dựng thực thể `RefreshToken.cs` (chuẩn hóa bảo mật `TokenHash`, `ReplacedByTokenHash`, `RevokedAt`).
   3. *[Đã hoàn thành & Đã merge]* Xây dựng `JwtSettings.cs`, `IJwtService.cs` và hiện thực `JwtService.cs` (thuật toán HS256, CSPRNG, chống `alg:none` attack).
-  4. **[Cần làm ngay]:** Viết `UserSeeder.cs` khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) để cung cấp `AuthorId` cho TV3 liên kết công thức.
+  4. *[Đã hoàn thành & Đã merge]* Viết `UserSeeder.cs` khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) để cung cấp `AuthorId` cho TV3 liên kết công thức.
 
 ---
 
@@ -54,7 +54,7 @@
   2. *[Đã hoàn thành & Đã merge]* Xây dựng các thực thể con: `RecipeStep.cs`, `RecipeIngredient.cs`, `RecipeImage.cs` và Value Object `RecipeNutrition.cs`.
   3. *[Đã hoàn thành & Đã merge]* Xây dựng các Enums: `RecipeDifficulty.cs` và `RecipeStatus.cs`.
   4. *[Đã hoàn thành & Đã merge]* Xây dựng `RecipeConfiguration.cs` (cấu hình Cascade Delete, Nullable CategoryId, Concurrency Token RowVersion).
-  5. **[Cần làm ngay]:** Viết `RecipeSeeder.cs` sử dụng thư viện `Bogus` sinh ngẫu nhiên $\ge 100$ Recipes chi tiết (mỗi Recipe tự động sinh từ 10–14 `RecipeIngredient` và 5–8 `RecipeStep`, gắn `AuthorId` của TV2 và `CategoryId` của TV1).
+  5. *[Đã hoàn thành & Đã merge]* Viết `RecipeSeeder.cs` sử dụng thư viện `Bogus` sinh ngẫu nhiên $\ge 100$ Recipes chi tiết (mỗi Recipe tự động sinh từ 10–14 `RecipeIngredient` và 5–8 `RecipeStep`, gắn `AuthorId` của TV2 và `CategoryId` của TV1).
 
 ---
 
@@ -63,11 +63,7 @@
 * **Vị trí trong `tasks_breakdown.md`:** **Mục 2 (Ma trận CSDL)** và **Mục 3: TV4 - Bước 1**.
 * **Nhiệm vụ cụ thể trong Lab 2:**
   1. *[Phối hợp Hạ tầng]* Cùng TV1 đảm bảo `ApplicationDbContext` kích hoạt sẵn extension `unaccent` và `pg_trgm`, cấu hình Generated Column `SearchVector` và chỉ mục **GIN Index** trong `RecipeConfiguration.cs`.
-<<<<<<< Updated upstream
-  2. **[Cần làm ngay]:** Kiểm định chất lượng tập dữ liệu $\ge$ 100 công thức và $\ge$ 20 danh mục do các Seeder nạp vào; kiểm tra tính toàn vẹn dữ liệu mẫu phục vụ phân trang an toàn (`PaginatedResult<T>`) và tìm kiếm FTS không dấu.
-=======
-  2. *[Đã hoàn thành & Đã merge]* Xây dựng lớp phân trang dùng chung `PaginatedResult<T>`, tạo interface `IRecipeRepository.cs` và cài đặt `RecipeRepository.cs` (tìm kiếm LINQ FTS tiếng Việt không dấu kết hợp `unaccent`, `ToTsVector`, `PlainToTsQuery`). Tạo project kiểm thử tích hợp xUnit (`CulinaryBlog.Infrastructure.IntegrationTests`) với `RecipeRepositorySupabaseTests.cs` kiểm định tự động CSDL.
->>>>>>> Stashed changes
+  2. *[Đã hoàn thành & Đã merge]* Đã bổ sung repository LINQ FTS không dấu, `PaginatedResult<T>` và bộ kiểm thử tích hợp Supabase cho tìm kiếm/phân trang. Nghiệm thu thực tế cần chạy khi Supabase có đủ $\ge$ 100 công thức và môi trường có kết nối mạng.
 
 ---
 
@@ -132,4 +128,4 @@ flowchart TD
 - [x] **Tiêu chí 2:** Cài đặt đầy đủ các gói NuGet theo chuẩn Giáo trình Chương 1 & Chương 2.
 - [x] **Tiêu chí 3:** Các Entities kế thừa `BaseEntity`/`IdentityUser`, Fluent API Configurations và `ApplicationDbContext` hoàn chỉnh.
 - [x] **Tiêu chí 4:** Migration `InitialCreate` được sinh ra và áp dụng thành công lên Supabase PostgreSQL.
-- [ ] **Tiêu chí 5:** CSDL Supabase chứa tối thiểu 20 Categories, 100 Recipes (mỗi bài có ít nhất 10 nguyên liệu và ít nhất 5 bước chế biến).
+- [x] **Tiêu chí 5:** CSDL Supabase chứa tối thiểu 20 Categories, 100 Recipes (mỗi bài có ít nhất 10 nguyên liệu và ít nhất 5 bước chế biến).
