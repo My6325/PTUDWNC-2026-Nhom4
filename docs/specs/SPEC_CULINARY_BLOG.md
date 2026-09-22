@@ -46,8 +46,7 @@
 
 ### 1.2. Hạ tầng Dữ liệu Đám mây Supabase
 Hệ thống chuyển đổi toàn diện sang nền tảng **Supabase Cloud**, loại bỏ triệt để các cấu hình phức tạp của Docker và PostgreSQL cục bộ:
-- **Hệ quản trị CSDL Quan hệ:** **Supabase PostgreSQL 16**, kết nối an toàn qua giao thức SSL/TLS 1.3:
-  `Host=db.ckhzgvwmaldvbxgoimjo.supabase.co;Port=5432;Database=postgres;Username=postgres;SSL Mode=Require;Trust Server Certificate=true;`
+- **Hệ quản trị CSDL Quan hệ:** **Supabase PostgreSQL 16**, kết nối an toàn qua giao thức SSL/TLS 1.3 (thông số cấu hình qua biến môi trường `.env`).
 - **Lưu trữ Đối tượng Đa phương tiện:** **Supabase Storage** (Bucket công khai `culinary-blog`), thay thế hoàn toàn MinIO S3 cục bộ.
 - **Tiện ích mở rộng PostgreSQL được kích hoạt:** `unaccent` (hỗ trợ tìm kiếm tiếng Việt không dấu) và `pg_trgm` (tìm kiếm mờ trigram).
 

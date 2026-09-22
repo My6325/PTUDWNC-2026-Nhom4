@@ -66,8 +66,7 @@ d:\Nhom4_WebNangCao/src/
 
 #### Bước 1: Khởi tạo Solution và Cấu hình Kết nối Supabase
 - [x] Tạo file Solution `CulinaryBlog.slnx` liên kết 4 project: `CulinaryBlog.Domain`, `CulinaryBlog.Application`, `CulinaryBlog.Infrastructure`, `CulinaryBlog.API`.
-- [x] Cấu hình bảo mật biến môi trường Supabase Cloud PostgreSQL trong `.env.example` và `.env`:
-  `SUPABASE_CONNECTION_STRING="Host=db.ckhzgvwmaldvbxgoimjo.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=...;SSL Mode=Require;Trust Server Certificate=true;"`
+- [x] Cấu hình bảo mật biến môi trường Supabase Cloud PostgreSQL trong `.env.example` và `.env` (`SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_DB_PASSWORD`).
 - [x] Tạo lớp `BaseEntity.cs` trong `CulinaryBlog.Domain/Common/` (`Id`, `CreatedAt`, `UpdatedAt`, `IsDeleted`, `RowVersion`).
 - [x] Tạo hàm tiện ích `GenerateSlug(string text)` trong `CulinaryBlog.Domain/Common/SlugHelper.cs` (chuyển đổi tiếng Việt có dấu thành chuỗi URL không dấu).
 
