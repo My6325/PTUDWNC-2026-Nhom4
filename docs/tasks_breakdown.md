@@ -187,7 +187,7 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
   - Phương thức `GenerateRefreshToken()` (chuỗi ngẫu nhiên 64 bytes).
   - Phương thức `HashToken(string token)` (mã hóa băm SHA-256 lưu CSDL).
   - Phương thức `GetPrincipalFromExpiredToken(string token)` (giải mã token đã hết hạn).
-- [ ] **Database Seeder:** Viết `UserSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) có `PasswordHash` chuẩn ASP.NET Core Identity để TV3 lấy `AuthorId` làm tác giả sở hữu công thức.
+- [x] **Database Seeder:** Viết `UserSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) có `PasswordHash` chuẩn ASP.NET Core Identity để TV3 lấy `AuthorId` làm tác giả sở hữu công thức.
 
 #### Bước 2: Hiện thực FR-AUTH-001 & FR-AUTH-002 (Đăng ký & Đăng nhập Local)
 - [ ] **Request Records:**
@@ -259,7 +259,7 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
   - Khóa ngoại `CategoryId` là **Nullable** (`builder.HasOne(r => r.Category).WithMany().HasForeignKey(r => r.CategoryId).OnDelete(DeleteBehavior.SetNull);`).
   - Cấu hình Concurrency Token: `builder.Property(r => r.RowVersion).IsRowVersion();`.
   - Cấu hình Cascade Delete cho Steps, Ingredients, Images.
-- [ ] **Database Seeder:** Viết `RecipeSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/` sử dụng thư viện `Bogus`: Sinh tự động $\ge 100$ Recipes ngẫu nhiên (lấy `CategoryId` từ TV1 và `AuthorId` từ TV2; mỗi Recipe tự động sinh từ 10–14 `RecipeIngredient` và từ 5–8 `RecipeStep` có `StepNumber = 1, 2, 3...` tăng dần, nhúng đầy đủ `RecipeNutrition`).
+- [x] **Database Seeder:** Viết `RecipeSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/` sử dụng thư viện `Bogus`: Sinh tự động $\ge 100$ Recipes ngẫu nhiên (lấy `CategoryId` từ TV1 và `AuthorId` từ TV2; mỗi Recipe tự động sinh từ 10–14 `RecipeIngredient` và từ 5–8 `RecipeStep` có `StepNumber = 1, 2, 3...` tăng dần, nhúng đầy đủ `RecipeNutrition`).
 
 #### Bước 2: Hiện thực FR-RCP-003 & FR-RCP-004 (Tạo Bản Nháp & Cập nhật Công thức)
 - [ ] **Request Records:**
