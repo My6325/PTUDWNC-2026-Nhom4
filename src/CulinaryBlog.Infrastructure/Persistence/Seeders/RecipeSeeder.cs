@@ -14,9 +14,7 @@ public static class RecipeSeeder
 {
     private const int TargetRecipeCount = 120;
 
-    // UserSeeder của TV2 tạo Author mẫu với ID cố định này.
-    private const string AuthorUserId = "22222222-2222-2222-2222-222222222201";
-    private const string LegacyAuthorUserId = "tv2-author-2312664";
+    private const string AuthorRoleName = "AUTHOR";
 
     private static readonly string[] RecipeTitles =
     [
@@ -80,10 +78,8 @@ public static class RecipeSeeder
 
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        await EnsureRecipeTablesExistAsync(context);
-        await EnsureAuthorExistsAsync(context);
-        await NormalizeLegacyAuthorAsync(context);
-        await RemoveLegacyAuthorIfUnusedAsync(context);
+        // await EnsureRecipeTablesExistAsync(context);
+        var authorIds = await GetAuthorIdsAsync(context);
 
         var existingRecipeCount = await context.Recipes.CountAsync();
         if (existingRecipeCount >= TargetRecipeCount)
@@ -92,104 +88,104 @@ public static class RecipeSeeder
         }
 
         var categoryIds = await GetCategoryIdsAsync(context);
-        var recipes = CreateRecipes(existingRecipeCount, categoryIds);
+        var recipes = CreateRecipes(existingRecipeCount, categoryIds, authorIds);
 
         await context.Recipes.AddRangeAsync(recipes);
         await context.SaveChangesAsync();
     }
 
-    private static async Task EnsureRecipeTablesExistAsync(ApplicationDbContext context)
-    {
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "Recipes" (
-                "Id" uuid NOT NULL,
-                "Title" character varying(200) NOT NULL,
-                "Slug" character varying(220) NOT NULL,
-                "Description" text NULL,
-                "Instructions" text NULL,
-                "PrepTimeMinutes" integer NOT NULL,
-                "CookTimeMinutes" integer NOT NULL,
-                "Servings" integer NOT NULL,
-                "Difficulty" integer NOT NULL,
-                "Status" integer NOT NULL,
-                "CategoryId" uuid NULL,
-                "AuthorId" character varying(450) NOT NULL,
-                "Nutrition_Calories" integer NULL,
-                "Nutrition_Protein" numeric(10,2) NULL,
-                "Nutrition_Carbohydrates" numeric(10,2) NULL,
-                "Nutrition_Fat" numeric(10,2) NULL,
-                "Nutrition_Fiber" numeric(10,2) NULL,
-                "Nutrition_Sodium" numeric(10,2) NULL,
-                "CreatedAt" timestamp with time zone NOT NULL,
-                "UpdatedAt" timestamp with time zone NULL,
-                "IsDeleted" boolean NOT NULL,
-                "DeletedAt" timestamp with time zone NULL,
-                CONSTRAINT "PK_Recipes" PRIMARY KEY ("Id"),
-                CONSTRAINT "FK_Recipes_Categories_CategoryId" FOREIGN KEY ("CategoryId")
-                    REFERENCES "Categories" ("Id") ON DELETE SET NULL
-            );
+    // private static async Task EnsureRecipeTablesExistAsync(ApplicationDbContext context)
+    // {
+    //     await context.Database.ExecuteSqlRawAsync("""
+    //         CREATE TABLE IF NOT EXISTS "Recipes" (
+    //             "Id" uuid NOT NULL,
+    //             "Title" character varying(200) NOT NULL,
+    //             "Slug" character varying(220) NOT NULL,
+    //             "Description" text NULL,
+    //             "Instructions" text NULL,
+    //             "PrepTimeMinutes" integer NOT NULL,
+    //             "CookTimeMinutes" integer NOT NULL,
+    //             "Servings" integer NOT NULL,
+    //             "Difficulty" integer NOT NULL,
+    //             "Status" integer NOT NULL,
+    //             "CategoryId" uuid NULL,
+    //             "AuthorId" character varying(450) NOT NULL,
+    //             "Nutrition_Calories" integer NULL,
+    //             "Nutrition_Protein" numeric(10,2) NULL,
+    //             "Nutrition_Carbohydrates" numeric(10,2) NULL,
+    //             "Nutrition_Fat" numeric(10,2) NULL,
+    //             "Nutrition_Fiber" numeric(10,2) NULL,
+    //             "Nutrition_Sodium" numeric(10,2) NULL,
+    //             "CreatedAt" timestamp with time zone NOT NULL,
+    //             "UpdatedAt" timestamp with time zone NULL,
+    //             "IsDeleted" boolean NOT NULL,
+    //             "DeletedAt" timestamp with time zone NULL,
+    //             CONSTRAINT "PK_Recipes" PRIMARY KEY ("Id"),
+    //             CONSTRAINT "FK_Recipes_Categories_CategoryId" FOREIGN KEY ("CategoryId")
+    //                 REFERENCES "Categories" ("Id") ON DELETE SET NULL
+    //         );
 
-            CREATE TABLE IF NOT EXISTS "RecipeImages" (
-                "Id" uuid NOT NULL,
-                "RecipeId" uuid NOT NULL,
-                "OriginalUrl" text NOT NULL,
-                "MediumUrl" text NULL,
-                "ThumbnailUrl" text NULL,
-                "IsPrimary" boolean NOT NULL,
-                "OrderIndex" integer NOT NULL,
-                "CreatedAt" timestamp with time zone NOT NULL,
-                "UpdatedAt" timestamp with time zone NULL,
-                "IsDeleted" boolean NOT NULL,
-                "DeletedAt" timestamp with time zone NULL,
-                "RowVersion" bigint NOT NULL,
-                CONSTRAINT "PK_RecipeImages" PRIMARY KEY ("Id"),
-                CONSTRAINT "FK_RecipeImages_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
-                    REFERENCES "Recipes" ("Id") ON DELETE CASCADE
-            );
+    //         CREATE TABLE IF NOT EXISTS "RecipeImages" (
+    //             "Id" uuid NOT NULL,
+    //             "RecipeId" uuid NOT NULL,
+    //             "OriginalUrl" text NOT NULL,
+    //             "MediumUrl" text NULL,
+    //             "ThumbnailUrl" text NULL,
+    //             "IsPrimary" boolean NOT NULL,
+    //             "OrderIndex" integer NOT NULL,
+    //             "CreatedAt" timestamp with time zone NOT NULL,
+    //             "UpdatedAt" timestamp with time zone NULL,
+    //             "IsDeleted" boolean NOT NULL,
+    //             "DeletedAt" timestamp with time zone NULL,
+    //             "RowVersion" bigint NOT NULL,
+    //             CONSTRAINT "PK_RecipeImages" PRIMARY KEY ("Id"),
+    //             CONSTRAINT "FK_RecipeImages_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
+    //                 REFERENCES "Recipes" ("Id") ON DELETE CASCADE
+    //         );
 
-            CREATE TABLE IF NOT EXISTS "RecipeIngredients" (
-                "Id" uuid NOT NULL,
-                "RecipeId" uuid NOT NULL,
-                "Name" text NOT NULL,
-                "Quantity" numeric NULL,
-                "Unit" text NULL,
-                "Notes" text NULL,
-                "OrderIndex" integer NOT NULL,
-                "CreatedAt" timestamp with time zone NOT NULL,
-                "UpdatedAt" timestamp with time zone NULL,
-                "IsDeleted" boolean NOT NULL,
-                "DeletedAt" timestamp with time zone NULL,
-                "RowVersion" bigint NOT NULL,
-                CONSTRAINT "PK_RecipeIngredients" PRIMARY KEY ("Id"),
-                CONSTRAINT "FK_RecipeIngredients_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
-                    REFERENCES "Recipes" ("Id") ON DELETE CASCADE
-            );
+    //         CREATE TABLE IF NOT EXISTS "RecipeIngredients" (
+    //             "Id" uuid NOT NULL,
+    //             "RecipeId" uuid NOT NULL,
+    //             "Name" text NOT NULL,
+    //             "Quantity" numeric NULL,
+    //             "Unit" text NULL,
+    //             "Notes" text NULL,
+    //             "OrderIndex" integer NOT NULL,
+    //             "CreatedAt" timestamp with time zone NOT NULL,
+    //             "UpdatedAt" timestamp with time zone NULL,
+    //             "IsDeleted" boolean NOT NULL,
+    //             "DeletedAt" timestamp with time zone NULL,
+    //             "RowVersion" bigint NOT NULL,
+    //             CONSTRAINT "PK_RecipeIngredients" PRIMARY KEY ("Id"),
+    //             CONSTRAINT "FK_RecipeIngredients_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
+    //                 REFERENCES "Recipes" ("Id") ON DELETE CASCADE
+    //         );
 
-            CREATE TABLE IF NOT EXISTS "RecipeSteps" (
-                "Id" uuid NOT NULL,
-                "RecipeId" uuid NOT NULL,
-                "StepNumber" integer NOT NULL,
-                "Title" text NOT NULL,
-                "Description" text NOT NULL,
-                "TimerMinutes" integer NULL,
-                "ImageUrl" text NULL,
-                "CreatedAt" timestamp with time zone NOT NULL,
-                "UpdatedAt" timestamp with time zone NULL,
-                "IsDeleted" boolean NOT NULL,
-                "DeletedAt" timestamp with time zone NULL,
-                "RowVersion" bigint NOT NULL,
-                CONSTRAINT "PK_RecipeSteps" PRIMARY KEY ("Id"),
-                CONSTRAINT "FK_RecipeSteps_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
-                    REFERENCES "Recipes" ("Id") ON DELETE CASCADE
-            );
+    //         CREATE TABLE IF NOT EXISTS "RecipeSteps" (
+    //             "Id" uuid NOT NULL,
+    //             "RecipeId" uuid NOT NULL,
+    //             "StepNumber" integer NOT NULL,
+    //             "Title" text NOT NULL,
+    //             "Description" text NOT NULL,
+    //             "TimerMinutes" integer NULL,
+    //             "ImageUrl" text NULL,
+    //             "CreatedAt" timestamp with time zone NOT NULL,
+    //             "UpdatedAt" timestamp with time zone NULL,
+    //             "IsDeleted" boolean NOT NULL,
+    //             "DeletedAt" timestamp with time zone NULL,
+    //             "RowVersion" bigint NOT NULL,
+    //             CONSTRAINT "PK_RecipeSteps" PRIMARY KEY ("Id"),
+    //             CONSTRAINT "FK_RecipeSteps_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
+    //                 REFERENCES "Recipes" ("Id") ON DELETE CASCADE
+    //         );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS "IX_Recipes_Slug" ON "Recipes" ("Slug");
-            CREATE INDEX IF NOT EXISTS "IX_Recipes_CategoryId" ON "Recipes" ("CategoryId");
-            CREATE INDEX IF NOT EXISTS "IX_RecipeImages_RecipeId" ON "RecipeImages" ("RecipeId");
-            CREATE INDEX IF NOT EXISTS "IX_RecipeIngredients_RecipeId" ON "RecipeIngredients" ("RecipeId");
-            CREATE INDEX IF NOT EXISTS "IX_RecipeSteps_RecipeId" ON "RecipeSteps" ("RecipeId");
-            """);
-    }
+    //         CREATE UNIQUE INDEX IF NOT EXISTS "IX_Recipes_Slug" ON "Recipes" ("Slug");
+    //         CREATE INDEX IF NOT EXISTS "IX_Recipes_CategoryId" ON "Recipes" ("CategoryId");
+    //         CREATE INDEX IF NOT EXISTS "IX_RecipeImages_RecipeId" ON "RecipeImages" ("RecipeId");
+    //         CREATE INDEX IF NOT EXISTS "IX_RecipeIngredients_RecipeId" ON "RecipeIngredients" ("RecipeId");
+    //         CREATE INDEX IF NOT EXISTS "IX_RecipeSteps_RecipeId" ON "RecipeSteps" ("RecipeId");
+    //         """);
+    // }
 
     private static async Task<List<Guid>> GetCategoryIdsAsync(ApplicationDbContext context)
     {
@@ -213,7 +209,10 @@ public static class RecipeSeeder
             .ToListAsync();
     }
 
-    private static List<Recipe> CreateRecipes(int existingRecipeCount, IReadOnlyList<Guid> categoryIds)
+    private static List<Recipe> CreateRecipes(
+        int existingRecipeCount,
+        IReadOnlyList<Guid> categoryIds,
+        IReadOnlyList<string> authorIds)
     {
         Randomizer.Seed = new Random(2312802);
         var faker = new Faker("vi");
@@ -242,7 +241,7 @@ public static class RecipeSeeder
                 Difficulty = faker.PickRandom<RecipeDifficulty>(),
                 Status = RecipeStatus.Published,
                 CategoryId = categoryIds[(recipeNumber - 1) % categoryIds.Count],
-                AuthorId = AuthorUserId,
+                AuthorId = authorIds[(recipeNumber - 1) % authorIds.Count],
                 Nutrition = new RecipeNutrition
                 {
                     Calories = faker.Random.Int(180, 850),
@@ -264,57 +263,36 @@ public static class RecipeSeeder
         return recipes;
     }
 
-    private static async Task EnsureAuthorExistsAsync(ApplicationDbContext context)
+    private static async Task<List<string>> GetAuthorIdsAsync(ApplicationDbContext context)
     {
-        var authorExists = await context.Users.AnyAsync(user => user.Id == AuthorUserId);
-        if (authorExists)
+        var authorRoleId = await context.Roles
+            .Where(role => role.NormalizedName == AuthorRoleName)
+            .Select(role => role.Id)
+            .SingleOrDefaultAsync();
+
+        if (string.IsNullOrWhiteSpace(authorRoleId))
         {
-            return;
+            throw new InvalidOperationException(
+                "Author role from UserSeeder is missing. Run UserSeeder before RecipeSeeder.");
+        }
+
+        var authorIds = await context.UserRoles
+            .Where(userRole => userRole.RoleId == authorRoleId)
+            .Join(
+                context.Users.Where(user => user.IsActive),
+                userRole => userRole.UserId,
+                user => user.Id,
+                (userRole, user) => user.Id)
+            .OrderBy(userId => userId)
+            .ToListAsync();
+
+        if (authorIds.Count > 0)
+        {
+            return authorIds;
         }
 
         throw new InvalidOperationException(
-            "Author user from UserSeeder is missing. Run UserSeeder before RecipeSeeder. Expected user ID: 22222222-2222-2222-2222-222222222201.");
-    }
-
-    private static async Task NormalizeLegacyAuthorAsync(ApplicationDbContext context)
-    {
-        var legacyRecipes = await context.Recipes
-            .Where(recipe => recipe.AuthorId == LegacyAuthorUserId)
-            .ToListAsync();
-
-        if (legacyRecipes.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var recipe in legacyRecipes)
-        {
-            recipe.AuthorId = AuthorUserId;
-        }
-
-        await context.SaveChangesAsync();
-    }
-
-    private static async Task RemoveLegacyAuthorIfUnusedAsync(ApplicationDbContext context)
-    {
-        var legacyAuthorIsUsed = await context.Recipes
-            .AnyAsync(recipe => recipe.AuthorId == LegacyAuthorUserId);
-
-        if (legacyAuthorIsUsed)
-        {
-            return;
-        }
-
-        var legacyAuthor = await context.Users
-            .FirstOrDefaultAsync(user => user.Id == LegacyAuthorUserId);
-
-        if (legacyAuthor is null)
-        {
-            return;
-        }
-
-        context.Users.Remove(legacyAuthor);
-        await context.SaveChangesAsync();
+            "No active Author users found. Run UserSeeder before RecipeSeeder.");
     }
 
     private static void AddIngredients(
