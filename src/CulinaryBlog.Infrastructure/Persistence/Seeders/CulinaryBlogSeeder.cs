@@ -34,7 +34,12 @@ public static class CulinaryBlogSeeder
             Console.ResetColor();
 
             // 2. Chỗ cắm nạp tài khoản người dùng mẫu (TV2 - Linh phụ trách UserSeeder)
-            // await UserSeeder.SeedAsync(scope.ServiceProvider);
+            await UserSeeder.SeedAsync(scope.ServiceProvider);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("==> [Seeder] Đã nạp THÀNH CÔNG tài khoản User mẫu!");
+            Console.WriteLine("=======================================================\n");
+            Console.ResetColor();
 
             // 3. Chỗ cắm nạp 100 công thức ngẫu nhiên Bogus (TV3 - Vương phụ trách RecipeSeeder)
             // await RecipeSeeder.SeedAsync(context);
