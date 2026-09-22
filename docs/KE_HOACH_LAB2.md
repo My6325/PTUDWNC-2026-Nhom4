@@ -63,7 +63,7 @@
 * **Vị trí trong `tasks_breakdown.md`:** **Mục 2 (Ma trận CSDL)** và **Mục 3: TV4 - Bước 1**.
 * **Nhiệm vụ cụ thể trong Lab 2:**
   1. *[Phối hợp Hạ tầng]* Cùng TV1 đảm bảo `ApplicationDbContext` kích hoạt sẵn extension `unaccent` và `pg_trgm`, cấu hình Generated Column `SearchVector` và chỉ mục **GIN Index** trong `RecipeConfiguration.cs`.
-  2. **[Cần làm ngay]:** Kiểm định chất lượng tập dữ liệu $\ge$ 100 công thức và $\ge$ 20 danh mục do các Seeder nạp vào; kiểm tra tính toàn vẹn dữ liệu mẫu phục vụ phân trang an toàn (`PaginatedResult<T>`) và tìm kiếm FTS không dấu.
+  2. **[Đã triển khai TV4 - Bước 1]:** Đã bổ sung repository LINQ FTS không dấu, `PaginatedResult<T>` và bộ kiểm thử tích hợp Supabase cho tìm kiếm/phân trang. Nghiệm thu thực tế cần chạy khi Supabase có đủ $\ge$ 100 công thức và môi trường có kết nối mạng.
 
 ---
 
