@@ -187,7 +187,7 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
   - Phương thức `GenerateRefreshToken()` (chuỗi ngẫu nhiên 64 bytes).
   - Phương thức `HashToken(string token)` (mã hóa băm SHA-256 lưu CSDL).
   - Phương thức `GetPrincipalFromExpiredToken(string token)` (giải mã token đã hết hạn).
-- [ ] **Database Seeder:** Viết `UserSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) có `PasswordHash` chuẩn ASP.NET Core Identity để TV3 lấy `AuthorId` làm tác giả sở hữu công thức.
+- [x] **Database Seeder:** Viết `UserSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) có `PasswordHash` chuẩn ASP.NET Core Identity để TV3 lấy `AuthorId` làm tác giả sở hữu công thức.
 
 #### Bước 2: Hiện thực FR-AUTH-001 & FR-AUTH-002 (Đăng ký & Đăng nhập Local)
 - [ ] **Request Records:**

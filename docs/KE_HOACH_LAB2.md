@@ -63,7 +63,11 @@
 * **Vị trí trong `tasks_breakdown.md`:** **Mục 2 (Ma trận CSDL)** và **Mục 3: TV4 - Bước 1**.
 * **Nhiệm vụ cụ thể trong Lab 2:**
   1. *[Phối hợp Hạ tầng]* Cùng TV1 đảm bảo `ApplicationDbContext` kích hoạt sẵn extension `unaccent` và `pg_trgm`, cấu hình Generated Column `SearchVector` và chỉ mục **GIN Index** trong `RecipeConfiguration.cs`.
+<<<<<<< Updated upstream
   2. **[Cần làm ngay]:** Kiểm định chất lượng tập dữ liệu $\ge$ 100 công thức và $\ge$ 20 danh mục do các Seeder nạp vào; kiểm tra tính toàn vẹn dữ liệu mẫu phục vụ phân trang an toàn (`PaginatedResult<T>`) và tìm kiếm FTS không dấu.
+=======
+  2. *[Đã hoàn thành & Đã merge]* Xây dựng lớp phân trang dùng chung `PaginatedResult<T>`, tạo interface `IRecipeRepository.cs` và cài đặt `RecipeRepository.cs` (tìm kiếm LINQ FTS tiếng Việt không dấu kết hợp `unaccent`, `ToTsVector`, `PlainToTsQuery`). Tạo project kiểm thử tích hợp xUnit (`CulinaryBlog.Infrastructure.IntegrationTests`) với `RecipeRepositorySupabaseTests.cs` kiểm định tự động CSDL.
+>>>>>>> Stashed changes
 
 ---
 
@@ -110,7 +114,7 @@ flowchart TD
 ### 🔹 BƯỚC 4: Kích hoạt Seeder trong `Program.cs` & Nghiệm thu (TV1 & TV4)
 * **Người thực hiện:**
   - **TV1 (Trưởng nhóm):** [Đã hoàn thành] Tích hợp gọi `await CulinaryBlogSeeder.SeedAsync(app.Services);` trong `Program.cs`.
-  - **TV4 (Đoan):** [Cần làm sau khi nạp đủ data] Kiểm định chất lượng dữ liệu FTS và phân trang trên Supabase.
+  - **TV4 (Đoan):** [Đã hoàn thành code kiểm thử] Đã xây dựng sẵn bộ test tự động xUnit `RecipeRepositorySupabaseTests.cs`; Sẵn sàng chạy kiểm định tự động ngay khi TV3 nạp đủ 100 công thức.
 * **Kiểm tra nghiệm thu (Definition of Done Lab 2):**
   1. Chạy `dotnet run --project CulinaryBlog.API`.
   2. Mở trình duyệt vào Supabase Dashboard:
