@@ -3,7 +3,6 @@
 > **Mã định danh:** `WBS-CULINARY-BLOG-V2.1`
 > **Môn học:** Phát triển Ứng dụng Web Nâng cao (PTUDWNC) – Nhóm 4
 > **Căn cứ yêu cầu:** Bám sát 100% tài liệu đặc tả gốc **SRS v1.0.0 (IEEE 830)** gồm đúng **27 Yêu cầu Chức năng (FR)** cốt lõi.
-> **Cơ chế phân bổ cân bằng:** Chuyển giao 2 chức năng Giám sát & Quan sát (`FR-OBS-002` và `FR-OBS-003`) từ Thành viên 4 sang Trưởng nhóm nhằm gom trọn Module FR-OBS về Trưởng nhóm phụ trách, nâng độ khó của Trưởng nhóm lên **Trung bình đến Khá** và giảm tải cho Thành viên 4 để đảm bảo khối lượng công việc đồng đều toàn đội ngũ.
 > **Vị trí lưu trữ:** `docs/tasks_breakdown.md`
 
 ---
