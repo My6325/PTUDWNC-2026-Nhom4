@@ -41,8 +41,8 @@ public static class CulinaryBlogSeeder
             Console.WriteLine("=======================================================\n");
             Console.ResetColor();
 
-            // 3. Chỗ cắm nạp 100 công thức ngẫu nhiên Bogus (TV3 - Vương phụ trách RecipeSeeder)
-            // await RecipeSeeder.SeedAsync(context);
+            // 3. Nạp 100+ công thức ngẫu nhiên Bogus (TV3 - Vương phụ trách RecipeSeeder)
+            await RecipeSeeder.SeedAsync(context);
         }
         catch (Exception ex)
         {
