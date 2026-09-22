@@ -1,5 +1,7 @@
 using CulinaryBlog.Infrastructure;
+using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
+using Microsoft.EntityFrameworkCore;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -34,6 +36,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+// Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await context.Database.MigrateAsync();
+}
 
 // Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
 await CulinaryBlogSeeder.SeedAsync(app.Services);

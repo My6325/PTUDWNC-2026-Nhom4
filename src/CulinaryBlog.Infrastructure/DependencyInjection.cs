@@ -2,6 +2,7 @@ using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Domain.Entities;
 using CulinaryBlog.Domain.Settings;
 using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Persistence.Repositories;
 using CulinaryBlog.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +63,9 @@ public static class DependencyInjection
 
         // 4. Đăng ký JwtService với lifetime Scoped
         services.AddScoped<IJwtService, JwtService>();
+
+        // 5. Đăng ký repository nghiệp vụ
+        services.AddScoped<IRecipeRepository, RecipeRepository>();
 
         return services;
     }
