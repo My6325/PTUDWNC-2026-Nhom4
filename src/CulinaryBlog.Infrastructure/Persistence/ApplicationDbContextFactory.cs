@@ -29,7 +29,13 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
                 var parts = trimmed.Split('=', 2);
                 if (parts.Length == 2)
                 {
-                    Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+                    var key = parts[0].Trim();
+                    var val = parts[1].Trim().Trim('"', '\'');
+                    if (val.StartsWith("SUPABASE_CONNECTION_STRING=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        val = val.Substring("SUPABASE_CONNECTION_STRING=".Length).Trim().Trim('"', '\'');
+                    }
+                    Environment.SetEnvironmentVariable(key, val);
                 }
             }
         }
