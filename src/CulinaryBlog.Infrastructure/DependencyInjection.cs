@@ -39,6 +39,8 @@ public static class DependencyInjection
             });
         });
 
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
         // 2. Cấu hình ASP.NET Core Identity & Data Protection
         services.AddDataProtection();
 
