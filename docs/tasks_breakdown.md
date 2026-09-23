@@ -119,14 +119,14 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] Tích hợp và điều phối chạy EF Core Migration (`InitialCreate`) và bộ Seeder tổng hợp trong `Program.cs`.
 
 #### Bước 2: Hiện thực FR-CAT-001 & FR-CAT-002 (Xem Danh sách & Chi tiết Danh mục)
-- [ ] **Domain Entity:** Tạo thực thể `Category.cs` trong `CulinaryBlog.Domain/Entities/` (`Name`, `Slug`, `Description`, `ImageUrl`, `OrderIndex`).
-- [ ] **DTOs:** Tạo `CategoryDto.cs` và `CategoryDetailDto.cs` trong `CulinaryBlog.Application/DTOs/`.
-- [ ] **CQRS Queries & Handlers:**
+- [x] **Domain Entity:** Tạo thực thể `Category.cs` trong `CulinaryBlog.Domain/Entities/` (Đã hoàn thành từ Bước 1 phục vụ DbContext & Seeder).
+- [x] **DTOs:** Tạo `CategoryDto.cs`, `CategoryRecipeSummaryDto.cs` và `CategoryDetailDto.cs` trong `CulinaryBlog.Application/DTOs/`.
+- [x] **CQRS Queries & Handlers:**
   - Tạo `GetCategoriesQuery` (`record GetCategoriesQuery() : IRequest<List<CategoryDto>>;`).
   - Tạo `GetCategoriesQueryHandler`: Triển khai cache in-memory (`IMemoryCache` TTL 60 phút) với key `"categories:all"`, sử dụng Mapster `.ProjectToType<CategoryDto>()`.
-  - Tạo `GetCategoryBySlugQuery` (`record GetCategoryBySlugQuery(string Slug) : IRequest<CategoryDetailDto>;`).
-  - Tạo `GetCategoryBySlugQueryHandler`: Tìm kiếm danh mục theo Slug, nạp danh sách công thức liên quan bằng `.AsNoTracking()`.
-- [ ] **API Endpoints:** Đăng ký các endpoints trong `CulinaryBlog.API/Endpoints/CategoryEndpoints.cs`:
+  - Tạo `GetCategoryBySlugQuery` (`record GetCategoryBySlugQuery(string Slug) : IRequest<CategoryDetailDto?>;`).
+  - Tạo `GetCategoryBySlugQueryHandler`: Tìm kiếm danh mục theo Slug, nạp danh sách tóm tắt các công thức liên quan bằng `.AsNoTracking()` (chỉ lấy Title, Slug, PrimaryImage, CookTime, Difficulty; lưu ý: chức năng xem toàn bộ chi tiết công thức nấu ăn chuyên sâu FR-RCP-002 do TV4 phụ trách).
+- [x] **API Endpoints:** Đăng ký các endpoints trong `CulinaryBlog.API/Endpoints/CategoryEndpoints.cs`:
   - `app.MapGet("/api/v1/categories", ...)` với OpenAPI metadata.
   - `app.MapGet("/api/v1/categories/{slug}", ...)`.
 - [ ] **Frontend Hooks & UI:**

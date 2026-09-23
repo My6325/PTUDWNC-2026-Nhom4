@@ -67,6 +67,9 @@ public static class DependencyInjection
         // 5. Đăng ký repository nghiệp vụ
         services.AddScoped<IRecipeRepository, RecipeRepository>();
 
+        // 6. Đăng ký IApplicationDbContext phục vụ tầng Application
+        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
         return services;
     }
 }
