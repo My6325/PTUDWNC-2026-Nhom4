@@ -40,7 +40,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
             }
         }
 
-        var connectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING");
+        var connectionString = SupabaseConnectionStringResolver.ResolveFromEnvironment();
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(connectionString, npgsqlOptions =>

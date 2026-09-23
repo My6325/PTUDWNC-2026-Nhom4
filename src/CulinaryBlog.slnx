@@ -4,4 +4,5 @@
   <Project Path="CulinaryBlog.Domain/CulinaryBlog.Domain.csproj" />
   <Project Path="CulinaryBlog.Infrastructure/CulinaryBlog.Infrastructure.csproj" />
   <Project Path="../tests/CulinaryBlog.Infrastructure.IntegrationTests/CulinaryBlog.Infrastructure.IntegrationTests.csproj" />
+  <Project Path="../tests/CulinaryBlog.Application.UnitTests/CulinaryBlog.Application.UnitTests.csproj" />
 </Solution>

@@ -12,8 +12,10 @@ namespace CulinaryBlog.Infrastructure.Persistence.Seeders;
 /// </summary>
 public static class RecipeSeeder
 {
+    // Tổng số công thức mẫu cần có trong cơ sở dữ liệu.
     private const int TargetRecipeCount = 120;
 
+    // NormalizedName của vai trò Author trong ASP.NET Core Identity.
     private const string AuthorRoleName = "AUTHOR";
 
     private static readonly string[] RecipeTitles =
@@ -78,15 +80,17 @@ public static class RecipeSeeder
 
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        // await EnsureRecipeTablesExistAsync(context);
+        // Lấy các tài khoản Author do UserSeeder tạo để gán làm tác giả công thức.
         var authorIds = await GetAuthorIdsAsync(context);
 
+        // Đếm số công thức hiện có để khi chạy lại chương trình không tạo trùng thêm 120 bản ghi.
         var existingRecipeCount = await context.Recipes.CountAsync();
         if (existingRecipeCount >= TargetRecipeCount)
         {
             return;
         }
 
+        // Lấy danh mục do CategorySeeder tạo và chỉ sinh số công thức còn thiếu đến mốc 120.
         var categoryIds = await GetCategoryIdsAsync(context);
         var recipes = CreateRecipes(existingRecipeCount, categoryIds, authorIds);
 
@@ -189,6 +193,7 @@ public static class RecipeSeeder
 
     private static async Task<List<Guid>> GetCategoryIdsAsync(ApplicationDbContext context)
     {
+        // Đọc trực tiếp CategoryId có sẵn thay vì ghi cứng ID của thành viên khác.
         var categoryIds = await context.Categories
             .AsNoTracking()
             .OrderBy(category => category.OrderIndex)
@@ -200,6 +205,7 @@ public static class RecipeSeeder
             return categoryIds;
         }
 
+        // Nếu chưa có danh mục, chạy CategorySeeder trước rồi truy vấn lại.
         await CategorySeeder.SeedAsync(context);
 
         return await context.Categories
@@ -214,8 +220,11 @@ public static class RecipeSeeder
         IReadOnlyList<Guid> categoryIds,
         IReadOnlyList<string> authorIds)
     {
+        // Seed cố định theo MSSV để các lần tạo mới cho kết quả ngẫu nhiên có thể tái lập.
         Randomizer.Seed = new Random(2312802);
         var faker = new Faker("vi");
+
+        // Ví dụ đã có 20 công thức thì chỉ tạo thêm 100 để đạt tổng cộng 120.
         var recipesToCreate = TargetRecipeCount - existingRecipeCount;
         var recipes = new List<Recipe>(recipesToCreate);
 
@@ -240,6 +249,7 @@ public static class RecipeSeeder
                 Servings = faker.Random.Int(2, 8),
                 Difficulty = faker.PickRandom<RecipeDifficulty>(),
                 Status = RecipeStatus.Published,
+                // Phân bổ luân phiên công thức cho các danh mục và tác giả hiện có.
                 CategoryId = categoryIds[(recipeNumber - 1) % categoryIds.Count],
                 AuthorId = authorIds[(recipeNumber - 1) % authorIds.Count],
                 Nutrition = new RecipeNutrition
@@ -265,6 +275,7 @@ public static class RecipeSeeder
 
     private static async Task<List<string>> GetAuthorIdsAsync(ApplicationDbContext context)
     {
+        // Tìm ID của vai trò Author từ bảng AspNetRoles.
         var authorRoleId = await context.Roles
             .Where(role => role.NormalizedName == AuthorRoleName)
             .Select(role => role.Id)
@@ -276,6 +287,8 @@ public static class RecipeSeeder
                 "Author role from UserSeeder is missing. Run UserSeeder before RecipeSeeder.");
         }
 
+        // Join AspNetUserRoles với AspNetUsers để lấy mọi Author đang hoạt động.
+        // Nhờ vậy khi có thêm Author mới, RecipeSeeder vẫn tự động sử dụng được.
         var authorIds = await context.UserRoles
             .Where(userRole => userRole.RoleId == authorRoleId)
             .Join(
@@ -302,6 +315,7 @@ public static class RecipeSeeder
         int ingredientCount,
         Faker faker)
     {
+        // Mỗi công thức có từ 10 đến 14 nguyên liệu, đúng yêu cầu bài tập.
         var ingredientNames = faker.Random.ListItems(IngredientNames, ingredientCount);
 
         for (var orderIndex = 1; orderIndex <= ingredientCount; orderIndex++)
@@ -321,6 +335,7 @@ public static class RecipeSeeder
 
     private static void AddSteps(Recipe recipe, Guid recipeId, int recipeNumber, int stepCount, Faker faker)
     {
+        // Mỗi công thức có từ 5 đến 8 bước và StepNumber tăng liên tục từ 1.
         for (var stepNumber = 1; stepNumber <= stepCount; stepNumber++)
         {
             recipe.Steps.Add(new RecipeStep
@@ -340,6 +355,7 @@ public static class RecipeSeeder
 
     private static void AddImage(Recipe recipe, Guid recipeId, int recipeNumber)
     {
+        // Tạo một ảnh chính với ba kích thước để phục vụ các giao diện khác nhau.
         recipe.Images.Add(new RecipeImage
         {
             Id = CreateImageId(recipeNumber),
@@ -359,6 +375,7 @@ public static class RecipeSeeder
 
     private static Guid CreateRecipeId(int recipeNumber)
     {
+        // Dùng GUID xác định để dễ nhận biết và tránh thay đổi ID giữa các lần tạo lại dữ liệu.
         return Guid.Parse($"33333333-3333-3333-3333-{recipeNumber:D12}");
     }
 
