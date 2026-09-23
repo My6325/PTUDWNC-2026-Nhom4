@@ -15,4 +15,23 @@ public class RecipeIngredient : BaseEntity
     public string? Notes { get; set; }
 
     public int OrderIndex { get; set; }
+
+    public static RecipeIngredient Create(
+        Guid recipeId,
+        int orderIndex,
+        string name,
+        decimal? quantity,
+        string? unit,
+        string? notes)
+    {
+        return new RecipeIngredient
+        {
+            RecipeId = recipeId,
+            OrderIndex = orderIndex,
+            Name = name.Trim(),
+            Quantity = quantity,
+            Unit = unit?.Trim(),
+            Notes = notes?.Trim()
+        };
+    }
 }

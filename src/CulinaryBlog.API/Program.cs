@@ -1,3 +1,9 @@
+using CulinaryBlog.API.Authorization;
+using CulinaryBlog.API.Caching;
+using CulinaryBlog.API.Endpoints;
+using CulinaryBlog.API.ExceptionHandling;
+using CulinaryBlog.Application;
+using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
@@ -32,10 +38,23 @@ if (currentDir != null)
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddApplication();
+
 // Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT)
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddOutputCache();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, RecipeAuthorizationHandler>();
+builder.Services.AddScoped<IRecipeAuthorizationService, RecipeAuthorizationService>();
+builder.Services.AddScoped<IRecipeCacheInvalidator, RecipeCacheInvalidator>();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseOutputCache();
 
 // Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
 using (var scope = app.Services.CreateScope())
@@ -48,5 +67,6 @@ using (var scope = app.Services.CreateScope())
 await CulinaryBlogSeeder.SeedAsync(app.Services);
 
 app.MapGet("/", () => "Culinary Blog API is running!");
+app.MapRecipeEndpoints();
 
 app.Run();
