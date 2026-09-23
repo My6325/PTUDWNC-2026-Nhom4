@@ -44,6 +44,7 @@ project.lock.json
 coverage/
 *.coverage
 *.coveragexml
+/tests/
 
 # -------------------------------------------------------------------
 # 3. Next.js 15 / Node.js / React

@@ -1,10 +1,10 @@
 using CulinaryBlog.API.Endpoints;
-using CulinaryBlog.Application.Contracts;
+using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -35,25 +35,64 @@ if (currentDir != null)
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT)
+// 2. Đăng ký các dịch vụ tầng Application (MediatR, FluentValidation)
+builder.Services.AddApplication();
+
+// 3. Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CulinaryBlog.Application.Contracts.IJwtService).Assembly));
-builder.Services.AddValidatorsFromAssembly(typeof(CulinaryBlog.Application.Contracts.IJwtService).Assembly);
+
+// 4. Đăng ký Output Cache cho Recipes
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("RecipesCache", policy => policy
+        .Expire(TimeSpan.FromMinutes(15))
+        .SetVaryByQuery("*")
+        .Tag("recipes"));
+});
 
 var app = builder.Build();
 
-// Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
+// 5. Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
 }
 
-// Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
+// 6. Cấu hình trang test frontend tĩnh trong môi trường Development
+if (app.Environment.IsDevelopment())
+{
+    var testFrontendPath = Path.GetFullPath(Path.Combine(
+        app.Environment.ContentRootPath,
+        "..",
+        "..",
+        "tests",
+        "RecipeTestFrontend"));
+
+    if (Directory.Exists(testFrontendPath))
+    {
+        var testFrontend = new PhysicalFileProvider(testFrontendPath);
+        app.UseDefaultFiles(new DefaultFilesOptions
+        {
+            FileProvider = testFrontend,
+            RequestPath = "/recipe-test"
+        });
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = testFrontend,
+            RequestPath = "/recipe-test"
+        });
+    }
+}
+
+app.UseOutputCache();
+
+// 7. Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
 await CulinaryBlogSeeder.SeedAsync(app.Services);
 
+// 8. Đăng ký các endpoints nghiệp vụ
 app.MapGet("/", () => "Culinary Blog API is running!");
-
+app.MapRecipeEndpoints();
 app.MapAuthEndpoints();
 
 app.Run();
