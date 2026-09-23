@@ -1,5 +1,8 @@
+using CulinaryBlog.API.Endpoints;
+using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
+using Microsoft.Extensions.FileProviders;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -32,12 +35,48 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT)
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("RecipesCache", policy => policy
+        .Expire(TimeSpan.FromMinutes(15))
+        .SetVaryByQuery("*")
+        .Tag("recipes"));
+});
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    var testFrontendPath = Path.GetFullPath(Path.Combine(
+        app.Environment.ContentRootPath,
+        "..",
+        "..",
+        "tests",
+        "RecipeTestFrontend"));
+
+    if (Directory.Exists(testFrontendPath))
+    {
+        var testFrontend = new PhysicalFileProvider(testFrontendPath);
+        app.UseDefaultFiles(new DefaultFilesOptions
+        {
+            FileProvider = testFrontend,
+            RequestPath = "/recipe-test"
+        });
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = testFrontend,
+            RequestPath = "/recipe-test"
+        });
+    }
+}
+
+app.UseOutputCache();
 
 // Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
 await CulinaryBlogSeeder.SeedAsync(app.Services);
 
 app.MapGet("/", () => "Culinary Blog API is running!");
+app.MapRecipeEndpoints();
 
 app.Run();
