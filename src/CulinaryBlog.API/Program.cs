@@ -1,6 +1,9 @@
+using CulinaryBlog.API.Endpoints;
+using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
@@ -34,6 +37,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT)
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CulinaryBlog.Application.Contracts.IJwtService).Assembly));
+builder.Services.AddValidatorsFromAssembly(typeof(CulinaryBlog.Application.Contracts.IJwtService).Assembly);
 
 var app = builder.Build();
 
@@ -48,5 +53,7 @@ using (var scope = app.Services.CreateScope())
 await CulinaryBlogSeeder.SeedAsync(app.Services);
 
 app.MapGet("/", () => "Culinary Blog API is running!");
+
+app.MapAuthEndpoints();
 
 app.Run();
