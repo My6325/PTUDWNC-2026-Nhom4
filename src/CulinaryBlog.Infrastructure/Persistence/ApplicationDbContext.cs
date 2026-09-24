@@ -10,6 +10,7 @@ namespace CulinaryBlog.Infrastructure.Persistence;
 /// DbContext trung tâm của ứng dụng Culinary Blog kết nối CSDL Supabase PostgreSQL.
 /// Kế thừa IdentityDbContext để quản lý bảng người dùng, vai trò và phân quyền của ASP.NET Core Identity,
 /// đồng thời quản lý các thực thể nghiệp vụ: Recipes, Categories, Steps, Ingredients, Images, RefreshTokens.
+/// Hiện thực interface IApplicationDbContext phục vụ tầng Application theo chuẩn Clean Architecture.
 /// </summary>
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplicationDbContext
 {

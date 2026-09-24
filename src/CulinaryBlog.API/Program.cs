@@ -9,7 +9,7 @@ using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileProviders;
+using Scalar.AspNetCore;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -40,22 +40,25 @@ if (currentDir != null)
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 2. Đăng ký các dịch vụ tầng Application (MediatR, FluentValidation)
+// 2. Đăng ký các dịch vụ tầng Application (MediatR, FluentValidation, Mapster)
 builder.Services.AddApplication();
 
-// 3. Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT, Repositories)
+// 3. Đăng ký In-Memory Cache cho Danh mục ẩm thực (TTL 60 phút)
+builder.Services.AddMemoryCache();
+
+// 4. Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// 4. Đăng ký Exception Handling & Problem Details
+// 5. Đăng ký Exception Handling & Problem Details
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-// 5. Đăng ký Authorization & Cache Services cho Recipes
+// 6. Đăng ký Authorization & Cache Services cho Recipes
 builder.Services.AddSingleton<IAuthorizationHandler, RecipeAuthorizationHandler>();
 builder.Services.AddScoped<IRecipeAuthorizationService, RecipeAuthorizationService>();
 builder.Services.AddScoped<IRecipeCacheInvalidator, RecipeCacheInvalidator>();
 
-// 6. Đăng ký Output Cache cho Recipes
+// 7. Đăng ký Output Cache cho Recipes
 builder.Services.AddOutputCache(options =>
 {
     options.AddPolicy("RecipesCache", policy => policy
@@ -64,53 +67,45 @@ builder.Services.AddOutputCache(options =>
         .Tag("recipes"));
 });
 
+// 8. Đăng ký tài liệu OpenAPI 3.x native của .NET 10
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
-// 7. Cấu hình Middleware pipeline
+// 9. Cấu hình Middleware pipeline
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseOutputCache();
 
-// 8. Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
+// 10. Cấu hình OpenAPI và Scalar UI tương tác trong môi trường Development
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("Culinary Blog API Documentation")
+               .WithTheme(ScalarTheme.Purple)
+               .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
+}
+
+// 11. Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
 }
 
-// 9. Cấu hình trang test frontend tĩnh trong môi trường Development
-if (app.Environment.IsDevelopment())
-{
-    var testFrontendPath = Path.GetFullPath(Path.Combine(
-        app.Environment.ContentRootPath,
-        "..",
-        "..",
-        "tests",
-        "RecipeTestFrontend"));
-
-    if (Directory.Exists(testFrontendPath))
-    {
-        var testFrontend = new PhysicalFileProvider(testFrontendPath);
-        app.UseDefaultFiles(new DefaultFilesOptions
-        {
-            FileProvider = testFrontend,
-            RequestPath = "/recipe-test"
-        });
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = testFrontend,
-            RequestPath = "/recipe-test"
-        });
-    }
-}
-
-// 10. Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
+// 12. Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
 await CulinaryBlogSeeder.SeedAsync(app.Services);
 
-// 11. Đăng ký các endpoints nghiệp vụ
-app.MapGet("/", () => "Culinary Blog API is running!");
+// 13. Đăng ký các endpoints nghiệp vụ của cả nhóm
+app.MapCategoryEndpoints();
 app.MapRecipeEndpoints();
 app.MapAuthEndpoints();
+
+// 14. Chuyển hướng trang chủ sang giao diện tài liệu Scalar UI
+app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 
 app.Run();

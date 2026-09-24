@@ -119,14 +119,14 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] Tích hợp và điều phối chạy EF Core Migration (`InitialCreate`) và bộ Seeder tổng hợp trong `Program.cs`.
 
 #### Bước 2: Hiện thực FR-CAT-001 & FR-CAT-002 (Xem Danh sách & Chi tiết Danh mục)
-- [ ] **Domain Entity:** Tạo thực thể `Category.cs` trong `CulinaryBlog.Domain/Entities/` (`Name`, `Slug`, `Description`, `ImageUrl`, `OrderIndex`).
-- [ ] **DTOs:** Tạo `CategoryDto.cs` và `CategoryDetailDto.cs` trong `CulinaryBlog.Application/DTOs/`.
-- [ ] **CQRS Queries & Handlers:**
+- [x] **Domain Entity:** Tạo thực thể `Category.cs` trong `CulinaryBlog.Domain/Entities/` (Đã hoàn thành từ Bước 1 phục vụ DbContext & Seeder).
+- [x] **DTOs:** Tạo `CategoryDto.cs`, `CategoryRecipeSummaryDto.cs` và `CategoryDetailDto.cs` trong `CulinaryBlog.Application/DTOs/`.
+- [x] **CQRS Queries & Handlers:**
   - Tạo `GetCategoriesQuery` (`record GetCategoriesQuery() : IRequest<List<CategoryDto>>;`).
   - Tạo `GetCategoriesQueryHandler`: Triển khai cache in-memory (`IMemoryCache` TTL 60 phút) với key `"categories:all"`, sử dụng Mapster `.ProjectToType<CategoryDto>()`.
-  - Tạo `GetCategoryBySlugQuery` (`record GetCategoryBySlugQuery(string Slug) : IRequest<CategoryDetailDto>;`).
-  - Tạo `GetCategoryBySlugQueryHandler`: Tìm kiếm danh mục theo Slug, nạp danh sách công thức liên quan bằng `.AsNoTracking()`.
-- [ ] **API Endpoints:** Đăng ký các endpoints trong `CulinaryBlog.API/Endpoints/CategoryEndpoints.cs`:
+  - Tạo `GetCategoryBySlugQuery` (`record GetCategoryBySlugQuery(string Slug) : IRequest<CategoryDetailDto?>;`).
+  - Tạo `GetCategoryBySlugQueryHandler`: Tìm kiếm danh mục theo Slug, nạp danh sách tóm tắt các công thức liên quan bằng `.AsNoTracking()` (chỉ lấy Title, Slug, PrimaryImage, CookTime, Difficulty; lưu ý: chức năng xem toàn bộ chi tiết công thức nấu ăn chuyên sâu FR-RCP-002 do TV4 phụ trách).
+- [x] **API Endpoints:** Đăng ký các endpoints trong `CulinaryBlog.API/Endpoints/CategoryEndpoints.cs`:
   - `app.MapGet("/api/v1/categories", ...)` với OpenAPI metadata.
   - `app.MapGet("/api/v1/categories/{slug}", ...)`.
 - [ ] **Frontend Hooks & UI:**
@@ -169,7 +169,7 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 
 #### Bước 8: Hiện thực FR-OBS-003 (Distributed Tracing & Cấu hình Scalar UI)
 - [ ] **Cấu hình OpenTelemetry Tracing:** Đăng ký `.AddOpenTelemetry().WithTracing(builder => builder.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddNpgsql())` trong `Program.cs` để giám sát vết phân tán từ request qua EF Core xuống CSDL Supabase.
-- [ ] **Cấu hình Scalar UI Native:** Đăng ký `app.MapOpenApi()` và `app.MapScalarApiReference(options => options.WithTheme(ScalarTheme.Purple))` trong `Program.cs` để cung cấp giao diện tài liệu OpenAPI trực quan tại `http://localhost:5000/scalar/v1`.
+- [x] **Cấu hình Scalar UI Native:** Đăng ký `app.MapOpenApi()` và `app.MapScalarApiReference(options => options.WithTheme(ScalarTheme.Purple))` trong `Program.cs` để cung cấp giao diện tài liệu OpenAPI trực quan tại `http://localhost:5000/scalar/v1`.
 
 ---
 
@@ -190,15 +190,15 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] **Database Seeder:** Viết `UserSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/`: Khởi tạo sẵn tài khoản Admin (`admin@culinary.local`) và Author mẫu (`chef_admin@culinary.local`) có `PasswordHash` chuẩn ASP.NET Core Identity để TV3 lấy `AuthorId` làm tác giả sở hữu công thức.
 
 #### Bước 2: Hiện thực FR-AUTH-001 & FR-AUTH-002 (Đăng ký & Đăng nhập Local)
-- [ ] **Request Records:**
+- [x] **Request Records:**
   - `public record RegisterRequest(string Email, string Password, string DisplayName, string UserName);`
   - `public record LoginRequest(string Email, string Password);`
-- [ ] **CQRS Commands, Validators & Handlers:**
+- [x] **CQRS Commands, Validators & Handlers:**
   - Tạo `RegisterCommand` & `RegisterValidator` (Email regex chuẩn, mật khẩu tối thiểu 8 ký tự đủ hoa, thường, số, ký tự đặc biệt).
   - Tạo `RegisterCommandHandler`: Gọi `UserManager.CreateAsync()` (mật khẩu băm PBKDF2), gán role mặc định `"Author"`, sinh cặp token, lưu RefreshToken băm SHA-256 vào Supabase DB, trả về `AuthResponseDto` và tự động enqueue `WelcomeEmailJob`.
   - Tạo `LoginCommand` & `LoginValidator`.
   - Tạo `LoginCommandHandler`: Gọi `UserManager.FindByEmailAsync()`, kiểm tra mật khẩu. Cài đặt cơ chế **Account Lockout**: nếu nhập sai 5 lần liên tiếp (`AccessFailedCount >= 5`), tạm khóa tài khoản trong 15 phút và trả về `HTTP 423 Locked`.
-- [ ] **API Endpoints trong `AuthEndpoints.cs`:**
+- [x] **API Endpoints trong `AuthEndpoints.cs`:**
   - `POST /api/v1/auth/register`
   - `POST /api/v1/auth/login`
 - [ ] **Frontend UI:** Xây dựng trang `src/frontend/app/register/page.tsx` và `src/frontend/app/login/page.tsx` với React Hook Form và Zod.
@@ -262,14 +262,14 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] **Database Seeder:** Viết `RecipeSeeder.cs` trong `CulinaryBlog.Infrastructure/Persistence/Seeders/` sử dụng thư viện `Bogus`: Sinh tự động $\ge 100$ Recipes ngẫu nhiên (lấy `CategoryId` từ TV1 và `AuthorId` từ TV2; mỗi Recipe tự động sinh từ 10–14 `RecipeIngredient` và từ 5–8 `RecipeStep` có `StepNumber = 1, 2, 3...` tăng dần, nhúng đầy đủ `RecipeNutrition`).
 
 #### Bước 2: Hiện thực FR-RCP-003 & FR-RCP-004 (Tạo Bản Nháp & Cập nhật Công thức)
-- [ ] **Request Records:**
+- [x] **Request Records:**
   - `public record CreateRecipeDraftRequest(string Title, string? Description, Guid? CategoryId);`
   - `public record UpdateRecipeRequest(string Title, string Description, string? Instructions, Guid? CategoryId, int PrepTimeMinutes, int CookTimeMinutes, int Servings, RecipeDifficulty Difficulty, byte[] RowVersion);`
-- [ ] **CQRS Commands, Validators & Handlers:**
+- [x] **CQRS Commands, Validators & Handlers:**
   - Tạo `CreateRecipeDraftCommand` & `CreateRecipeDraftValidator` (Chỉ kiểm tra `Title` từ 5 đến 200 ký tự, KHÔNG bắt buộc steps/ingredients khi lưu nháp).
   - Tạo `CreateRecipeDraftCommandHandler`: Khởi tạo công thức ở trạng thái `RecipeStatus.Draft`, gán `AuthorId = currentUserId`, sinh slug tự động, commit vào Supabase DB qua `IUnitOfWork`.
   - Tạo `UpdateRecipeCommand` & `UpdateRecipeCommandHandler`: Kiểm tra quyền sở hữu bằng `RecipeAuthorizationHandler` (chỉ tác giả hoặc Admin). Kiểm tra xung đột đồng thời **Optimistic Concurrency Control**: so khớp `RowVersion`, nếu khác nhau ném `RecipeConcurrencyConflictException` (HTTP 409).
-- [ ] **API Endpoints trong `RecipeEndpoints.cs`:**
+- [x] **API Endpoints trong `RecipeEndpoints.cs`:**
   - `POST /api/v1/recipes`
   - `PUT /api/v1/recipes/{id}`
 - [ ] **Frontend UI:** Xây dựng trang soạn thảo công thức `src/frontend/app/recipes/create/page.tsx` và `src/frontend/app/recipes/[id]/edit/page.tsx`.
@@ -331,15 +331,15 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] **Kiểm thử Toàn vẹn Dữ liệu CSDL:** Đã viết kịch bản kiểm thử/nghiệm thu chất lượng dữ liệu FTS không dấu (`unaccent`) và thuật toán phân trang (`PaginatedResult`) trên tập dữ liệu 100 công thức sau khi được Seed vào Supabase. Việc chạy nghiệm thu cần môi trường có kết nối Supabase.
 
 #### Bước 2: Hiện thực FR-SRCH-002, 003, 004 (Lọc Đa Tiêu Chí, Sắp Xếp & Phân Trang)
-- [ ] **Request Model:** Tạo `public record SearchRecipesQueryParams(string? SearchTerm, Guid? CategoryId, RecipeDifficulty? Difficulty, int? MaxCookTime, int Page = 1, int PageSize = 12);`
-- [ ] **CQRS Query & Handler:**
-  - Tạo `SearchRecipesQuery(SearchRecipesQueryParams Params) : IRequest<PaginatedResult<RecipeListDto>>;`
-  - Tạo `SearchRecipesQueryHandler`: Xếp hạng kết quả theo độ khớp từ khóa `ts_rank(SearchVector, query) DESC`, áp dụng các bộ lọc Category, Difficulty, phân trang an toàn (`Skip((page - 1) * pageSize).Take(pageSize)` với trần tối đa `pageSize <= 50`).
-- [ ] **API Endpoint:** `GET /api/v1/recipes` trong `RecipeEndpoints.cs`.
+- [x] **Request Model:** Tạo `GetRecipesQuery` (nhận `SearchTerm`, `CategoryId`, `Difficulty`, `SortBy`, `PageIndex`, `PageSize`).
+- [x] **CQRS Query & Handler:**
+  - Tạo `GetRecipesQuery` và `GetRecipesQueryValidator` (phân trang an toàn với giới hạn trần `PageSize <= 50`).
+  - Tạo `GetRecipesQueryHandler`: Xếp hạng kết quả, áp dụng các bộ lọc Category, Difficulty, sắp xếp `newest`, tự động join tác giả và ảnh đại diện, phân trang `PaginatedResult<RecipeListDto>`.
+- [x] **API Endpoint:** `GET /api/v1/recipes` trong `RecipeEndpoints.cs` tích hợp Output Cache 15 phút (`RecipesCache`).
 
 #### Bước 3: Hiện thực FR-RCP-001 & FR-RCP-002 (Xem Danh Sách & Chi Tiết Công Thức)
-- [ ] **Tối ưu Hóa Truy Vấn Projection (FR-RCP-001):**
-  - Trong `GetRecipesListQueryHandler`: Sử dụng Mapster `.ProjectToType<RecipeListDto>()` để SQL chỉ `SELECT` các cột cần thiết, **loại bỏ hoàn toàn việc tải 6 cột `Nutrition_*`**, giảm 70% I/O đĩa.
+- [x] **Tối ưu Hóa Truy Vấn Projection (FR-RCP-001):**
+  - Trong `RecipeRepository` / `GetRecipesQueryHandler`: Chiết xuất trực tiếp sang `RecipeListDto` chỉ `SELECT` các cột cần thiết, **loại bỏ hoàn toàn việc tải 6 cột `Nutrition_*`**, các bảng Steps và Ingredients khi lấy danh sách.
 - [ ] **Truy Vấn Chi Tiết Eager Loading (FR-RCP-002):**
   - Trong `GetRecipeDetailQueryHandler`: Nạp đầy đủ Steps, Ingredients, Images và Nutrition bằng kỹ thuật `.AsSplitQuery()`.
   - Cache chi tiết bài viết qua Output Cache với TTL 60 phút.
