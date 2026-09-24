@@ -16,6 +16,29 @@ public sealed class RecipeRepository : IRecipeRepository
         _dbContext = dbContext;
     }
 
+    public Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return _dbContext.Recipes
+            .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
+    }
+
+    public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)
+    {
+        await _dbContext.Recipes.AddAsync(recipe, cancellationToken);
+    }
+
+    public Task<bool> SlugExistsAsync(
+        string slug,
+        Guid? excludedRecipeId,
+        CancellationToken cancellationToken)
+    {
+        return _dbContext.Recipes.AnyAsync(
+            recipe => recipe.Slug == slug &&
+                      !recipe.IsDeleted &&
+                      (!excludedRecipeId.HasValue || recipe.Id != excludedRecipeId.Value),
+            cancellationToken);
+    }
+
     public Task<PaginatedResult<RecipeListDto>> SearchRecipesAsync(
         string? searchTerm,
         int pageIndex,

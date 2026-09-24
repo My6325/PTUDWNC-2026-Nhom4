@@ -36,4 +36,69 @@ public class Recipe : BaseEntity
     public ICollection<RecipeIngredient> Ingredients { get; private set; } = new List<RecipeIngredient>();
 
     public ICollection<RecipeImage> Images { get; private set; } = new List<RecipeImage>();
+
+    public static Recipe Create(
+        string title,
+        string slug,
+        string? description,
+        string? instructions,
+        Guid? categoryId,
+        string authorId,
+        int prepTimeMinutes,
+        int cookTimeMinutes,
+        int servings,
+        RecipeDifficulty difficulty)
+    {
+        return new Recipe
+        {
+            Title = title.Trim(),
+            Slug = slug,
+            Description = description?.Trim(),
+            Instructions = instructions?.Trim(),
+            CategoryId = categoryId,
+            AuthorId = authorId,
+            PrepTimeMinutes = prepTimeMinutes,
+            CookTimeMinutes = cookTimeMinutes,
+            Servings = servings,
+            Difficulty = difficulty,
+            Status = RecipeStatus.Draft
+        };
+    }
+
+    public void Update(
+        string title,
+        string slug,
+        string description,
+        string? instructions,
+        Guid? categoryId,
+        int prepTimeMinutes,
+        int cookTimeMinutes,
+        int servings,
+        RecipeDifficulty difficulty)
+    {
+        Title = title.Trim();
+        Slug = slug;
+        Description = description.Trim();
+        Instructions = instructions?.Trim();
+        CategoryId = categoryId;
+        PrepTimeMinutes = prepTimeMinutes;
+        CookTimeMinutes = cookTimeMinutes;
+        Servings = servings;
+        Difficulty = difficulty;
+    }
+
+    public void SetNutrition(RecipeNutrition? nutrition)
+    {
+        Nutrition = nutrition ?? new RecipeNutrition();
+    }
+
+    public void AddStep(RecipeStep step)
+    {
+        Steps.Add(step);
+    }
+
+    public void AddIngredient(RecipeIngredient ingredient)
+    {
+        Ingredients.Add(ingredient);
+    }
 }

@@ -1,5 +1,4 @@
 using CulinaryBlog.Application.Behaviors;
-using CulinaryBlog.Application.Features.Recipes.Queries;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        var assembly = typeof(GetRecipesQuery).Assembly;
+        var assembly = typeof(DependencyInjection).Assembly;
 
         services.AddMediatR(configuration =>
         {
