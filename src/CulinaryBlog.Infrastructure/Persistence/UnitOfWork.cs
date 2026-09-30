@@ -25,9 +25,16 @@ public sealed class UnitOfWork(
             throw new RecipeConcurrencyConflictException();
         }
         catch (DbUpdateException exception)
-            when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+            when (exception.InnerException is PostgresException postgresException &&
+                  postgresException.SqlState == PostgresErrorCodes.UniqueViolation)
         {
-            throw new ConflictException("RECIPE_SLUG_CONFLICT", "Slug công thức đã tồn tại.");
+            if (postgresException.ConstraintName?.Contains("Categories_Slug", StringComparison.OrdinalIgnoreCase) == true ||
+                postgresException.ConstraintName?.Contains("IX_Categories_Slug", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                throw new ConflictException("CATEGORY_SLUG_CONFLICT", "Slug danh mục đã tồn tại.");
+            }
+
+            throw new ConflictException("RECIPE_SLUG_CONFLICT", "Recipe slug already exists.");
         }
     }
 }

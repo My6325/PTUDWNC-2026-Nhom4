@@ -44,7 +44,12 @@ project.lock.json
 coverage/
 *.coverage
 *.coveragexml
-/tests/
+/tests/*
+!/tests/
+!/tests/CulinaryBlog.Infrastructure.IntegrationTests/
+!/tests/CulinaryBlog.Infrastructure.IntegrationTests/**
+/tests/CulinaryBlog.Infrastructure.IntegrationTests/bin/
+/tests/CulinaryBlog.Infrastructure.IntegrationTests/obj/
 
 # -------------------------------------------------------------------
 # 3. Next.js 15 / Node.js / React
@@ -84,4 +89,3 @@ scratch/
 tmp/
 temp/
 *.pdf
-*.md

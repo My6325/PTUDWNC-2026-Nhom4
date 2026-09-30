@@ -65,6 +65,9 @@ builder.Services.AddOutputCache(options =>
         .Expire(TimeSpan.FromMinutes(15))
         .SetVaryByQuery("*")
         .Tag("recipes"));
+    options.AddPolicy("RecipeDetail", policy => policy
+        .Expire(TimeSpan.FromMinutes(5))
+        .SetVaryByRouteValue("slug"));
 });
 
 // 8. Đăng ký tài liệu OpenAPI 3.x native của .NET 10

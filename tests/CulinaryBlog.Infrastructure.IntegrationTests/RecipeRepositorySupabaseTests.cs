@@ -39,14 +39,7 @@ public sealed class RecipeRepositorySupabaseTests
     private static ApplicationDbContext CreateDbContext()
     {
         var configuration = BuildConfiguration();
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? configuration["SUPABASE_CONNECTION_STRING"];
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Set ConnectionStrings:DefaultConnection or SUPABASE_CONNECTION_STRING before running Supabase integration tests.");
-        }
+        var connectionString = SupabaseConnectionStringResolver.Resolve(configuration);
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)

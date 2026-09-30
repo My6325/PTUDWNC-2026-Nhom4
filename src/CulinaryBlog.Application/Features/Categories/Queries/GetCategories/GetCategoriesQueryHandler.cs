@@ -1,5 +1,6 @@
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.DTOs;
+using CulinaryBlog.Application.Features.Categories.Common;
 using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,6 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
 {
     private readonly IApplicationDbContext _context;
     private readonly IMemoryCache _memoryCache;
-    private const string CacheKey = "categories:all";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(60);
 
     public GetCategoriesQueryHandler(IApplicationDbContext context, IMemoryCache memoryCache)
@@ -26,7 +26,7 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
     public async Task<List<CategoryDto>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
     {
         // 1. Kiểm tra dữ liệu trong In-Memory Cache
-        if (_memoryCache.TryGetValue(CacheKey, out List<CategoryDto>? cachedCategories) && cachedCategories is not null)
+        if (_memoryCache.TryGetValue(CategoryCacheKeys.All, out List<CategoryDto>? cachedCategories) && cachedCategories is not null)
         {
             return cachedCategories;
         }
@@ -40,7 +40,7 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
             .ToListAsync(cancellationToken);
 
         // 3. Lưu vào Cache với thời hạn 60 phút
-        _memoryCache.Set(CacheKey, categories, CacheDuration);
+        _memoryCache.Set(CategoryCacheKeys.All, categories, CacheDuration);
 
         return categories;
     }

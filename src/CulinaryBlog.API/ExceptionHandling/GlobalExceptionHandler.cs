@@ -1,8 +1,8 @@
 using CulinaryBlog.Application.Exceptions;
+using CulinaryBlog.Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using CulinaryBlog.Domain.Exceptions;
 
 namespace CulinaryBlog.API.ExceptionHandling;
 
@@ -15,6 +15,12 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     {
         var (status, title, code) = exception switch
         {
+            InvalidRefreshTokenException => (StatusCodes.Status401Unauthorized, "Refresh token không hợp lệ", "INVALID_REFRESH_TOKEN"),
+            UserAccountLockedException => (StatusCodes.Status423Locked, "Tài khoản bị khóa", "ACCOUNT_LOCKED"),
+            RecipeDomainException =>
+                (StatusCodes.Status422UnprocessableEntity, "Quy tắc công thức không hợp lệ", "RECIPE_DOMAIN_ERROR"),
+            DomainException domainEx =>
+                (StatusCodes.Status422UnprocessableEntity, "Vi phạm quy tắc nghiệp vụ", domainEx.Code),
             ValidationException => (StatusCodes.Status422UnprocessableEntity, "Dữ liệu không hợp lệ", "VALIDATION_ERROR"),
             UnprocessableEntityException unprocessable =>
                 (StatusCodes.Status422UnprocessableEntity, "Không thể xử lý dữ liệu", unprocessable.Code),
@@ -22,8 +28,6 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             ForbiddenException => (StatusCodes.Status403Forbidden, "Không có quyền", "FORBIDDEN"),
             NotFoundException => (StatusCodes.Status404NotFound, "Không tìm thấy", "NOT_FOUND"),
             ConflictException conflict => (StatusCodes.Status409Conflict, "Xung đột dữ liệu", conflict.Code),
-            InvalidRefreshTokenException => (StatusCodes.Status401Unauthorized, "Refresh token không hợp lệ", "INVALID_REFRESH_TOKEN"),
-            UserAccountLockedException => (StatusCodes.Status423Locked, "Tài khoản bị khóa", "ACCOUNT_LOCKED"),
             _ => (StatusCodes.Status500InternalServerError, "Lỗi hệ thống", "INTERNAL_SERVER_ERROR")
         };
 
