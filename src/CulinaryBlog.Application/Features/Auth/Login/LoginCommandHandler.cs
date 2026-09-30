@@ -5,6 +5,8 @@ using CulinaryBlog.Domain.Settings;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using CulinaryBlog.Application.Exceptions;
+using CulinaryBlog.Domain.Exceptions;
 
 namespace CulinaryBlog.Application.Features.Auth.Login;
 
@@ -35,14 +37,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null)
         {
-            throw new UnauthorizedAccessException("Email hoặc mật khẩu không đúng");
+            throw new UnauthorizedException("Email hoặc mật khẩu không đúng");
         }
 
         // 2. Kiểm tra khóa tài khoản
         if (await _userManager.IsLockedOutAsync(user))
         {
-            // TODO: sẽ map sang HTTP 423 Locked khi có exception middleware
-            throw new InvalidOperationException("Tài khoản tạm khóa do đăng nhập sai quá 5 lần, thử lại sau 15 phút");
+            throw new UserAccountLockedException("Tài khoản tạm khóa do đăng nhập sai quá 5 lần, thử lại sau 15 phút");
         }
 
         // 3. Kiểm tra mật khẩu
@@ -50,7 +51,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         if (!isPasswordValid)
         {
             await _userManager.AccessFailedAsync(user);
-            throw new UnauthorizedAccessException("Email hoặc mật khẩu không đúng");
+            throw new UnauthorizedException("Email hoặc mật khẩu không đúng");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new UserAccountLockedException("Tài khoản đã bị vô hiệu hóa.");
         }
 
         await _userManager.ResetAccessFailedCountAsync(user);

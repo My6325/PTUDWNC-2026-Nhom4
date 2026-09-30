@@ -5,6 +5,7 @@ using CulinaryBlog.Domain.Settings;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using CulinaryBlog.Application.Exceptions;
 
 namespace CulinaryBlog.Application.Features.Auth.Register;
 
@@ -35,8 +36,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
         {
-            // TODO: sẽ thay bằng custom exception + middleware xử lý lỗi ở bước sau
-            throw new InvalidOperationException("Email đã được sử dụng");
+            throw new ConflictException("EMAIL_ALREADY_EXISTS", "Email đã được sử dụng");
         }
 
         // 2. Tạo ApplicationUser mới
@@ -53,7 +53,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         if (!result.Succeeded)
         {
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Lỗi tạo tài khoản: {errors}");
+            throw new UnprocessableEntityException("IDENTITY_CREATE_FAILED", $"Lỗi tạo tài khoản: {errors}");
         }
 
         // 4. Thêm role Author (role mặc định)
@@ -61,7 +61,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         if (!roleResult.Succeeded)
         {
             var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Lỗi gán vai trò: {errors}");
+            throw new UnprocessableEntityException("IDENTITY_ROLE_FAILED", $"Lỗi gán vai trò: {errors}");
         }
 
         // 5. Sinh accessToken
