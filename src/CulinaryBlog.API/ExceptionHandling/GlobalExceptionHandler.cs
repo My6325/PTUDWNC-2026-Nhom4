@@ -1,4 +1,5 @@
 using CulinaryBlog.Application.Exceptions;
+using CulinaryBlog.Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,8 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     {
         var (status, title, code) = exception switch
         {
+            DomainException domainEx =>
+                (StatusCodes.Status400BadRequest, "Vi phạm quy tắc nghiệp vụ", domainEx.Code),
             ValidationException => (StatusCodes.Status422UnprocessableEntity, "Dữ liệu không hợp lệ", "VALIDATION_ERROR"),
             UnprocessableEntityException unprocessable =>
                 (StatusCodes.Status422UnprocessableEntity, "Không thể xử lý dữ liệu", unprocessable.Code),

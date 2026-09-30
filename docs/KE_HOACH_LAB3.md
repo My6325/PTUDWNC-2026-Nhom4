@@ -34,17 +34,17 @@
    * Endpoint 2: `GET /api/v1/categories/{slug}` (Lấy chi tiết danh mục theo slug URL và danh sách bài viết tóm tắt liên quan).
 3. **Middleware & Problem Details Toàn cục:**
    * Hiện thực `GlobalExceptionHandler` kế thừa `IExceptionHandler` chuẩn ASP.NET Core 8+.
-   * Ánh xạ các loại ngoại lệ sang mã HTTP tương ứng: `ValidationException` (422), `UnprocessableEntityException` (422), `UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException` (404), `ConflictException` (409) và lỗi không xác định (500).
+   * Ánh xạ các loại ngoại lệ sang mã HTTP tương ứng: `DomainException` (400), `ValidationException` (422), `UnprocessableEntityException` (422), `UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException` (404), `ConflictException` (409) và lỗi không xác định (500).
    * Đăng ký `AddProblemDetails()`, `AddExceptionHandler<GlobalExceptionHandler>()` và `UseExceptionHandler()` trong `Program.cs`.
+4. **Domain Exceptions (Tiêu chí 1 Lab 3):**
+   * Đã tạo thư mục `src/CulinaryBlog.Domain/Exceptions/`.
+   * Đã cài đặt lớp cơ sở `DomainException.cs` làm chuẩn kế thừa cho cả nhóm.
+   * Đã cài đặt các ngoại lệ cho phân hệ Danh mục: `InvalidCategoryNameException`, `InvalidCategoryOrderIndexException`, `CategorySlugEmptyException`.
+   * Đã tích hợp hàm `Validate()` kiểm tra nghiệp vụ và ném Domain Exception trong thực thể `Category.cs`.
 
 #### B. Những việc cần làm thêm cho Lab 3
-1. **Khởi tạo thư mục và lớp cơ sở Domain Exceptions:**
-   * Tạo thư mục `src/CulinaryBlog.Domain/Exceptions/`.
-   * Tạo lớp cơ sở trừu tượng `DomainException.cs` kế thừa `Exception` để làm chuẩn kế thừa cho toàn bộ Domain.
-2. **Cài đặt Domain Exception cho Category:**
-   * Tạo `CategoryDomainException.cs` (hoặc `InvalidCategoryDataException.cs`) trong `CulinaryBlog.Domain/Exceptions/` xử lý vi phạm quy tắc nghiệp vụ danh mục (tên danh mục không hợp lệ, OrderIndex âm...).
-3. **Mở rộng (Khuyến nghị nâng cao):**
-   * Cài đặt tiếp `POST /api/v1/categories` (FR-CAT-003: Tạo danh mục mới dành cho Admin) và `CorrelationIdMiddleware` để hoàn thiện module Observability.
+* **ĐÃ HOÀN TẤT 100% CẢ 4 TIÊU CHÍ LAB 3 CỦA NHÓM TRƯỞNG.**
+* *(Mở rộng cho các Lab sau)*: Triển khai tiếp `POST /api/v1/categories` (FR-CAT-003: Tạo danh mục mới dành cho Admin) và `CorrelationIdMiddleware`.
 
 ---
 
