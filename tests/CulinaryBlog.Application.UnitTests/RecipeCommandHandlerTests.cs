@@ -2,6 +2,7 @@ using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.Exceptions;
 using CulinaryBlog.Application.Features.Recipes.Common;
 using CulinaryBlog.Application.Features.Recipes.CreateDraft;
+using CulinaryBlog.Application.Features.Recipes.Queries;
 using CulinaryBlog.Application.Features.Recipes.Update;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Entities;
@@ -135,7 +136,17 @@ public sealed class RecipeCommandHandlerTests
             Guid? excludedRecipeId,
             CancellationToken cancellationToken) => Task.FromResult(SlugExists);
 
-        public Task<PaginatedResult<Recipe>> SearchRecipesAsync(
+        public Task<PaginatedResult<RecipeListDto>> SearchRecipesAsync(
+            string? searchTerm,
+            Guid? categoryId,
+            string? difficulty,
+            string sortBy,
+            int pageIndex,
+            int pageSize,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<PaginatedResult<RecipeListDto>> SearchRecipesAsync(
             string? searchTerm,
             int pageIndex,
             int pageSize,

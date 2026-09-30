@@ -15,7 +15,7 @@
 * **Mức độ** (CRUD Danh mục, Thuật toán Slug, Health Checks, Structured Logging và Distributed Tracing).
 * **Chi tiết chức năng (theo đúng SRS v1.0.0):**
   - `FR-CAT-001`: Xem Danh sách Danh mục (Get Categories, IMemoryCache 60m).
-  - `FR-CAT-002`: Xem Chi tiết Danh mục và Công thức (Get Category by Slug).
+  - `FR-CAT-002`: Xem Chi tiết Danh mục (Get Category by Slug qua `/api/v1/categories/{slug}`, nạp danh sách tóm tắt các món thuộc danh mục; lưu ý: chức năng xem chi tiết công thức nấu ăn chuyên sâu FR-RCP-002 do TV4 phụ trách).
   - `FR-CAT-003`: Tạo Danh mục Mới [Admin] (Create Category, auto-slugify).
   - `FR-CAT-004`: Cập nhật Danh mục [Admin] (Update Category, giữ nguyên Slug).
   - `FR-CAT-005`: Xóa Danh mục [Admin] (Delete Category, cấm xóa khi còn công thức).
@@ -62,7 +62,7 @@
 * **Mức độ** (Tối ưu hóa FTS tiếng Việt unaccent, phân trang đa tiêu chí, Projection và Schema.org).
 * **Chi tiết chức năng (theo đúng SRS v1.0.0):**
   - `FR-RCP-001`: Xem Danh sách Công thức (Paginated + Filtered + Sorted, Output Cache 15m).
-  - `FR-RCP-002`: Xem Chi tiết Công thức (Recipe Detail Eager Loading, Output Cache 60m).
+  - `FR-RCP-002`: Xem Chi tiết Công thức Nấu ăn (Recipe Detail Eager Loading qua `/api/v1/recipes/{slug}`, nạp đầy đủ Steps, Ingredients, Nutrition, Images và nhúng SEO Schema.org).
   - `FR-RCP-005`: Xuất bản / Hủy Xuất bản Công thức (Publish/Unpublish - Ràng buộc >= 1 bước & nguyên liệu).
   - `FR-RCP-006`: Lưu trữ Công thức (Archive / Unarchive - Ẩn khỏi trang chủ).
   - `FR-SRCH-001`: Tìm kiếm Toàn văn bản (Supabase PostgreSQL FTS tiếng Việt `tsvector`/`tsquery`, `unaccent`, `ts_rank`).
@@ -88,7 +88,7 @@ Culinary Blog là giải pháp ứng dụng web toàn diện phục vụ cộng 
 - **Backend API:** .NET 10 Minimal APIs, C# 13, MediatR (CQRS), Mapster, FluentValidation.
 - **Frontend Web:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, TanStack Query, React Hook Form, Zod.
 - **Cơ sở dữ liệu & Lưu trữ Đám mây:** **Supabase Cloud PostgreSQL 16** (EF Core 10 Code-First), **Supabase Storage** (Bucket `culinary-blog`).
-- **Bộ nhớ đệm & Tác vụ ngầm:** In-Memory Cache (.NET 10 Output Cache), Hangfire (PostgreSQL storage).
+- **Bộ nhớ đệm & Tác vụ ngầm:** In-Memory Cache (IMemoryCache TTL 60m cho danh mục, Output Cache cho bài viết), Hangfire (PostgreSQL storage).
 - **Tài liệu hóa & Quan sát:** Scalar UI (OpenAPI 3.x native), Serilog, OpenTelemetry.
 
 ---
@@ -119,21 +119,23 @@ dotnet tool install --global dotnet-ef
 ---
 
 ### 3.3. Cài đặt và Chạy Backend API (.NET 10)
+
+#### Cách 1: Chạy trực tiếp từ thư mục gốc dự án (Không cần chuyển thư mục vào src)
 ```powershell
-# 1. Di chuyển vào thư mục dự án API
+# Khởi chạy máy chủ API thông thường:
+dotnet run --project src/CulinaryBlog.API
+
+# Hoặc khởi chạy với chế độ Hot-Reload (tự động nhận code mới khi sửa file mà không cần tắt/bật lại server):
+dotnet watch --project src/CulinaryBlog.API run
+```
+
+#### Cách 2: Di chuyển vào thư mục API rồi mới chạy
+```powershell
 cd src/CulinaryBlog.API
-
-# 2. Khôi phục các gói NuGet
-dotnet restore
-
-# 3. Chạy cập nhật database lên Supabase (Migration)
-dotnet ef database update --project ../CulinaryBlog.Infrastructure --startup-project .
-
-# 4. Khởi chạy máy chủ API (chế độ hot-reload)
-dotnet watch run
+dotnet run             # hoặc: dotnet watch run (Hot-Reload)
 ```
 - **Địa chỉ API Backend:** `http://localhost:5000`
-- **Tài liệu API tương tác Scalar UI:** `http://localhost:5000/scalar/v1`
+- **Tài liệu API tương tác Scalar UI:** `http://localhost:5000/scalar/v1` (hoặc vào thẳng `http://localhost:5000`)
 - **Hangfire Dashboard:** `http://localhost:5000/hangfire`
 
 ---
@@ -160,7 +162,7 @@ npm run dev
 - **Nhánh `main`:** Mã nguồn chính thức, được bảo vệ. **Chỉ Trưởng nhóm có quyền Merge vào nhánh này**.
 - **Nhánh tính năng:** Các thành viên tạo nhánh riêng từ `main` theo cú pháp:
   - `feature/<tên-thành-viên>-<tên-chức-năng>`  
-    *(Ví dụ: `feature/vuong-auth`, `feature/doan-recipes-crud`, `feature/linh-search-fts`, `feature/my-category-observability`)*.
+    *(Ví dụ: `feature/my-category-observability`, `feature/linh-auth-mailer`, `feature/vuong-recipe-media`, `feature/doan-search-publish`)*.
 
 ### 4.2. Quy trình Nộp bài & Hợp nhất (Pull Request & Merge)
 1. **Tự kiểm tra:** Trước khi tạo PR, thành viên bắt buộc kiểm tra chạy thử trên máy cá nhân:

@@ -9,8 +9,9 @@ public static class SupabaseConnectionStringResolver
 
     public static string Resolve(IConfiguration configuration)
     {
-        var explicitPooler = configuration["SUPABASE_POOLER_CONNECTION_STRING"]
-            ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_CONNECTION_STRING");
+        var explicitPooler = Normalize(
+            configuration["SUPABASE_POOLER_CONNECTION_STRING"]
+            ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_CONNECTION_STRING"));
         if (!string.IsNullOrWhiteSpace(explicitPooler))
         {
             return explicitPooler;
@@ -20,12 +21,16 @@ public static class SupabaseConnectionStringResolver
             ?? configuration["SUPABASE_CONNECTION_STRING"]
             ?? Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING");
 
-        return Resolve(configuredConnection, configuration["SUPABASE_POOLER_REGION"]);
+        return Resolve(
+            configuredConnection,
+            configuration["SUPABASE_POOLER_REGION"]
+                ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_REGION"));
     }
 
     public static string ResolveFromEnvironment()
     {
-        var explicitPooler = Environment.GetEnvironmentVariable("SUPABASE_POOLER_CONNECTION_STRING");
+        var explicitPooler = Normalize(
+            Environment.GetEnvironmentVariable("SUPABASE_POOLER_CONNECTION_STRING"));
         if (!string.IsNullOrWhiteSpace(explicitPooler))
         {
             return explicitPooler;
@@ -38,10 +43,12 @@ public static class SupabaseConnectionStringResolver
 
     public static string Resolve(string? connectionString, string? poolerRegion)
     {
+        connectionString = Normalize(connectionString);
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                "SUPABASE_CONNECTION_STRING hoặc SUPABASE_POOLER_CONNECTION_STRING chưa được cấu hình.");
+                "Chuỗi kết nối CSDL Supabase chưa được cấu hình. " +
+                "Hãy đặt DefaultConnection, SUPABASE_CONNECTION_STRING hoặc SUPABASE_POOLER_CONNECTION_STRING.");
         }
 
         var builder = new NpgsqlConnectionStringBuilder(connectionString);
@@ -56,8 +63,7 @@ public static class SupabaseConnectionStringResolver
             return builder.ConnectionString;
         }
 
-        var projectReference = host[
-            directHostPrefix.Length..^directHostSuffix.Length];
+        var projectReference = host[directHostPrefix.Length..^directHostSuffix.Length];
         var region = string.IsNullOrWhiteSpace(poolerRegion)
             ? DefaultPoolerRegion
             : poolerRegion.Trim();
@@ -75,5 +81,22 @@ public static class SupabaseConnectionStringResolver
             : SslMode.Disable;
         builder.Pooling = true;
         return builder.ConnectionString;
+    }
+
+    private static string? Normalize(string? connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return null;
+        }
+
+        var normalized = connectionString.Trim().Trim('"', '\'');
+        const string prefix = "SUPABASE_CONNECTION_STRING=";
+        if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized[prefix.Length..].Trim().Trim('"', '\'');
+        }
+
+        return normalized;
     }
 }

@@ -41,6 +41,8 @@ public static class DependencyInjection
             });
         });
 
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
         // 2. Cấu hình ASP.NET Core Identity & Data Protection
         services.AddDataProtection();
 
@@ -114,6 +116,9 @@ public static class DependencyInjection
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 6. Đăng ký IApplicationDbContext phục vụ tầng Application
+        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
         return services;
     }
