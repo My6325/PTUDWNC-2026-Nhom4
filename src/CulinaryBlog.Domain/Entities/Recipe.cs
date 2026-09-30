@@ -1,5 +1,6 @@
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Enums;
+using CulinaryBlog.Domain.Exceptions;
 
 namespace CulinaryBlog.Domain.Entities;
 
@@ -49,6 +50,8 @@ public class Recipe : BaseEntity
         int servings,
         RecipeDifficulty difficulty)
     {
+        ValidateDetails(title, prepTimeMinutes, cookTimeMinutes);
+
         return new Recipe
         {
             Title = title.Trim(),
@@ -76,6 +79,8 @@ public class Recipe : BaseEntity
         int servings,
         RecipeDifficulty difficulty)
     {
+        ValidateDetails(title, prepTimeMinutes, cookTimeMinutes);
+
         Title = title.Trim();
         Slug = slug;
         Description = description.Trim();
@@ -85,6 +90,24 @@ public class Recipe : BaseEntity
         CookTimeMinutes = cookTimeMinutes;
         Servings = servings;
         Difficulty = difficulty;
+    }
+
+    public void ChangeStatus(RecipeStatus targetStatus)
+    {
+        var isValidTransition = (Status, targetStatus) switch
+        {
+            (RecipeStatus.Draft, RecipeStatus.Published) => true,
+            (RecipeStatus.Published, RecipeStatus.Archived) => true,
+            (RecipeStatus.Archived, RecipeStatus.Draft) => true,
+            _ => false
+        };
+
+        if (!isValidTransition)
+        {
+            throw new InvalidRecipeStatusTransitionException(Status, targetStatus);
+        }
+
+        Status = targetStatus;
     }
 
     public void SetNutrition(RecipeNutrition? nutrition)
@@ -100,5 +123,23 @@ public class Recipe : BaseEntity
     public void AddIngredient(RecipeIngredient ingredient)
     {
         Ingredients.Add(ingredient);
+    }
+
+    private static void ValidateDetails(string? title, int prepTimeMinutes, int cookTimeMinutes)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new EmptyRecipeTitleException();
+        }
+
+        if (prepTimeMinutes < 0)
+        {
+            throw new InvalidPreparationTimeException("preparation", prepTimeMinutes);
+        }
+
+        if (cookTimeMinutes < 0)
+        {
+            throw new InvalidPreparationTimeException("cooking", cookTimeMinutes);
+        }
     }
 }

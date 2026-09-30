@@ -3,6 +3,7 @@ using CulinaryBlog.Application.Features.Recipes.CreateDraft;
 using CulinaryBlog.Application.Features.Recipes.Update;
 using CulinaryBlog.Domain.Entities;
 using CulinaryBlog.Domain.Enums;
+using CulinaryBlog.Domain.Exceptions;
 using Xunit;
 
 namespace CulinaryBlog.Application.UnitTests;
@@ -109,5 +110,69 @@ public sealed class RecipeCommandValidationTests
         Assert.Single(recipe.Ingredients);
         Assert.Equal(1, recipe.Steps.Single().StepNumber);
         Assert.Equal(1, recipe.Ingredients.Single().OrderIndex);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RecipeCreate_EmptyTitleThrowsDomainException(string title)
+    {
+        Assert.Throws<EmptyRecipeTitleException>(() => CreateRecipe(title));
+    }
+
+    [Theory]
+    [InlineData(-1, 10, "preparation")]
+    [InlineData(10, -1, "cooking")]
+    public void RecipeCreate_NegativeTimeThrowsDomainException(
+        int prepTimeMinutes,
+        int cookTimeMinutes,
+        string expectedTimeType)
+    {
+        var exception = Assert.Throws<InvalidPreparationTimeException>(() =>
+            CreateRecipe("Valid title", prepTimeMinutes, cookTimeMinutes));
+
+        Assert.Equal(expectedTimeType, exception.TimeType);
+    }
+
+    [Fact]
+    public void RecipeChangeStatus_ValidLifecycleTransitionsUpdateStatus()
+    {
+        var recipe = CreateRecipe();
+
+        recipe.ChangeStatus(RecipeStatus.Published);
+        recipe.ChangeStatus(RecipeStatus.Archived);
+        recipe.ChangeStatus(RecipeStatus.Draft);
+
+        Assert.Equal(RecipeStatus.Draft, recipe.Status);
+    }
+
+    [Fact]
+    public void RecipeChangeStatus_InvalidTransitionThrowsDomainException()
+    {
+        var recipe = CreateRecipe();
+
+        var exception = Assert.Throws<InvalidRecipeStatusTransitionException>(() =>
+            recipe.ChangeStatus(RecipeStatus.Archived));
+
+        Assert.Equal(RecipeStatus.Draft, exception.CurrentStatus);
+        Assert.Equal(RecipeStatus.Archived, exception.TargetStatus);
+    }
+
+    private static Recipe CreateRecipe(
+        string title = "Valid recipe title",
+        int prepTimeMinutes = 10,
+        int cookTimeMinutes = 20)
+    {
+        return Recipe.Create(
+            title,
+            "valid-recipe-title",
+            null,
+            null,
+            null,
+            "author-01",
+            prepTimeMinutes,
+            cookTimeMinutes,
+            2,
+            RecipeDifficulty.Easy);
     }
 }
