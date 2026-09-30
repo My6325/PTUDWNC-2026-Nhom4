@@ -15,7 +15,8 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     {
         var (status, title, code) = exception switch
         {
-            DomainException domain => (StatusCodes.Status422UnprocessableEntity, "Domain rule violation", domain.Code),
+            DomainException domainEx =>
+                (StatusCodes.Status422UnprocessableEntity, "Vi phạm quy tắc nghiệp vụ", domainEx.Code),
             ValidationException => (StatusCodes.Status422UnprocessableEntity, "Dữ liệu không hợp lệ", "VALIDATION_ERROR"),
             UnprocessableEntityException unprocessable =>
                 (StatusCodes.Status422UnprocessableEntity, "Không thể xử lý dữ liệu", unprocessable.Code),
