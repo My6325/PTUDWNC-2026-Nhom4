@@ -1,5 +1,6 @@
 using CulinaryBlog.Application.Features.Recipes.Common;
 using CulinaryBlog.Application.Features.Recipes.CreateDraft;
+using CulinaryBlog.Application.Features.Recipes.GetBySlug;
 using CulinaryBlog.Application.Features.Recipes.Queries;
 using CulinaryBlog.Application.Features.Recipes.Update;
 using FluentValidation;
@@ -12,6 +13,22 @@ public static class RecipeEndpoints
     public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/recipes").WithTags("Recipes");
+
+        group.MapGet("/{slug}", async (string slug, ISender sender, HttpContext httpContext, CancellationToken cancellationToken) =>
+            {
+                var detail = await sender.Send(new GetRecipeBySlugQuery(slug), cancellationToken);
+                if (httpContext.Features.Get<Microsoft.AspNetCore.OutputCaching.IOutputCacheFeature>() is { } cacheFeature)
+                {
+                    cacheFeature.Context.Tags.Add("recipes");
+                    cacheFeature.Context.Tags.Add($"recipe:{slug}");
+                }
+                return Results.Ok(detail);
+            })
+            .WithName("GetRecipeBySlug")
+            .CacheOutput("RecipeDetail")
+            .Produces<RecipeDetailDto>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("/", async (
                 [AsParameters] GetRecipesQuery query,

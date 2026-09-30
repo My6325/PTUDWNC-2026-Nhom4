@@ -1,4 +1,5 @@
 using CulinaryBlog.Application.DTOs;
+using CulinaryBlog.Application.Features.Categories.Create;
 using CulinaryBlog.Application.Features.Categories.Queries.GetCategories;
 using CulinaryBlog.Application.Features.Categories.Queries.GetCategoryBySlug;
 using MediatR;
@@ -17,6 +18,20 @@ public static class CategoryEndpoints
     {
         var group = app.MapGroup("/api/v1/categories")
             .WithTags("Categories");
+
+        group.MapPost("/", async (CreateCategoryRequest request, ISender sender, CancellationToken cancellationToken) =>
+            {
+                var category = await sender.Send(new CreateCategoryCommand(request), cancellationToken);
+                return Results.Created($"/api/v1/categories/{category.Slug}", category);
+            })
+            .RequireAuthorization(policy => policy.RequireRole("Admin"))
+            .WithName("CreateCategory")
+            .WithSummary("Tạo danh mục công thức mới")
+            .Produces<CategoryDto>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         // 1. GET /api/v1/categories (FR-CAT-001: Lấy danh sách danh mục kèm cache)
         group.MapGet("/", async (ISender sender, CancellationToken cancellationToken) =>

@@ -1,5 +1,6 @@
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.Features.Recipes.Queries;
+using CulinaryBlog.Application.Features.Recipes.GetBySlug;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Entities;
 using CulinaryBlog.Domain.Enums;
@@ -20,6 +21,55 @@ public sealed class RecipeRepository : IRecipeRepository
     {
         return _dbContext.Recipes
             .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
+    }
+
+    public async Task<RecipeDetailDto?> GetDetailBySlugAsync(string slug, CancellationToken cancellationToken)
+    {
+        var result = await _dbContext.Recipes
+            .AsNoTracking()
+            .AsSingleQuery()
+            .Include(recipe => recipe.Steps)
+            .Include(recipe => recipe.Ingredients)
+            .Include(recipe => recipe.Images)
+            .Include(recipe => recipe.Category)
+            .Where(recipe => recipe.Slug == slug && !recipe.IsDeleted)
+            .Select(recipe => new
+            {
+                Recipe = recipe,
+                AuthorName = _dbContext.Users.Where(user => user.Id == recipe.AuthorId)
+                    .Select(user => user.DisplayName).FirstOrDefault(),
+                AuthorAvatar = _dbContext.Users.Where(user => user.Id == recipe.AuthorId)
+                    .Select(user => user.AvatarUrl).FirstOrDefault()
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (result is null) return null;
+
+        var recipe = result.Recipe;
+        return new RecipeDetailDto(
+            recipe.Id,
+            recipe.Title,
+            recipe.Slug,
+            recipe.Description,
+            recipe.Instructions,
+            recipe.PrepTimeMinutes,
+            recipe.CookTimeMinutes,
+            recipe.PrepTimeMinutes + recipe.CookTimeMinutes,
+            recipe.Servings,
+            recipe.Difficulty,
+            recipe.Status,
+            recipe.CreatedAt,
+            recipe.AuthorId,
+            new RecipeAuthorDto(result.AuthorName ?? string.Empty, result.AuthorAvatar),
+            recipe.Category is null ? null : new RecipeCategoryDto(recipe.Category.Id, recipe.Category.Name, recipe.Category.Slug),
+            recipe.Steps.OrderBy(step => step.StepNumber).Select(step => new RecipeStepDto(
+                step.StepNumber, step.Title, step.Description, step.TimerMinutes, step.ImageUrl)).ToArray(),
+            recipe.Ingredients.OrderBy(ingredient => ingredient.OrderIndex).Select(ingredient => new RecipeIngredientDto(
+                ingredient.Name, ingredient.Quantity, ingredient.Unit, ingredient.Notes, ingredient.OrderIndex)).ToArray(),
+            recipe.Images.OrderByDescending(image => image.IsPrimary).ThenBy(image => image.OrderIndex).Select(image => new RecipeImageDto(
+                image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl, image.IsPrimary, image.OrderIndex)).ToArray(),
+            new RecipeNutritionDto(recipe.Nutrition.Calories, recipe.Nutrition.Protein, recipe.Nutrition.Carbohydrates,
+                recipe.Nutrition.Fat, recipe.Nutrition.Fiber, recipe.Nutrition.Sodium));
     }
 
     public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)
