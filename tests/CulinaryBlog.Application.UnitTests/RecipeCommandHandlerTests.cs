@@ -2,6 +2,7 @@ using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.Exceptions;
 using CulinaryBlog.Application.Features.Recipes.Common;
 using CulinaryBlog.Application.Features.Recipes.CreateDraft;
+using CulinaryBlog.Application.Features.Recipes.GetBySlug;
 using CulinaryBlog.Application.Features.Recipes.Queries;
 using CulinaryBlog.Application.Features.Recipes.Update;
 using CulinaryBlog.Domain.Common;
@@ -152,11 +153,26 @@ public sealed class RecipeCommandHandlerTests
             int pageSize,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task<Recipe?> GetByIdForPublishingAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(ExistingRecipe);
+
+        public Task<RecipeDetailDto?> GetDetailBySlugAsync(string slug, CancellationToken cancellationToken) =>
+            Task.FromResult<RecipeDetailDto?>(null);
     }
 
     private sealed class FakeCategoryRepository(bool exists) : ICategoryRepository
     {
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(exists);
+
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
+
+        public Task AddAsync(Category category, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(1);
     }
 
     private sealed class FakeUnitOfWork(

@@ -125,6 +125,16 @@ public class Recipe : BaseEntity
         Ingredients.Add(ingredient);
     }
 
+    public void Publish()
+    {
+        if (Steps.Count == 0 || Ingredients.Count == 0)
+        {
+            throw new RecipeNotEligibleForPublishException();
+        }
+
+        Status = RecipeStatus.Published;
+    }
+
     private static void ValidateDetails(string? title, int prepTimeMinutes, int cookTimeMinutes)
     {
         if (string.IsNullOrWhiteSpace(title))
