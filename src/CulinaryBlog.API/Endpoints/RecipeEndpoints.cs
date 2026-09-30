@@ -2,6 +2,7 @@ using CulinaryBlog.Application.Features.Recipes.Common;
 using CulinaryBlog.Application.Features.Recipes.CreateDraft;
 using CulinaryBlog.Application.Features.Recipes.GetBySlug;
 using CulinaryBlog.Application.Features.Recipes.Queries;
+using CulinaryBlog.Application.Features.Recipes.PublishRecipe;
 using CulinaryBlog.Application.Features.Recipes.Update;
 using FluentValidation;
 using MediatR;
@@ -64,6 +65,21 @@ public static class RecipeEndpoints
         group.MapPut("/{id:guid}", UpdateAsync)
             .RequireAuthorization()
             .Produces<RecipeDto>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapPut("/{id:guid}/publish", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
+            {
+                await sender.Send(new PublishRecipeCommand(id), cancellationToken);
+                return Results.NoContent();
+            })
+            .RequireAuthorization()
+            .WithName("PublishRecipe")
+            .WithSummary("Xuất bản công thức nấu ăn")
+            .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)

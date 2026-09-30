@@ -1,5 +1,6 @@
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Enums;
+using CulinaryBlog.Domain.Exceptions;
 
 namespace CulinaryBlog.Domain.Entities;
 
@@ -100,5 +101,15 @@ public class Recipe : BaseEntity
     public void AddIngredient(RecipeIngredient ingredient)
     {
         Ingredients.Add(ingredient);
+    }
+
+    public void Publish()
+    {
+        if (Steps.Count == 0 || Ingredients.Count == 0)
+        {
+            throw new RecipeNotEligibleForPublishException();
+        }
+
+        Status = RecipeStatus.Published;
     }
 }

@@ -23,6 +23,14 @@ public sealed class RecipeRepository : IRecipeRepository
             .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
     }
 
+    public Task<Recipe?> GetByIdForPublishingAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return _dbContext.Recipes
+            .Include(recipe => recipe.Steps)
+            .Include(recipe => recipe.Ingredients)
+            .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
+    }
+
     public async Task<RecipeDetailDto?> GetDetailBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         var result = await _dbContext.Recipes
