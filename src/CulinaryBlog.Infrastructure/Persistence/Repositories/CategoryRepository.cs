@@ -24,6 +24,20 @@ public sealed class CategoryRepository(ApplicationDbContext dbContext) : ICatego
         return dbContext.Categories.AddAsync(category, cancellationToken).AsTask();
     }
 
+    public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.Categories.FirstOrDefaultAsync(
+            category => category.Id == id && !category.IsDeleted,
+            cancellationToken);
+    }
+
+    public Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        return dbContext.Recipes.AnyAsync(
+            recipe => recipe.CategoryId == categoryId && !recipe.IsDeleted,
+            cancellationToken);
+    }
+
     public async Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken)
     {
         var maxOrderIndex = await dbContext.Categories.Select(category => (int?)category.OrderIndex)

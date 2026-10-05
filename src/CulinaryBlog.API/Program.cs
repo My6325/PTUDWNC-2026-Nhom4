@@ -2,9 +2,11 @@ using CulinaryBlog.API.Authorization;
 using CulinaryBlog.API.Caching;
 using CulinaryBlog.API.Endpoints;
 using CulinaryBlog.API.ExceptionHandling;
+using CulinaryBlog.API.OpenApi;
 using CulinaryBlog.Application;
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Infrastructure;
+using CulinaryBlog.Infrastructure.HealthChecks;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
 using Microsoft.AspNetCore.Authorization;
@@ -70,8 +72,15 @@ builder.Services.AddOutputCache(options =>
         .SetVaryByRouteValue("slug"));
 });
 
-// 8. Đăng ký tài liệu OpenAPI 3.x native của .NET 10
-builder.Services.AddOpenApi();
+// 8. Đăng ký tài liệu OpenAPI 3.x native của .NET 10 kèm cấu hình Bearer Authentication cho Scalar UI
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
+
+// 9. Đăng ký Health Checks cho hệ thống (Liveness & Supabase Readiness)
+builder.Services.AddHealthChecks()
+    .AddCheck<SupabaseDatabaseHealthCheck>("supabase-postgres", tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -107,6 +116,7 @@ await CulinaryBlogSeeder.SeedAsync(app.Services);
 app.MapCategoryEndpoints();
 app.MapRecipeEndpoints();
 app.MapAuthEndpoints();
+app.MapHealthCheckEndpoints();
 
 // 14. Chuyển hướng trang chủ sang giao diện tài liệu Scalar UI
 app.MapGet("/", () => Results.Redirect("/scalar/v1"));

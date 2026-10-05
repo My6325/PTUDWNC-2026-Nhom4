@@ -10,5 +10,9 @@ public interface ICategoryRepository
 
     Task AddAsync(Category category, CancellationToken cancellationToken);
 
+    Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken);
+
     Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken);
 }
