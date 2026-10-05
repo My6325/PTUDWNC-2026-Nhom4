@@ -61,3 +61,54 @@ public sealed record RecipeDto(
     RecipeStatus Status,
     string AuthorId,
     byte[] RowVersion);
+
+public sealed record AddRecipeStepRequest(
+    string Title,
+    string Description,
+    int? TimerMinutes,
+    string? ImageUrl);
+
+public sealed record UpdateRecipeStepRequest(
+    string Title,
+    string Description,
+    int? TimerMinutes,
+    string? ImageUrl);
+
+public sealed record RecipeStepResponseDto(
+    Guid Id,
+    Guid RecipeId,
+    int StepNumber,
+    string Title,
+    string Description,
+    int? TimerMinutes,
+    string? ImageUrl);
+
+public sealed record AddIngredientRequest(
+    string Name,
+    decimal? Quantity,
+    string? Unit,
+    string? Notes);
+
+public sealed record UpdateIngredientRequest(
+    string Name,
+    decimal? Quantity,
+    string? Unit,
+    string? Notes);
+
+public sealed record RecipeIngredientResponseDto(
+    Guid Id,
+    Guid RecipeId,
+    string Name,
+    decimal? Quantity,
+    string? Unit,
+    string? Notes,
+    int OrderIndex);
+
+public sealed record RecipeImageResponseDto(
+    Guid Id,
+    Guid RecipeId,
+    string OriginalUrl,
+    string? MediumUrl,
+    string? ThumbnailUrl,
+    bool IsPrimary,
+    int OrderIndex);

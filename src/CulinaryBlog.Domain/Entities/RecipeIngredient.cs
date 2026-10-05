@@ -34,4 +34,12 @@ public class RecipeIngredient : BaseEntity
             Notes = notes?.Trim()
         };
     }
+
+    public void Update(string name, decimal? quantity, string? unit, string? notes)
+    {
+        Name = name.Trim();
+        Quantity = quantity;
+        Unit = unit?.Trim();
+        Notes = notes?.Trim();
+    }
 }

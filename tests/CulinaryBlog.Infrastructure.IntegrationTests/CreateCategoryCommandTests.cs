@@ -84,6 +84,8 @@ public sealed class CreateCategoryCommandTests
             _slugs.Add(category.Slug);
             return Task.CompletedTask;
         }
+        public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Categories.FirstOrDefault(c => c.Id == id));
+        public Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) => Task.FromResult(Categories.Count);
     }
 

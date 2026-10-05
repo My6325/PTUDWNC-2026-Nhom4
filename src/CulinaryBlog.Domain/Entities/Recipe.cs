@@ -117,17 +117,124 @@ public class Recipe : BaseEntity
 
     public void AddStep(RecipeStep step)
     {
+        if (step.StepNumber <= 0)
+        {
+            step.StepNumber = Steps.Count(s => !s.IsDeleted) + 1;
+        }
         Steps.Add(step);
+    }
+
+    public void RemoveStep(Guid stepId)
+    {
+        var step = Steps.FirstOrDefault(s => s.Id == stepId && !s.IsDeleted);
+        if (step is null) return;
+
+        step.IsDeleted = true;
+        step.DeletedAt = DateTime.UtcNow;
+
+        RenumberSteps();
+    }
+
+    public void RenumberSteps()
+    {
+        var activeSteps = Steps.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList();
+        for (int i = 0; i < activeSteps.Count; i++)
+        {
+            activeSteps[i].StepNumber = i + 1;
+        }
     }
 
     public void AddIngredient(RecipeIngredient ingredient)
     {
+        if (ingredient.OrderIndex <= 0)
+        {
+            ingredient.OrderIndex = Ingredients.Count(i => !i.IsDeleted) + 1;
+        }
         Ingredients.Add(ingredient);
+    }
+
+    public void RemoveIngredient(Guid ingredientId)
+    {
+        var ingredient = Ingredients.FirstOrDefault(i => i.Id == ingredientId && !i.IsDeleted);
+        if (ingredient is null) return;
+
+        ingredient.IsDeleted = true;
+        ingredient.DeletedAt = DateTime.UtcNow;
+
+        RenumberIngredients();
+    }
+
+    public void RenumberIngredients()
+    {
+        var activeIngredients = Ingredients.Where(i => !i.IsDeleted).OrderBy(i => i.OrderIndex).ToList();
+        for (int i = 0; i < activeIngredients.Count; i++)
+        {
+            activeIngredients[i].OrderIndex = i + 1;
+        }
+    }
+
+    public void AddImage(RecipeImage image)
+    {
+        if (!Images.Any(img => !img.IsDeleted && img.IsPrimary))
+        {
+            image.IsPrimary = true;
+        }
+        if (image.OrderIndex <= 0)
+        {
+            image.OrderIndex = Images.Count(img => !img.IsDeleted) + 1;
+        }
+        Images.Add(image);
+    }
+
+    public void RemoveImage(Guid imageId)
+    {
+        var image = Images.FirstOrDefault(img => img.Id == imageId && !img.IsDeleted);
+        if (image is null) return;
+
+        image.IsDeleted = true;
+        image.DeletedAt = DateTime.UtcNow;
+
+        if (image.IsPrimary)
+        {
+            image.IsPrimary = false;
+            var nextPrimary = Images.Where(img => !img.IsDeleted && img.Id != imageId)
+                .OrderBy(img => img.OrderIndex)
+                .FirstOrDefault();
+
+            if (nextPrimary is not null)
+            {
+                nextPrimary.IsPrimary = true;
+            }
+        }
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+
+        foreach (var step in Steps.Where(s => !s.IsDeleted))
+        {
+            step.IsDeleted = true;
+            step.DeletedAt = DateTime.UtcNow;
+        }
+
+        foreach (var ingredient in Ingredients.Where(i => !i.IsDeleted))
+        {
+            ingredient.IsDeleted = true;
+            ingredient.DeletedAt = DateTime.UtcNow;
+        }
+
+        foreach (var image in Images.Where(img => !img.IsDeleted))
+        {
+            image.IsDeleted = true;
+            image.DeletedAt = DateTime.UtcNow;
+        }
     }
 
     public void Publish()
     {
-        if (Steps.Count == 0 || Ingredients.Count == 0)
+        if (!Steps.Any(s => !s.IsDeleted) || !Ingredients.Any(i => !i.IsDeleted))
         {
             throw new RecipeNotEligibleForPublishException();
         }

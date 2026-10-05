@@ -34,4 +34,12 @@ public class RecipeStep : BaseEntity
             ImageUrl = imageUrl?.Trim()
         };
     }
+
+    public void Update(string title, string description, int? timerMinutes, string? imageUrl)
+    {
+        Title = title.Trim();
+        Description = description.Trim();
+        TimerMinutes = timerMinutes;
+        ImageUrl = imageUrl?.Trim();
+    }
 }
