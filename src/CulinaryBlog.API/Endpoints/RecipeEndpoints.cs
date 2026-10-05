@@ -56,6 +56,8 @@ public static class RecipeEndpoints
 
         group.MapPost("/", CreateDraftAsync)
             .RequireAuthorization(policy => policy.RequireRole("Author", "Admin"))
+            .WithName("CreateRecipeDraft")
+            .WithSummary("Tạo bản nháp công thức món ăn mới")
             .Produces<RecipeDto>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

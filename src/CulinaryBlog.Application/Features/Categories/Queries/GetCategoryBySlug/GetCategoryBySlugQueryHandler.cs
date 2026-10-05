@@ -1,5 +1,6 @@
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.DTOs;
+using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -25,12 +26,14 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
             return null;
         }
 
-        var normalizedSlug = request.Slug.Trim().ToLowerInvariant();
+        var rawSlug = request.Slug.Trim();
+        var normalizedSlug = rawSlug.ToLowerInvariant();
+        var generatedSlug = SlugHelper.GenerateSlug(rawSlug);
 
-        // 1. Tìm thông tin danh mục theo Slug
+        // 1. Tìm thông tin danh mục theo Slug (hỗ trợ cả slug kebab-case lẫn chuỗi tiếng Việt có dấu tự động chuyển đổi)
         var category = await _context.Categories
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Slug == normalizedSlug && !c.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(c => (c.Slug == normalizedSlug || c.Slug == generatedSlug) && !c.IsDeleted, cancellationToken);
 
         if (category is null)
         {
