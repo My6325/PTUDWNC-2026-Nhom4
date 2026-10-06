@@ -41,6 +41,17 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(r => r.PublishedAt)
+            .HasColumnType("timestamp with time zone");
+
+        builder.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql("setweight(to_tsvector('simple', public.recipe_unaccent(coalesce(\"Title\", ''))), 'A') || setweight(to_tsvector('simple', public.recipe_unaccent(coalesce(\"Description\", ''))), 'B')", stored: true);
+
+        builder.HasIndex("SearchVector")
+            .HasMethod("GIN")
+            .HasDatabaseName("IX_Recipes_SearchVector_GIN");
+
         builder.HasOne(r => r.Category)
             .WithMany()
             .HasForeignKey(r => r.CategoryId)

@@ -4,6 +4,7 @@ using CulinaryBlog.Application.Features.Recipes.GetBySlug;
 using CulinaryBlog.Application.Features.Recipes.Queries;
 using CulinaryBlog.Application.Features.Recipes.PublishRecipe;
 using CulinaryBlog.Application.Features.Recipes.Update;
+using CulinaryBlog.Application.Features.Recipes.ChangeRecipeStatus;
 using FluentValidation;
 using MediatR;
 
@@ -87,6 +88,33 @@ public static class RecipeEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapPost("/{id:guid}/archive", async (Guid id, ISender sender, CancellationToken ct) =>
+            { await sender.Send(new ArchiveRecipeCommand(id), ct); return Results.NoContent(); })
+            .RequireAuthorization().WithName("ArchiveRecipe")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapPost("/{id:guid}/unarchive", async (Guid id, ISender sender, CancellationToken ct) =>
+            { await sender.Send(new UnarchiveRecipeCommand(id), ct); return Results.NoContent(); })
+            .RequireAuthorization().WithName("UnarchiveRecipe")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapPost("/{id:guid}/unpublish", async (Guid id, ISender sender, CancellationToken ct) =>
+            { await sender.Send(new UnpublishRecipeCommand(id), ct); return Results.NoContent(); })
+            .RequireAuthorization().WithName("UnpublishRecipe")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         return endpoints;
     }

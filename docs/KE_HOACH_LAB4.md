@@ -17,8 +17,8 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 | **TV1: Nguyễn Thị Trà My** (Trưởng nhóm) | Danh mục (FR-CAT) & Giám sát (FR-OBS) | **8 API** | 8 API | 0 API | 100.0% |
 | **TV2: Hoàng Trịnh Việt Linh** | Xác thực người dùng (FR-AUTH) & Email | **7 API** | 2 API | 5 API | 28.6% |
 | **TV3: Phan Khánh Vương** | Công thức cốt lõi (FR-RCP), Nguyên liệu, Bước làm & Media | **10 API** | 2 API | 8 API | 20.0% |
-| **TV4: Lê Phạm Mi Đoan** | Tìm kiếm FTS, Chi tiết, Xuất bản & Sitemap | **5 API** | 3 API | 2 API | 60.0% |
-| **TOÀN HỆ THỐNG** | **4 MODULES - ĐỦ 27 CHỨC NĂNG SRS** | **30 API** | **15 API** | **15 API** | **50.0%** |
+| **TV4: Lê Phạm Mi Đoan** | Tìm kiếm FTS, Chi tiết, Xuất bản & Sitemap | **5 API** | 5 API | 0 API | 100.0% (đã có source; chờ nghiệm thu môi trường) |
+| **TOÀN HỆ THỐNG** | **4 MODULES - ĐỦ 27 CHỨC NĂNG SRS** | **30 API** | **17 API** | **13 API** | **56.7%** |
 
 ---
 
@@ -100,17 +100,20 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 * **Module đảm nhiệm:** Tìm kiếm Toàn văn FTS, Xuất bản & Lưu trữ Công thức (FR-RCP-001, 002, 005, 006, FR-SRCH) & Sitemap
 * **Tổng số API quy định:** **5 API**
 
-#### A. Danh sách các API ĐÃ HOÀN THÀNH (3/5 API)
+#### A. Danh sách các API ĐÃ CÓ TRIỂN KHAI TRONG SOURCE (5/5 API)
 1. `GET /api/v1/recipes`: Tra cứu danh sách công thức, tìm kiếm FTS tiếng Việt không dấu (`unaccent`, `ToTsVector`), phân trang `PaginatedResult`, lọc đa tiêu chí (Output Cache 15 phút).
 2. `GET /api/v1/recipes/{slug}`: Xem chi tiết toàn diện công thức (Eager loading Steps, Ingredients, Nutrition, Images bằng `.AsSplitQuery()`, Output Cache theo slug).
-3. `PUT /api/v1/recipes/{id:guid}/publish`: Xuất bản công thức (Ràng buộc nghiệp vụ: bắt buộc có $\ge 1$ bước và $\ge 1$ nguyên liệu; đổi trạng thái sang `Published`, gán `PublishedAt`).
+3. `PUT /api/v1/recipes/{id:guid}/publish`: Xuất bản công thức (bắt buộc có $\ge 1$ bước, $\ge 1$ nguyên liệu và ít nhất một ảnh `IsPrimary`; đổi trạng thái sang `Published`, gán `PublishedAt`; lỗi thiếu nội dung trả `422 RECIPE_PUBLISH_INCOMPLETE`).
+4. `POST /api/v1/recipes/{id:guid}/archive`: Lưu trữ công thức; chỉ tác giả hoặc Admin, ẩn khỏi danh sách công khai và invalidate cache list/detail.
+5. `GET /sitemap.xml`: Sinh sitemap XML từ recipe Published chưa xóa và category hoạt động; có `<loc>`, `<lastmod>`, `<changefreq>`.
 
-#### B. Danh sách các API CẦN HOÀN THÀNH TRONG LAB 4 (2 API)
-1. `POST /api/v1/recipes/{id:guid}/archive` (FR-RCP-006): Lưu trữ công thức món ăn.
-   * *Quyền:* Tác giả hoặc Admin.
-   * *Nghiệp vụ:* Chuyển đổi trạng thái `Status = RecipeStatus.Archived` để ẩn khỏi danh sách công khai.
-2. `GET /sitemap.xml` (FR-JOB-003): Xuất sơ đồ trang web chuẩn SEO XML.
-   * *Nghiệp vụ:* Quét toàn bộ công thức `Published` và các `Categories` đang hoạt động, sinh cấu trúc chuẩn `<urlset>` kèm `<loc>`, `<lastmod>`, `<changefreq>`, hỗ trợ Google Bot lập chỉ mục.
+#### B. Việc nghiệm thu còn lại cho TV4
+
+- Cấu hình `PublicSite:BaseUrl` theo domain public và `Sitemap:OutputPath` theo hosting/volume.
+- Nếu bật nộp sitemap tự động, cấu hình Google Search Console OAuth refresh token và property đã xác minh.
+- Chạy kiểm thử PostgreSQL/Supabase sau khi nhóm thống nhất môi trường migration; xác nhận FTS extension, generated column, GIN index, filter/sort và lịch Hangfire.
+- Đối chiếu route frontend và JSON-LD khi frontend Next.js được đưa vào repository/phạm vi nghiệm thu.
+- Source hiện có chưa phải bằng chứng rằng các mục trên đã được nghiệm thu trên môi trường triển khai.
 
 ---
 

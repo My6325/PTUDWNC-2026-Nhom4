@@ -24,6 +24,9 @@ public class Recipe : BaseEntity
 
     public RecipeStatus Status { get; set; } = RecipeStatus.Draft;
 
+
+    public DateTime? PublishedAt { get; private set; }
+
     public Guid? CategoryId { get; set; }
 
     public Category? Category { get; set; }
@@ -98,6 +101,8 @@ public class Recipe : BaseEntity
         {
             (RecipeStatus.Draft, RecipeStatus.Published) => true,
             (RecipeStatus.Published, RecipeStatus.Archived) => true,
+            (RecipeStatus.Published, RecipeStatus.Draft) => true,
+            (RecipeStatus.Archived, RecipeStatus.Published) => true,
             (RecipeStatus.Archived, RecipeStatus.Draft) => true,
             _ => false
         };
@@ -108,6 +113,14 @@ public class Recipe : BaseEntity
         }
 
         Status = targetStatus;
+        if (targetStatus == RecipeStatus.Published)
+        {
+            PublishedAt ??= DateTime.UtcNow;
+        }
+        else if (targetStatus == RecipeStatus.Draft)
+        {
+            PublishedAt = null;
+        }
     }
 
     public void SetNutrition(RecipeNutrition? nutrition)
@@ -127,12 +140,13 @@ public class Recipe : BaseEntity
 
     public void Publish()
     {
-        if (Steps.Count == 0 || Ingredients.Count == 0)
+        if (Steps.Count == 0 || Ingredients.Count == 0 || !Images.Any(image => image.IsPrimary))
         {
             throw new RecipeNotEligibleForPublishException();
         }
 
         Status = RecipeStatus.Published;
+        PublishedAt = DateTime.UtcNow;
     }
 
     private static void ValidateDetails(string? title, int prepTimeMinutes, int cookTimeMinutes)

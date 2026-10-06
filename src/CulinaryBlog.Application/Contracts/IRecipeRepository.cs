@@ -31,4 +31,10 @@ public interface IRecipeRepository
         int pageIndex,
         int pageSize,
         CancellationToken cancellationToken);
+
+    Task<PaginatedResult<RecipeListDto>> SearchRecipesAsync(
+        string? searchTerm, Guid? categoryId, string? difficulty,
+        int? minCookTimeMinutes, int? maxCookTimeMinutes, int? minServings, int? maxServings,
+        string sortBy, int pageIndex, int pageSize, CancellationToken cancellationToken) =>
+        SearchRecipesAsync(searchTerm, categoryId, difficulty, sortBy, pageIndex, pageSize, cancellationToken);
 }
