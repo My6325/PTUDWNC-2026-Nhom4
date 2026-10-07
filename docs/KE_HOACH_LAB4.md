@@ -103,7 +103,7 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 #### A. Danh sách các API ĐÃ HOÀN THÀNH (3/5 API)
 1. `GET /api/v1/recipes`: Tra cứu danh sách công thức, tìm kiếm FTS tiếng Việt không dấu (`unaccent`, `ToTsVector`), phân trang `PaginatedResult`, lọc đa tiêu chí (Output Cache 15 phút).
 2. `GET /api/v1/recipes/{slug}`: Xem chi tiết toàn diện công thức (Eager loading Steps, Ingredients, Nutrition, Images bằng `.AsSplitQuery()`, Output Cache theo slug).
-3. `PUT /api/v1/recipes/{id:guid}/publish`: Xuất bản công thức (Ràng buộc nghiệp vụ: bắt buộc có $\ge 1$ bước và $\ge 1$ nguyên liệu; đổi trạng thái sang `Published`, gán `PublishedAt`).
+3. `PUT /api/v1/recipes/{id:guid}/publish`: Xuất bản công thức (bắt buộc có ít nhất một bước, một nguyên liệu và một ảnh chính; đổi trạng thái sang `Published`).
 
 #### B. Danh sách các API CẦN HOÀN THÀNH TRONG LAB 4 (2 API)
 1. `POST /api/v1/recipes/{id:guid}/archive` (FR-RCP-006): Lưu trữ công thức món ăn.

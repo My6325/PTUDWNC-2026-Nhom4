@@ -352,13 +352,15 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
     ```csharp
     recipe.Steps.Count >= 1 && recipe.Ingredients.Count >= 1
     ```
-    Nếu không thỏa mãn, ném `DomainException` trả về `HTTP 422 Unprocessable Entity` (`RECIPE_PUBLISH_INCOMPLETE`). Nếu thỏa mãn, đổi trạng thái sang `RecipeStatus.Published` và gán `PublishedAt = UtcNow`.
+    Nếu không thỏa mãn (thiếu bước, nguyên liệu hoặc ảnh chính), ném `DomainException` trả về `HTTP 422 Unprocessable Entity` (`RECIPE_PUBLISH_INCOMPLETE`). Nếu thỏa mãn, đổi trạng thái sang `RecipeStatus.Published`.
 - [ ] **Lưu Trữ Công Thức (FR-RCP-006):**
   - Tạo `ArchiveRecipeCommand(Guid Id) : IRequest;` và handler đổi trạng thái sang `RecipeStatus.Archived` để ẩn khỏi trang chủ.
-- [ ] **API Endpoints:**
-  - `POST /api/v1/recipes/{id}/publish`
+- [x] **API Endpoints:**
+  - `PUT /api/v1/recipes/{id}/publish` (theo API đã triển khai và `docs/KE_HOACH_LAB4.md`)
   - `POST /api/v1/recipes/{id}/unpublish`
   - `POST /api/v1/recipes/{id}/archive`
+  - `POST /api/v1/recipes/{id}/unarchive`
+  - `POST /api/v1/recipes/{id}/unarchive-to-draft` (đưa Archived về Draft theo state machine của Spec)
 
 #### Bước 5: Hiện thực FR-JOB-003 (Sitemap Generation Job)
 - [ ] **Tạo Job:** Tạo `SitemapGenerationJob.cs` trong `Infrastructure/Jobs/`.

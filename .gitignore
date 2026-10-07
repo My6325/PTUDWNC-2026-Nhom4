@@ -46,6 +46,8 @@ coverage/
 *.coveragexml
 /tests/*
 !/tests/
+!/tests/plan_fr_rcp_005_006.md
+!/tests/plan_fr_rcp_005_006.html
 !/tests/CulinaryBlog.Infrastructure.IntegrationTests/
 !/tests/CulinaryBlog.Infrastructure.IntegrationTests/**
 /tests/CulinaryBlog.Infrastructure.IntegrationTests/bin/

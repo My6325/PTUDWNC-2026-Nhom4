@@ -98,6 +98,8 @@ public class Recipe : BaseEntity
         {
             (RecipeStatus.Draft, RecipeStatus.Published) => true,
             (RecipeStatus.Published, RecipeStatus.Archived) => true,
+            (RecipeStatus.Published, RecipeStatus.Draft) => true,
+            (RecipeStatus.Archived, RecipeStatus.Published) => true,
             (RecipeStatus.Archived, RecipeStatus.Draft) => true,
             _ => false
         };
@@ -127,12 +129,12 @@ public class Recipe : BaseEntity
 
     public void Publish()
     {
-        if (Steps.Count == 0 || Ingredients.Count == 0)
+        if (Steps.Count == 0 || Ingredients.Count == 0 || !Images.Any(image => image.IsPrimary))
         {
             throw new RecipeNotEligibleForPublishException();
         }
 
-        Status = RecipeStatus.Published;
+        ChangeStatus(RecipeStatus.Published);
     }
 
     private static void ValidateDetails(string? title, int prepTimeMinutes, int cookTimeMinutes)
