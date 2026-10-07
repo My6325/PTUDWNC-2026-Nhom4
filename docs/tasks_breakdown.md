@@ -323,47 +323,48 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 **Mức độ** (Tối ưu hóa FTS tiếng Việt unaccent, phân trang đa tiêu chí, Projection và Schema.org)
 
 #### Bước 1: Hiện thực FR-SRCH-001 (Cấu hình FTS Tiếng Việt Supabase & Kiểm thử Dữ liệu CSDL - Đảm nhận phần Database của TV4)
-- [ ] **Cấu hình CSDL FTS:**
+- [x] **Cấu hình CSDL FTS:**
   - [x] Kích hoạt extension `unaccent` và `pg_trgm` trong `ApplicationDbContext.OnModelCreating` (TV1 đã tạo khung sườn).
-  - [ ] Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
-  - [ ] Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
+  - [x] Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
+  - [x] Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
 - [x] **Repository LINQ FTS:** Tạo `IRecipeRepository` và cài đặt `RecipeRepository.cs` sử dụng `EF.Functions.ToTsVector()` kết hợp `EF.Functions.PlainToTsQuery()` và hàm `unaccent()` để hỗ trợ tìm kiếm không dấu tiếng Việt bản địa hóa.
 - [x] **Kiểm thử Toàn vẹn Dữ liệu CSDL:** Đã viết kịch bản kiểm thử/nghiệm thu chất lượng dữ liệu FTS không dấu (`unaccent`) và thuật toán phân trang (`PaginatedResult`) trên tập dữ liệu 100 công thức sau khi được Seed vào Supabase. Việc chạy nghiệm thu cần môi trường có kết nối Supabase.
 
 #### Bước 2: Hiện thực FR-SRCH-002, 003, 004 (Lọc Đa Tiêu Chí, Sắp Xếp & Phân Trang)
 - [x] **Request Model:** Tạo `GetRecipesQuery` (nhận `SearchTerm`, `CategoryId`, `Difficulty`, `SortBy`, `PageIndex`, `PageSize`).
 - [x] **CQRS Query & Handler:**
-  - Tạo `GetRecipesQuery` và `GetRecipesQueryValidator` (phân trang an toàn với giới hạn trần `PageSize <= 50`).
-  - Tạo `GetRecipesQueryHandler`: Xếp hạng kết quả, áp dụng các bộ lọc Category, Difficulty, sắp xếp `newest`, tự động join tác giả và ảnh đại diện, phân trang `PaginatedResult<RecipeListDto>`.
+  - [x] Tạo `GetRecipesQuery` và `GetRecipesQueryValidator` (phân trang an toàn với giới hạn trần `PageSize <= 50`, lọc CookTime/Servings và whitelist sort).
+  - [x] Tạo `GetRecipesQueryHandler`: áp dụng Category, Difficulty, CookTime, Servings; sort `newest`, `cookTime`, `relevance`; projection tác giả/ảnh đại diện và phân trang `PaginatedResult<RecipeListDto>`.
 - [x] **API Endpoint:** `GET /api/v1/recipes` trong `RecipeEndpoints.cs` tích hợp Output Cache 15 phút (`RecipesCache`).
 
 #### Bước 3: Hiện thực FR-RCP-001 & FR-RCP-002 (Xem Danh Sách & Chi Tiết Công Thức)
 - [x] **Tối ưu Hóa Truy Vấn Projection (FR-RCP-001):**
   - Trong `RecipeRepository` / `GetRecipesQueryHandler`: Chiết xuất trực tiếp sang `RecipeListDto` chỉ `SELECT` các cột cần thiết, **loại bỏ hoàn toàn việc tải 6 cột `Nutrition_*`**, các bảng Steps và Ingredients khi lấy danh sách.
-- [ ] **Truy Vấn Chi Tiết Eager Loading (FR-RCP-002):**
+- [x] **Truy Vấn Chi Tiết Eager Loading (FR-RCP-002):**
   - Trong `GetRecipeDetailQueryHandler`: Nạp đầy đủ Steps, Ingredients, Images và Nutrition bằng kỹ thuật `.AsSplitQuery()`.
-  - Cache chi tiết bài viết qua Output Cache với TTL 60 phút.
-- [ ] **SEO Schema.org Recipe (JSON-LD):** Phía Next.js (`src/frontend/app/recipes/[slug]/page.tsx`), tự động nhúng thẻ script `@type: "Recipe"` đạt chứng nhận Google Rich Snippets.
+  - [x] Cache chi tiết bài viết qua Output Cache với TTL 60 phút.
+- [ ] **SEO Schema.org Recipe (JSON-LD):** Phía Next.js (`src/frontend/app/recipes/[slug]/page.tsx`), tự động nhúng thẻ script `@type: "Recipe"`. Frontend Next.js hiện chưa có trong repository nên chưa có vị trí để triển khai.
 
 #### Bước 4: Hiện thực FR-RCP-005 & FR-RCP-006 (Xuất Bản & Lưu Trữ Công Thức)
-- [ ] **Quy Tắc Xuất Bản Nghiêm Ngặt (FR-RCP-005):**
+- [x] **Quy Tắc Xuất Bản Nghiêm Ngặt (FR-RCP-005):**
   - Tạo `PublishRecipeCommand(Guid Id) : IRequest;`
   - Tạo `PublishRecipeCommandHandler`: Kiểm tra điều kiện nghiệp vụ:
     ```csharp
-    recipe.Steps.Count >= 1 && recipe.Ingredients.Count >= 1
+    recipe.Steps.Count >= 1 && recipe.Ingredients.Count >= 1 && recipe.Images.Any(image => image.IsPrimary)
     ```
     Nếu không thỏa mãn, ném `DomainException` trả về `HTTP 422 Unprocessable Entity` (`RECIPE_PUBLISH_INCOMPLETE`). Nếu thỏa mãn, đổi trạng thái sang `RecipeStatus.Published` và gán `PublishedAt = UtcNow`.
-- [ ] **Lưu Trữ Công Thức (FR-RCP-006):**
+- [x] **Lưu Trữ Công Thức (FR-RCP-006):**
   - Tạo `ArchiveRecipeCommand(Guid Id) : IRequest;` và handler đổi trạng thái sang `RecipeStatus.Archived` để ẩn khỏi trang chủ.
-- [ ] **API Endpoints:**
+- [x] **API Endpoints:**
   - `POST /api/v1/recipes/{id}/publish`
   - `POST /api/v1/recipes/{id}/unpublish`
   - `POST /api/v1/recipes/{id}/archive`
 
 #### Bước 5: Hiện thực FR-JOB-003 (Sitemap Generation Job)
-- [ ] **Tạo Job:** Tạo `SitemapGenerationJob.cs` trong `Infrastructure/Jobs/`.
-- [ ] **Phương thức `ExecuteAsync()`:** Quét toàn bộ công thức `Published` và danh mục trong Supabase DB, tạo file `sitemap.xml` chuẩn SEO, lưu vào webroot và phát tín hiệu ping đến Google Search Console.
-- [ ] **Đăng ký Định kỳ:** Đăng ký lịch chạy trong `Program.cs` chạy vào lúc **02:00 AM UTC** hàng ngày (`RecurringJob.AddOrUpdate<SitemapGenerationJob>("sitemap-job", job => job.ExecuteAsync(), "0 2 * * *")`).
+- [x] **Tạo Job:** Tạo `SitemapGenerationJob.cs` trong `Infrastructure/Jobs/`.
+- [x] **Phương thức `ExecuteAsync()`:** Quét recipe `Published` chưa xóa và category hoạt động, tạo XML chuẩn, lưu theo `Sitemap:OutputPath`; nếu cấu hình đủ OAuth thì nộp sitemap qua Google Search Console API.
+- [x] **Đăng ký Định kỳ:** Đăng ký lịch chạy trong `Program.cs` lúc **02:00 AM UTC** hàng ngày; Hangfire activator tạo DI scope cho job.
+- [ ] **Cấu hình triển khai:** Thay `PublicSite__BaseUrl` bằng domain public; cấu hình volume cho output nếu hosting cần file bền vững; cấu hình property/OAuth Search Console nếu bật auto-submit. Kiểm chứng trên PostgreSQL/Supabase được nhóm cấp quyền.
 
 ---
 

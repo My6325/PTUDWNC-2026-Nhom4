@@ -63,7 +63,7 @@
 * **Chi tiết chức năng (theo đúng SRS v1.0.0):**
   - `FR-RCP-001`: Xem Danh sách Công thức (Paginated + Filtered + Sorted, Output Cache 15m).
   - `FR-RCP-002`: Xem Chi tiết Công thức Nấu ăn (Recipe Detail Eager Loading qua `/api/v1/recipes/{slug}`, nạp đầy đủ Steps, Ingredients, Nutrition, Images và nhúng SEO Schema.org).
-  - `FR-RCP-005`: Xuất bản / Hủy Xuất bản Công thức (Publish/Unpublish - Ràng buộc >= 1 bước & nguyên liệu).
+  - `FR-RCP-005`: Xuất bản / Hủy Xuất bản Công thức (Publish/Unpublish - ràng buộc >= 1 bước, nguyên liệu và ảnh đại diện chính theo Spec).
   - `FR-RCP-006`: Lưu trữ Công thức (Archive / Unarchive - Ẩn khỏi trang chủ).
   - `FR-SRCH-001`: Tìm kiếm Toàn văn bản (Supabase PostgreSQL FTS tiếng Việt `tsvector`/`tsquery`, `unaccent`, `ts_rank`).
   - `FR-SRCH-002`: Lọc đa tiêu chí (Faceted Search: Danh mục, Độ khó, Thời gian nấu, Khẩu phần).
@@ -119,6 +119,10 @@ dotnet tool install --global dotnet-ef
 ---
 
 ### 3.3. Cài đặt và Chạy Backend API (.NET 10)
+
+Trước khi chạy, sao chép `.env.example` thành `.env`, điền thông tin database/JWT và thay `PublicSite__BaseUrl` bằng origin public thật của frontend (origin này được dùng để tạo URL trong sitemap). `Sitemap__OutputPath` mặc định là `wwwroot/sitemap.xml`, tính từ content root; khi triển khai container, có thể đặt đường dẫn tuyệt đối trỏ tới volume bền vững. API mặc định không tự chạy migration hoặc seed khi khởi động; migration cần được áp dụng theo quy trình tập trung của nhóm. Chỉ bật `Database__ApplyMigrationsOnStartup` hoặc `Database__SeedOnStartup` trong môi trường được nhóm cho phép.
+
+Job sitemap chạy lúc 02:00 UTC. Nộp sitemap tự động lên Google Search Console là tùy chọn: cần điền đủ `GoogleSearchConsole__SiteUrl`, `ClientId`, `ClientSecret`, `RefreshToken` trong `.env`, với OAuth refresh token có quyền Search Console trên property tương ứng. Không commit `.env` hoặc thông tin OAuth.
 
 #### Cách 1: Chạy trực tiếp từ thư mục gốc dự án (Không cần chuyển thư mục vào src)
 ```powershell

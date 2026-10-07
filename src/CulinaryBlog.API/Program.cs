@@ -12,6 +12,10 @@ using CulinaryBlog.Infrastructure.Persistence.Seeders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using Hangfire;
+using Hangfire.PostgreSql;
+using CulinaryBlog.Infrastructure.Jobs;
+using CulinaryBlog.API.BackgroundJobs;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -50,6 +54,11 @@ builder.Services.AddMemoryCache();
 
 // 4. Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
+var databaseConnectionString = SupabaseConnectionStringResolver.Resolve(builder.Configuration);
+GlobalConfiguration.Configuration.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(databaseConnectionString));
+builder.Services.AddSingleton<IHostedService, HangfireServerHostedService>();
+builder.Services.AddScoped<SitemapGenerationJob>();
+builder.Services.AddHttpClient();
 
 // 5. Đăng ký Exception Handling & Problem Details
 builder.Services.AddProblemDetails();
@@ -68,7 +77,7 @@ builder.Services.AddOutputCache(options =>
         .SetVaryByQuery("*")
         .Tag("recipes"));
     options.AddPolicy("RecipeDetail", policy => policy
-        .Expire(TimeSpan.FromMinutes(5))
+        .Expire(TimeSpan.FromMinutes(60))
         .SetVaryByRouteValue("slug"));
 });
 
@@ -83,6 +92,9 @@ builder.Services.AddHealthChecks()
     .AddCheck<SupabaseDatabaseHealthCheck>("supabase-postgres", tags: ["ready"]);
 
 var app = builder.Build();
+GlobalConfiguration.Configuration.UseActivator(new ScopedHangfireJobActivator(app.Services.GetRequiredService<IServiceScopeFactory>()));
+RecurringJob.AddOrUpdate<SitemapGenerationJob>("sitemap-job", job => job.ExecuteAsync(CancellationToken.None), "0 2 * * *",
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
 // 9. Cấu hình Middleware pipeline
 app.UseExceptionHandler();
@@ -102,19 +114,42 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// 11. Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
-using (var scope = app.Services.CreateScope())
+// 11. Migration/seed chỉ chạy khi được bật rõ ràng; WBS yêu cầu điều phối migration tập trung.
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
 {
+    using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
 }
+else
+{
+    app.Logger.LogInformation("Automatic database migrations are disabled. Apply migrations through the team's centralized process.");
+}
 
-// 12. Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
-await CulinaryBlogSeeder.SeedAsync(app.Services);
+if (builder.Configuration.GetValue<bool>("Database:SeedOnStartup"))
+{
+    await CulinaryBlogSeeder.SeedAsync(app.Services);
+}
+else
+{
+    app.Logger.LogInformation("Automatic sample data seeding is disabled.");
+}
 
 // 13. Đăng ký các endpoints nghiệp vụ của cả nhóm
 app.MapCategoryEndpoints();
 app.MapRecipeEndpoints();
+app.MapGet("/sitemap.xml", async (IConfiguration configuration, SitemapGenerationJob sitemapJob, CancellationToken ct) =>
+{
+    if (!SitemapXmlBuilder.IsValidPublicBaseUrl(configuration["PublicSite:BaseUrl"]))
+    {
+        return Results.Problem("PublicSite:BaseUrl must be configured as an absolute public site URL.", statusCode: 503);
+    }
+
+    return Results.Text(await sitemapJob.GenerateXmlAsync(ct), "application/xml; charset=utf-8");
+})
+    .WithName("GetSitemap")
+    .Produces(StatusCodes.Status200OK, contentType: "application/xml")
+    .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 app.MapAuthEndpoints();
 app.MapHealthCheckEndpoints();
 
