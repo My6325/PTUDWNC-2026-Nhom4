@@ -120,6 +120,9 @@ public static class DependencyInjection
         // 6. Đăng ký IApplicationDbContext phục vụ tầng Application
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
+        // 7. Đăng ký dịch vụ lưu trữ Supabase Storage
+        services.AddHttpClient<ISupabaseStorageService, SupabaseStorageService>();
+
         return services;
     }
 }

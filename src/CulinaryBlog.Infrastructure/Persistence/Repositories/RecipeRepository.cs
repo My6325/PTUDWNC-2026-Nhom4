@@ -23,6 +23,15 @@ public sealed class RecipeRepository : IRecipeRepository
             .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
     }
 
+    public Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return _dbContext.Recipes
+            .Include(recipe => recipe.Steps)
+            .Include(recipe => recipe.Ingredients)
+            .Include(recipe => recipe.Images)
+            .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
+    }
+
     public Task<Recipe?> GetByIdForPublishingAsync(Guid id, CancellationToken cancellationToken)
     {
         return _dbContext.Recipes
@@ -71,11 +80,11 @@ public sealed class RecipeRepository : IRecipeRepository
             recipe.AuthorId,
             new RecipeAuthorDto(result.AuthorName ?? string.Empty, result.AuthorAvatar),
             recipe.Category is null ? null : new RecipeCategoryDto(recipe.Category.Id, recipe.Category.Name, recipe.Category.Slug),
-            recipe.Steps.OrderBy(step => step.StepNumber).Select(step => new RecipeStepDto(
+            recipe.Steps.Where(step => !step.IsDeleted).OrderBy(step => step.StepNumber).Select(step => new RecipeStepDto(
                 step.StepNumber, step.Title, step.Description, step.TimerMinutes, step.ImageUrl)).ToArray(),
-            recipe.Ingredients.OrderBy(ingredient => ingredient.OrderIndex).Select(ingredient => new RecipeIngredientDto(
+            recipe.Ingredients.Where(ingredient => !ingredient.IsDeleted).OrderBy(ingredient => ingredient.OrderIndex).Select(ingredient => new RecipeIngredientDto(
                 ingredient.Name, ingredient.Quantity, ingredient.Unit, ingredient.Notes, ingredient.OrderIndex)).ToArray(),
-            recipe.Images.OrderByDescending(image => image.IsPrimary).ThenBy(image => image.OrderIndex).Select(image => new RecipeImageDto(
+            recipe.Images.Where(image => !image.IsDeleted).OrderByDescending(image => image.IsPrimary).ThenBy(image => image.OrderIndex).Select(image => new RecipeImageDto(
                 image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl, image.IsPrimary, image.OrderIndex)).ToArray(),
             new RecipeNutritionDto(recipe.Nutrition.Calories, recipe.Nutrition.Protein, recipe.Nutrition.Carbohydrates,
                 recipe.Nutrition.Fat, recipe.Nutrition.Fiber, recipe.Nutrition.Sodium));
@@ -188,7 +197,7 @@ public sealed class RecipeRepository : IRecipeRepository
                     Title = recipe.Title,
                     Slug = recipe.Slug,
                     CoverImageUrl = recipe.Images
-                        .Where(image => image.IsPrimary)
+                        .Where(image => image.IsPrimary && !image.IsDeleted)
                         .OrderBy(image => image.OrderIndex)
                         .ThenBy(image => image.Id)
                         .Select(image => image.MediumUrl ?? image.OriginalUrl)

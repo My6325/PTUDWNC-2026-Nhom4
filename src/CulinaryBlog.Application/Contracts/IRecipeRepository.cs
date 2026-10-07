@@ -9,6 +9,8 @@ public interface IRecipeRepository
 {
     Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken) => GetByIdAsync(id, cancellationToken);
+
     Task<Recipe?> GetByIdForPublishingAsync(Guid id, CancellationToken cancellationToken);
 
     Task<RecipeDetailDto?> GetDetailBySlugAsync(string slug, CancellationToken cancellationToken);
