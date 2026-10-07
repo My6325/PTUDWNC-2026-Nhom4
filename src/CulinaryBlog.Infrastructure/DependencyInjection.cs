@@ -111,6 +111,8 @@ public static class DependencyInjection
         // 4. Đăng ký JwtService với lifetime Scoped
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IClientContext, ClientContext>();
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
         // 5. Đăng ký repository nghiệp vụ
         services.AddScoped<IRecipeRepository, RecipeRepository>();

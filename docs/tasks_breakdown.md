@@ -204,34 +204,34 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [ ] **Frontend UI:** Xây dựng trang `src/frontend/app/register/page.tsx` và `src/frontend/app/login/page.tsx` với React Hook Form và Zod.
 
 #### Bước 3: Hiện thực FR-AUTH-003 (Đăng nhập Google OAuth 2.0 PKCE)
-- [ ] **Request Record:** `public record GoogleLoginRequest(string IdToken);`
-- [ ] **CQRS Command & Handler:**
+- [x] **Request Record:** `public record GoogleLoginRequest(string IdToken);`
+- [x] **CQRS Command & Handler:**
   - Tạo `GoogleLoginCommand(GoogleLoginRequest Request) : IRequest<AuthResponseDto>;`
   - Tạo `GoogleLoginCommandHandler`: Sử dụng `GoogleJsonWebSignature.ValidateAsync(idToken)` xác thực với máy chủ Google. Triển khai logic **Account Linking**: nếu email đã tồn tại thì liên kết tài khoản Google; nếu chưa thì tạo user mới với `EmailConfirmed = true`.
-- [ ] **API Endpoint:** `POST /api/v1/auth/google` trong `AuthEndpoints.cs`.
+- [x] **API Endpoint:** `POST /api/v1/auth/google` trong `AuthEndpoints.cs`.
 - [ ] **Frontend Integration:** Tích hợp nút "Đăng nhập với Google" trong Next.js sử dụng Auth.js v5 (`signIn('google')`).
 
 #### Bước 4: Hiện thực FR-AUTH-004 & FR-AUTH-005 (Token Rotation & Đăng xuất)
-- [ ] **Request Record:** `public record RefreshTokenRequest(string RefreshToken);`
-- [ ] **CQRS Refresh Command & Handler:**
+- [x] **Request Record:** `public record RefreshTokenRequest(string RefreshToken);`
+- [x] **CQRS Refresh Command & Handler:**
   - Tạo `RefreshTokenCommand(string RefreshToken) : IRequest<AuthResponseDto>;`
   - Tạo `RefreshTokenCommandHandler`: Băm token gửi lên và so khớp với bảng `RefreshTokens` trong Supabase DB.
   - **Token Rotation:** Thu hồi token cũ (`RevokedAt = UtcNow`), phát sinh token mới và lưu vết `ReplacedByTokenHash`.
   - **Phát hiện tái sử dụng (Reuse Detection):** Nếu token đã bị thu hồi trước đó được gửi lại ngoài thời gian ân hạn 30 giây -> kích hoạt thu hồi toàn bộ token của user (`RevokeTokenFamily`) và ném lỗi `AUTH_REFRESH_TOKEN_REVOKED` (HTTP 401).
-- [ ] **CQRS Logout Command & Handler:**
+- [x] **CQRS Logout Command & Handler:**
   - Tạo `LogoutCommand(string RefreshToken) : IRequest;`
   - Đánh dấu thu hồi RefreshToken trong CSDL Supabase.
-- [ ] **API Endpoints:**
+- [x] **API Endpoints:**
   - `POST /api/v1/auth/refresh`
   - `POST /api/v1/auth/logout`
 - [ ] **Frontend Interceptor:** Cài đặt cơ chế chặn request trùng lặp (Mutex Lock) trong `src/frontend/lib/api/axios.ts`.
 
 #### Bước 5: Hiện thực FR-AUTH-006 & FR-AUTH-007 (Xem & Cập nhật Hồ sơ Cá nhân)
-- [ ] **Request Record:** `public record UpdateProfileRequest(string? DisplayName, string? AvatarUrl, string? Bio);`
-- [ ] **CQRS Commands, Queries & Handlers:**
+- [x] **Request Record:** `public record UpdateProfileRequest(string? DisplayName, string? AvatarUrl, string? Bio);`
+- [x] **CQRS Commands, Queries & Handlers:**
   - Tạo `GetCurrentUserProfileQuery() : IRequest<UserDto>;` và handler trả về thông tin người dùng hiện tại (loại bỏ hoàn toàn các trường nhạy cảm `PasswordHash`, `SecurityStamp`).
   - Tạo `UpdateProfileCommand(UpdateProfileRequest Request) : IRequest<UserDto>;` và handler thực hiện PATCH các trường `DisplayName`, `AvatarUrl`, `Bio` (cấm tuyệt đối việc thay đổi `Email` hoặc `UserName` tại đây).
-- [ ] **API Endpoints:**
+- [x] **API Endpoints:**
   - `GET /api/v1/auth/me`
   - `PATCH /api/v1/auth/profile`
 - [ ] **Frontend UI:** Xây dựng trang hồ sơ cá nhân `src/frontend/app/profile/page.tsx`.

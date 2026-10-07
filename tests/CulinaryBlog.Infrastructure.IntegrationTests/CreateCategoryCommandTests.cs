@@ -85,6 +85,8 @@ public sealed class CreateCategoryCommandTests
             return Task.CompletedTask;
         }
         public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) => Task.FromResult(Categories.Count);
+        public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Categories.FirstOrDefault(c => c.Id == id));
+        public Task<bool> HasRecipesAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);
     }
 
     private sealed class FakeUnitOfWork(ICategoryRepository categories) : IUnitOfWork

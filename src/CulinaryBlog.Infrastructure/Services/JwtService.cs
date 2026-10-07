@@ -124,7 +124,7 @@ public class JwtService : IJwtService
             ValidAudience = _jwtSettings.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret)),
             // Chỉ chấp nhận thuật toán HMAC-SHA256 để ngăn chặn tấn công Algorithm Confusion
-            ValidAlgorithms = [SecurityAlgorithms.HmacSha256Signature]
+            ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
         };
 
         try
@@ -132,9 +132,8 @@ public class JwtService : IJwtService
             var tokenHandler = new JwtSecurityTokenHandler();
             var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
 
-            // Kiểm tra thêm: token phải là JwtSecurityToken và sử dụng đúng thuật toán HS256
             if (securityToken is not JwtSecurityToken jwtToken ||
-                !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256Signature,
+                !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,
                     StringComparison.InvariantCultureIgnoreCase))
             {
                 return null;

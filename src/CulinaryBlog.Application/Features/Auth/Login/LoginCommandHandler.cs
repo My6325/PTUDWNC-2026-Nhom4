@@ -16,17 +16,20 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     private readonly IJwtService _jwtService;
     private readonly IApplicationDbContext _context;
     private readonly JwtSettings _jwtSettings;
+    private readonly IClientContext _clientContext;
 
     public LoginCommandHandler(
         UserManager<ApplicationUser> userManager,
         IJwtService jwtService,
         IApplicationDbContext context,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        IClientContext clientContext)
     {
         _userManager = userManager;
         _jwtService = jwtService;
         _context = context;
         _jwtSettings = jwtSettings.Value;
+        _clientContext = clientContext;
     }
 
     public async Task<AuthResponseDto> Handle(LoginCommand command, CancellationToken cancellationToken)
@@ -74,7 +77,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         {
             TokenHash = hashedRefreshToken,
             UserId = user.Id,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
+            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            CreatedByIp = _clientContext.IpAddress
         };
 
         _context.RefreshTokens.Add(refreshTokenEntity);

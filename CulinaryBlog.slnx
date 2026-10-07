@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CulinaryBlog.API/CulinaryBlog.API.csproj" />
+    <Project Path="src/CulinaryBlog.Application/CulinaryBlog.Application.csproj" />
+    <Project Path="src/CulinaryBlog.Domain/CulinaryBlog.Domain.csproj" />
+    <Project Path="src/CulinaryBlog.Infrastructure/CulinaryBlog.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CulinaryBlog.Application.UnitTests/CulinaryBlog.Application.UnitTests.csproj" />
+    <Project Path="tests/CulinaryBlog.Infrastructure.IntegrationTests/CulinaryBlog.Infrastructure.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

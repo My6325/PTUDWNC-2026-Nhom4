@@ -15,10 +15,10 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 | Thành viên | Phân hệ nghiệp vụ đảm nhiệm | Tổng API quy định | Đã hoàn thành | Cần hoàn thành | Tỷ lệ hiện tại |
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **TV1: Nguyễn Thị Trà My** (Trưởng nhóm) | Danh mục (FR-CAT) & Giám sát (FR-OBS) | **8 API** | 8 API | 0 API | 100.0% |
-| **TV2: Hoàng Trịnh Việt Linh** | Xác thực người dùng (FR-AUTH) & Email | **7 API** | 2 API | 5 API | 28.6% |
+| **TV2: Hoàng Trịnh Việt Linh** | Xác thực người dùng (FR-AUTH) & Email | **7 API** | 7 API | 0 API | 100.0% |
 | **TV3: Phan Khánh Vương** | Công thức cốt lõi (FR-RCP), Nguyên liệu, Bước làm & Media | **10 API** | 2 API | 8 API | 20.0% |
 | **TV4: Lê Phạm Mi Đoan** | Tìm kiếm FTS, Chi tiết, Xuất bản & Sitemap | **5 API** | 3 API | 2 API | 60.0% |
-| **TOÀN HỆ THỐNG** | **4 MODULES - ĐỦ 27 CHỨC NĂNG SRS** | **30 API** | **15 API** | **15 API** | **50.0%** |
+| **TOÀN HỆ THỐNG** | **4 MODULES - ĐỦ 27 CHỨC NĂNG SRS** | **30 API** | **20 API** | **10 API** | **66.7%** |
 
 ---
 
@@ -49,23 +49,17 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 * **Module đảm nhiệm:** Xác thực, Quản lý Tài khoản (FR-AUTH-001 $\rightarrow$ 007) & Background Job (FR-JOB-001)
 * **Tổng số API quy định:** **7 API**
 
-#### A. Danh sách các API ĐÃ HOÀN THÀNH (2/7 API)
+#### A. Danh sách các API ĐÃ HOÀN THÀNH (7/7 API)
 1. `POST /api/v1/auth/register` (FR-AUTH-001): Đăng ký tài khoản người dùng mới (mật khẩu băm PBKDF2, cấp role mặc định `Author`).
 2. `POST /api/v1/auth/login` (FR-AUTH-002): Đăng nhập bằng Email/Password, cấp cặp JWT Access Token (HS256 15m) & Refresh Token (64-byte CSPRNG); khóa tài khoản sau 5 lần sai liên tiếp (`HTTP 423 Locked`).
+3. `POST /api/v1/auth/google` (FR-AUTH-003): Đăng nhập Google OAuth 2.0 PKCE.
+4. `POST /api/v1/auth/refresh` (FR-AUTH-004): Làm mới Access Token (Token Rotation).
+5. `POST /api/v1/auth/logout` (FR-AUTH-005): Đăng xuất tài khoản.
+6. `GET /api/v1/auth/me` (FR-AUTH-006): Lấy thông tin hồ sơ người dùng đang đăng nhập.
+7. `PATCH /api/v1/auth/profile` (FR-AUTH-007): Cập nhật hồ sơ cá nhân.
 
-#### B. Danh sách các API CẦN HOÀN THÀNH TRONG LAB 4 (5 API)
-1. `POST /api/v1/auth/google` (FR-AUTH-003): Đăng nhập Google OAuth 2.0 PKCE.
-   * *Nghiệp vụ:* Xác thực `IdToken` qua Google API, tự động liên kết tài khoản (Account Linking) nếu email đã tồn tại.
-2. `POST /api/v1/auth/refresh` (FR-AUTH-004): Làm mới Access Token (Token Rotation).
-   * *Nghiệp vụ:* So khớp Refresh Token băm SHA-256; thu hồi token cũ, cấp token mới; phát hiện tấn công tái sử dụng (Reuse Detection ngoài 30s) $\rightarrow$ thu hồi toàn bộ token của người dùng (HTTP 401).
-3. `POST /api/v1/auth/logout` (FR-AUTH-005): Đăng xuất tài khoản.
-   * *Nghiệp vụ:* Thu hồi Refresh Token tương ứng trong CSDL (`RevokedAt = UtcNow`).
-4. `GET /api/v1/auth/me` (FR-AUTH-006): Lấy thông tin hồ sơ người dùng đang đăng nhập.
-   * *Quyền:* `RequireAuthorization`.
-   * *Nghiệp vụ:* Trả về `UserDto` (Display Name, Email, Avatar, Bio, Roles; bảo mật tuyệt đối không lộ Hash mật khẩu).
-5. `PATCH /api/v1/auth/profile` (FR-AUTH-007): Cập nhật hồ sơ cá nhân.
-   * *Quyền:* `RequireAuthorization`.
-   * *Nghiệp vụ:* Cập nhật `DisplayName`, `AvatarUrl`, `Bio` (cấm đổi Email/UserName tại API này).
+#### B. Danh sách các API CẦN HOÀN THÀNH TRONG LAB 4 (0 API)
+*(Đã hoàn thành 7/7 API - 100% nhiệm vụ backend của TV2).*
 
 ---
 
