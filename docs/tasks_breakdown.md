@@ -7,47 +7,64 @@
 
 ---
 
-## 1. CẤU TRÚC 4 THƯ MỤC CỐT LÕI 
+## 1. CẤU TRÚC HỆ THỐNG TOÀN DIỆN (BACKEND CLEAN ARCHITECTURE + FRONTEND NEXT.JS 15)
 
-Hệ thống đã dọn dẹp sạch sẽ và tạo sẵn 4 thư mục tương ứng với 4 project trong Solution Clean Architecture:
+Hệ thống được tổ chức phân tách rõ ràng giữa Backend API (.NET 10) và Frontend Web Client (Next.js 15 App Router):
 
 ```text
-d:\Nhom4_WebNangCao/src/
-├── CulinaryBlog.Domain/                           # [TẦNG 1: LÕI TRUNG TÂM - DOMAIN]
-│   ├── Common/                                    # BaseEntity.cs, SlugHelper.cs
-│   ├── Entities/                                  # ApplicationUser, RefreshToken, Category, Recipe,
-│   │                                              # RecipeStep, RecipeIngredient, RecipeImage, RecipeNutrition
-│   ├── Enums/                                     # RecipeDifficulty.cs, RecipeStatus.cs
-│   ├── Exceptions/                                # DomainException.cs, NotFoundException.cs, UnauthorizedException.cs
-│   └── Settings/                                  # JwtSettings.cs
+d:\Nhom4_WebNangCao/
+├── src/                                           # [TOÀN BỘ BACKEND .NET 10 CLEAN ARCHITECTURE]
+│   ├── CulinaryBlog.Domain/                       # [TẦNG 1: LÕI TRUNG TÂM - DOMAIN]
+│   │   ├── Common/                                # BaseEntity.cs, SlugHelper.cs
+│   │   ├── Entities/                              # ApplicationUser, RefreshToken, Category, Recipe,
+│   │   │                                          # RecipeStep, RecipeIngredient, RecipeImage, RecipeNutrition
+│   │   ├── Enums/                                 # RecipeDifficulty.cs, RecipeStatus.cs
+│   │   ├── Exceptions/                            # DomainException.cs, NotFoundException.cs, UnauthorizedException.cs
+│   │   └── Settings/                              # JwtSettings.cs
+│   │
+│   ├── CulinaryBlog.Application/                  # [TẦNG 2: ĐIỀU PHỐI USE CASES - CQRS]
+│   │   ├── Common/Models/                         # PaginatedResult.cs
+│   │   ├── Contracts/                             # Interfaces: IRepository, IRecipeRepository, IUnitOfWork,
+│   │   │                                          # IJwtService, ISupabaseStorageService, IEmailService
+│   │   ├── DTOs/                                  # CategoryDto, AuthDtos, RecipeDtos
+│   │   ├── Features/                              # Slices tính năng theo thành viên:
+│   │   │   ├── Categories/                        # [TV1 - Leader]: Commands, Queries, Validators, Handlers
+│   │   │   ├── Auth/                              # [TV2]: Register, Login, Refresh, Google, Profile
+│   │   │   └── Recipes/                           # [TV3 & TV4]: CreateDraft, Update, Publish, Search FTS
+│   │   └── DependencyInjection.cs                 # Đăng ký MediatR Pipelines & Mapster
+│   │
+│   ├── CulinaryBlog.Infrastructure/               # [TẦNG 3: HẠ TẦNG & CSDL SUPABASE]
+│   │   ├── Persistence/                           # ApplicationDbContext.cs, UnitOfWork.cs
+│   │   │   ├── Configurations/                    # Fluent API Configurations (GIN index, Concurrency, Cascade)
+│   │   │   ├── Repositories/                      # Repository.cs, RecipeRepository.cs (FTS SplitQuery)
+│   │   │   └── Seeders/                           # CulinaryBlogSeeder.cs (Bogus Data)
+│   │   ├── Services/                              # JwtService.cs, SupabaseStorageService.cs, MailKitEmailService.cs
+│   │   ├── Authorization/                         # RecipeAuthorizationHandler.cs (Resource-Based AuthZ)
+│   │   └── DependencyInjection.cs                 # Đăng ký Npgsql DbContext, Identity, Hangfire, Storage
+│   │
+│   └── CulinaryBlog.API/                          # [TẦNG 4: PRESENTATION - MINIMAL APIS]
+│       ├── Endpoints/                             # CategoryEndpoints.cs, AuthEndpoints.cs, RecipeEndpoints.cs, HealthCheckEndpoints.cs
+│       ├── Middlewares/                           # CorrelationIdMiddleware.cs, GlobalExceptionHandler.cs
+│       ├── Program.cs                             # Khởi tạo App, Middleware Pipeline (CORS, RateLimiting), Scalar UI (/scalar/v1)
+│       ├── appsettings.json                       # Cấu hình chung hệ thống
+│       └── appsettings.Development.json           # Cấu hình Logging môi trường Dev (không chứa secrets)
 │
-├── CulinaryBlog.Application/                      # [TẦNG 2: ĐIỀU PHỐI USE CASES - CQRS]
-│   ├── Common/Models/                             # PaginatedResult.cs
-│   ├── Contracts/                                 # Interfaces: IRepository, IRecipeRepository, IUnitOfWork,
-│   │                                              # IJwtService, ISupabaseStorageService, IEmailService
-│   ├── DTOs/                                      # CategoryDto, AuthDtos, RecipeDtos
-│   ├── Features/                                  # Slices tính năng theo thành viên:
-│   │   ├── Categories/                            # [TV1 - Leader]: Commands, Queries, Validators, Handlers
-│   │   ├── Auth/                                  # [TV2]: Register, Login, Refresh, Google, Profile
-│   │   └── Recipes/                               # [TV3 & TV4]: CreateDraft, Update, Publish, Search FTS
-│   └── DependencyInjection.cs                     # Đăng ký MediatR Pipelines & Mapster
+├── frontend/                                      # [GIAO DIỆN CLIENT - NEXT.JS 15 + TYPESCRIPT]
+│   ├── public/                                    # Tệp tĩnh (ảnh favicon, logo, icons)
+│   ├── src/                                       # Mã nguồn Front-end
+│   │   ├── app/                                   # Next.js 15 App Router (layout.tsx, page.tsx, categories/...)
+│   │   ├── components/                            # Các khối giao diện dùng chung (Button, Navbar, Modal...)
+│   │   ├── services/                              # Cấu hình gọi API Backend (apiClient.ts, categoryService.ts)
+│   │   ├── types/                                 # ⭐ Khai báo TypeScript Types (category.ts, auth.ts, recipe.ts...)
+│   │   ├── hooks/                                 # Custom React Hooks
+│   │   └── utils/                                 # Hàm tiện ích (format tiền, ngày tháng, slug)
+│   ├── package.json                               # Danh mục thư viện (Next 15, React 19, Tailwind, Axios, Zod)
+│   ├── tsconfig.json                              # Cấu hình trình biên dịch TypeScript
+│   ├── tailwind.config.ts                         # Cấu hình bảng màu & kiểu dáng Tailwind CSS
+│   ├── postcss.config.mjs                         # Cấu hình PostCSS
+│   └── next.config.ts                             # Cấu hình môi trường Next.js
 │
-├── CulinaryBlog.Infrastructure/                   # [TẦNG 3: HẠ TẦNG & CSDL SUPABASE]
-│   ├── Persistence/                               # ApplicationDbContext.cs, UnitOfWork.cs
-│   │   ├── Configurations/                        # Fluent API Configurations (GIN index, Concurrency, Cascade)
-│   │   ├── Repositories/                          # Repository.cs, RecipeRepository.cs (FTS SplitQuery)
-│   │   └── Seeders/                               # CulinaryBlogSeeder.cs (Bogus Data)
-│   ├── Services/                                  # JwtService.cs, SupabaseStorageService.cs, MailKitEmailService.cs
-│   ├── Authorization/                             # RecipeAuthorizationHandler.cs (Resource-Based AuthZ)
-│   └── DependencyInjection.cs                     # Đăng ký Npgsql DbContext, Identity, Hangfire, Storage
-│
-├── CulinaryBlog.API/                              # [TẦNG 4: PRESENTATION - MINIMAL APIS]
-│   ├── Endpoints/                                 # CategoryEndpoints.cs, AuthEndpoints.cs, RecipeEndpoints.cs
-│   ├── Middlewares/                               # CorrelationIdMiddleware.cs, GlobalExceptionMiddleware.cs
-│   ├── Program.cs                                 # Khởi tạo App, Middleware Pipeline, Scalar UI (/scalar/v1)
-│   ├── appsettings.json                           # Cấu hình chung hệ thống
-│   └── appsettings.Development.json               # Cấu hình Logging môi trường Dev (không chứa secrets)
-│
+├── docs/                                          # [TÀI LIỆU ĐỒ ÁN & KẾ HOẠCH CÁC LAB]
 ├── .env.example                                   # Mẫu biến môi trường (commit lên Git)
 └── .env                                           # Biến môi trường & mật khẩu thật (được .gitignore bảo vệ)
 ```
