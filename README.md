@@ -148,7 +148,7 @@ dotnet run             # hoặc: dotnet watch run (Hot-Reload)
 Mở một cửa sổ Terminal mới:
 ```powershell
 # 1. Di chuyển vào thư mục Frontend
-cd src/frontend
+cd frontend
 
 # 2. Cài đặt các gói thư viện
 npm install
