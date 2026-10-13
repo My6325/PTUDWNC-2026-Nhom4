@@ -9,9 +9,8 @@ using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.HealthChecks;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
-using System.Threading.RateLimiting;
+using CulinaryBlog.API.Security;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Hangfire;
@@ -60,6 +59,7 @@ var databaseConnectionString = SupabaseConnectionStringResolver.Resolve(builder.
 GlobalConfiguration.Configuration.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(databaseConnectionString));
 builder.Services.AddSingleton<IHostedService, HangfireServerHostedService>();
 builder.Services.AddScoped<SitemapGenerationJob>();
+builder.Services.AddScoped<GoogleSearchConsoleSitemapSubmitter>();
 builder.Services.AddHttpClient();
 
 // 5. Đăng ký Exception Handling & Problem Details
@@ -84,59 +84,13 @@ builder.Services.AddOutputCache(options =>
 });
 
 // 8. Đăng ký tài liệu OpenAPI 3.x native của .NET 10 kèm cấu hình Bearer Authentication cho Scalar UI
-builder.Services.AddOpenApi(options =>
-{
-    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-});
+builder.Services.AddCulinaryOpenApi();
 
 // 9. Đăng ký Health Checks cho hệ thống (Liveness & Supabase Readiness)
 builder.Services.AddHealthChecks()
     .AddCheck<SupabaseDatabaseHealthCheck>("supabase-postgres", tags: ["ready"]);
 
-// 10. Đăng ký CORS cho phép Frontend (Next.js port 3000) truy cập API
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendPolicy", policy =>
-    {
-        policy.WithOrigins(
-                "http://localhost:3000",
-                "https://localhost:3000"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
-// 11. Đăng ký Rate Limiting bảo vệ hệ thống chống DDoS / Brute-force
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.OnRejected = async (context, token) =>
-    {
-        context.HttpContext.Response.ContentType = "application/problem+json";
-        await context.HttpContext.Response.WriteAsJsonAsync(new
-        {
-            status = StatusCodes.Status429TooManyRequests,
-            title = "Too Many Requests",
-            detail = "Bạn đã gửi quá nhiều yêu cầu trong thời gian ngắn. Vui lòng thử lại sau 1 phút.",
-            instance = context.HttpContext.Request.Path
-        }, cancellationToken: token);
-    };
-
-    // Giới hạn chung 60 requests / phút theo từng địa chỉ IP của Client
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-    {
-        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 60,
-            Window = TimeSpan.FromMinutes(1),
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 2
-        });
-    });
-});
+builder.Services.AddFrontendRequestSecurity();
 
 var app = builder.Build();
 GlobalConfiguration.Configuration.UseActivator(new ScopedHangfireJobActivator(app.Services.GetRequiredService<IServiceScopeFactory>()));

@@ -50,6 +50,7 @@ coverage/
 !/tests/CulinaryBlog.Infrastructure.IntegrationTests/**
 /tests/CulinaryBlog.Infrastructure.IntegrationTests/bin/
 /tests/CulinaryBlog.Infrastructure.IntegrationTests/obj/
+/tests/CulinaryBlog.Infrastructure.IntegrationTests/TestResults/
 
 # -------------------------------------------------------------------
 # 3. Next.js 15 / Node.js / React
@@ -90,3 +91,4 @@ tmp/
 temp/
 *.pdf
 *.docx
+!docs/Lab5_2312802_PhanKhanhVuong.docx
