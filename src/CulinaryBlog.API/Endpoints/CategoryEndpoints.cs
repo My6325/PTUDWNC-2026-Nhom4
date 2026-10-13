@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
 using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Application.Features.Categories.Create;
 using CulinaryBlog.Application.Features.Categories.Delete;
@@ -16,10 +18,13 @@ namespace CulinaryBlog.API.Endpoints;
 /// </summary>
 public static class CategoryEndpoints
 {
-    public static IEndpointRouteBuilder MapCategoryEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapCategoryEndpoints(this IEndpointRouteBuilder app, ApiVersionSet? versionSet = null)
     {
-        var group = app.MapGroup("/api/v1/categories")
-            .WithTags("Categories");
+        var group = versionSet is not null
+            ? app.MapGroup("/api/v{version:apiVersion}/categories").WithApiVersionSet(versionSet).MapToApiVersion(new ApiVersion(1, 0))
+            : app.MapGroup("/api/v1/categories");
+
+        group.WithTags("Categories");
 
         group.MapPost("/", async (CreateCategoryRequest request, ISender sender, CancellationToken cancellationToken) =>
             {

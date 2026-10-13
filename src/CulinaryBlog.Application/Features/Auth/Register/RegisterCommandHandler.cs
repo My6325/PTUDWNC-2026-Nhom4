@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using CulinaryBlog.Application.Exceptions;
 
+using Microsoft.Extensions.Logging;
+
 namespace CulinaryBlog.Application.Features.Auth.Register;
 
 public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponseDto>
@@ -16,19 +18,25 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
     private readonly IApplicationDbContext _context;
     private readonly JwtSettings _jwtSettings;
     private readonly IClientContext _clientContext;
+    private readonly IBackgroundJobService? _backgroundJobService;
+    private readonly ILogger<RegisterCommandHandler>? _logger;
 
     public RegisterCommandHandler(
         UserManager<ApplicationUser> userManager,
         IJwtService jwtService,
         IApplicationDbContext context,
         IOptions<JwtSettings> jwtSettings,
-        IClientContext clientContext)
+        IClientContext clientContext,
+        IBackgroundJobService? backgroundJobService = null,
+        ILogger<RegisterCommandHandler>? logger = null)
     {
         _userManager = userManager;
         _jwtService = jwtService;
         _context = context;
         _jwtSettings = jwtSettings.Value;
         _clientContext = clientContext;
+        _backgroundJobService = backgroundJobService;
+        _logger = logger;
     }
 
     public async Task<AuthResponseDto> Handle(RegisterCommand command, CancellationToken cancellationToken)
@@ -86,7 +94,17 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         _context.RefreshTokens.Add(refreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 7. TODO(FR-JOB-001): enqueue WelcomeEmailJob qua Hangfire khi module Hangfire được thiết lập
+        // 7. Enqueue WelcomeEmailJob sau khi tạo tài khoản thành công
+        try
+        {
+            _backgroundJobService?.EnqueueWelcomeEmail(user.Id);
+        }
+        catch (Exception ex)
+        {
+            // Lỗi gửi email hoặc enqueue tuyệt đối không làm gián đoạn hoặc thất bại kết quả đăng ký
+            // Không ghi mật khẩu, token hay secrets vào log
+            _logger?.LogWarning(ex, "Không thể đưa email chào mừng vào hàng đợi cho người dùng mới.");
+        }
 
         // 8. Trả về AuthResponseDto
         return new AuthResponseDto(

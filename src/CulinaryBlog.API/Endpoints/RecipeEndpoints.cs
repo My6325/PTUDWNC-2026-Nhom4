@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
 using CulinaryBlog.Application.Features.Recipes.Common;
 using CulinaryBlog.Application.Features.Recipes.CreateDraft;
 using CulinaryBlog.Application.Features.Recipes.GetBySlug;
@@ -11,9 +13,13 @@ namespace CulinaryBlog.API.Endpoints;
 
 public static class RecipeEndpoints
 {
-    public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder endpoints, ApiVersionSet? versionSet = null)
     {
-        var group = endpoints.MapGroup("/api/v1/recipes").WithTags("Recipes");
+        var group = versionSet is not null
+            ? endpoints.MapGroup("/api/v{version:apiVersion}/recipes").WithApiVersionSet(versionSet).MapToApiVersion(new ApiVersion(1, 0))
+            : endpoints.MapGroup("/api/v1/recipes");
+
+        group.WithTags("Recipes");
 
         group.MapGet("/{slug}", async (string slug, ISender sender, HttpContext httpContext, CancellationToken cancellationToken) =>
             {

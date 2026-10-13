@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
 using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Application.Features.Auth.Login;
 using CulinaryBlog.Application.Features.Auth.Register;
@@ -11,14 +13,19 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CulinaryBlog.API.Endpoints;
 
 public static class AuthEndpoints
 {
-    public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app, ApiVersionSet? versionSet = null)
     {
-        var group = app.MapGroup("/api/v1/auth").WithTags("Auth");
+        var group = versionSet is not null
+            ? app.MapGroup("/api/v{version:apiVersion}/auth").WithApiVersionSet(versionSet).MapToApiVersion(new ApiVersion(1, 0))
+            : app.MapGroup("/api/v1/auth");
+
+        group.WithTags("Auth");
 
         group.MapPost("/register", async (RegisterRequest request, ISender sender, CancellationToken cancellationToken) =>
         {
@@ -29,9 +36,11 @@ public static class AuthEndpoints
         .WithName("Register")
         .WithSummary("Register a new user account")
         .AllowAnonymous()
+        .RequireRateLimiting("auth-sensitive")
         .Produces<AuthResponseDto>(200)
         .ProducesProblem(409)
-        .ProducesProblem(422);
+        .ProducesProblem(422)
+        .ProducesProblem(429);
 
         group.MapPost("/login", async (LoginRequest request, ISender sender, CancellationToken cancellationToken) =>
         {
@@ -42,10 +51,12 @@ public static class AuthEndpoints
         .WithName("Login")
         .WithSummary("Log in and obtain access and refresh tokens")
         .AllowAnonymous()
+        .RequireRateLimiting("auth-sensitive")
         .Produces<AuthResponseDto>(200)
         .ProducesProblem(401)
         .ProducesProblem(422)
-        .ProducesProblem(423);
+        .ProducesProblem(423)
+        .ProducesProblem(429);
 
         group.MapPost("/google", async (GoogleLoginRequest request, HttpContext context, ISender sender, CancellationToken cancellationToken) =>
         {
@@ -58,10 +69,12 @@ public static class AuthEndpoints
         .WithName("GoogleLogin")
         .WithSummary("Log in using Google OAuth 2.0")
         .AllowAnonymous()
+        .RequireRateLimiting("auth-sensitive")
         .Produces<AuthResponseDto>(200)
         .ProducesProblem(401)
         .ProducesProblem(403)
-        .ProducesProblem(422);
+        .ProducesProblem(422)
+        .ProducesProblem(429);
 
         group.MapPost("/refresh", async (HttpRequest httpRequest, HttpResponse httpResponse, IOptions<JwtSettings> jwtOptions, IWebHostEnvironment env, ISender sender, CancellationToken cancellationToken) =>
         {
@@ -98,11 +111,13 @@ public static class AuthEndpoints
         .WithName("RefreshToken")
         .WithSummary("Refresh access and refresh tokens")
         .AllowAnonymous()
+        .RequireRateLimiting("auth-sensitive")
         .Produces<AuthResponseDto>(200)
         .ProducesProblem(401)
-        .ProducesProblem(422);
+        .ProducesProblem(422)
+        .ProducesProblem(429);
 
-        group.MapPost("/logout", async (HttpRequest httpRequest, HttpResponse httpResponse, ISender sender, CancellationToken cancellationToken) =>
+        group.MapPost("/logout", async (HttpRequest httpRequest, HttpResponse httpResponse, IWebHostEnvironment env, ISender sender, CancellationToken cancellationToken) =>
         {
             string? token = null;
             if (httpRequest.HasJsonContentType())
@@ -122,7 +137,13 @@ public static class AuthEndpoints
             var command = new LogoutCommand(new RefreshTokenRequest(token));
             await sender.Send(command, cancellationToken);
 
-            httpResponse.Cookies.Delete("refreshToken", new CookieOptions { Path = "/api/v1/auth" });
+            httpResponse.Cookies.Delete("refreshToken", new CookieOptions
+            {
+                Path = "/api/v1/auth",
+                HttpOnly = true,
+                SameSite = SameSiteMode.Strict,
+                Secure = !env.IsDevelopment()
+            });
             return Results.NoContent();
         })
         .WithName("Logout")
