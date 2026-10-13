@@ -270,8 +270,8 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] Bổ sung mẫu môi trường front-end, khung components/recipes và script typecheck; npm ci, typecheck và Next.js build thành công; HTTP cổng 3000 trả 200.
 - [x] Kiểm chứng trên backend thử nghiệm local: JWT 401, quyền sở hữu 403, tác giả/Admin 200, CORS theo origin và Rate Limiting 429; không dùng tài khoản hoặc CSDL Supabase thật.
 - [x] Kiểm chứng OpenAPI có Bearer JWT, schema và mã lỗi Recipe, multipart upload; Scalar trả HTML 200. Bổ sung metadata UpdateRecipe và lỗi upload 400.
-- [x] Bộ test local đạt 53/53, trong đó 12 trường hợp Lab 5; kiểm tra adapter cho 11 thao tác service đạt. Minh chứng: `docs/evidence/lab5/`.
-- [x] Tạo `docs/Lab5_2312802_PhanKhanhVuong.docx` theo mẫu Lab 3 và Lab 4, đã kiểm tra trực quan bố cục ba trang A4 ngang.
+- [x] Bộ test local đạt 53/53, trong đó 12 trường hợp Lab 5; kiểm tra adapter cho 11 thao tác service đạt. Minh chứng bài nộp cá nhân lưu riêng trên máy, không theo dõi bằng Git.
+- [x] Tạo báo cáo cá nhân Lab 5 theo mẫu Lab 3 và Lab 4, đã kiểm tra trực quan bố cục ba trang A4 ngang; file nộp bài được giữ local.
 - [ ] Kiểm thử toàn bộ ứng dụng với tài khoản Supabase do nhóm cung cấp và storage thật; chưa thực hiện migration/seed.
 - [ ] API versioning đầy đủ: hiện chỉ có tiền tố `/api/v1`; đầu việc phối hợp nhóm, chưa triển khai trong phần cá nhân.
 - Giao diện tạo/sửa công thức hoàn chỉnh và ImageResizeJob không thuộc đợt hoàn thiện Lab 5 này. Các checkbox nghiệp vụ bên dưới là kế hoạch gốc, không thay thế kết quả kiểm chứng Lab 5 nêu trên.

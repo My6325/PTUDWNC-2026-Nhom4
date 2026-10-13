@@ -28,10 +28,11 @@ trình duyệt; các thao tác có xác thực cần được gọi từ phía c
 Khung components/recipes và hooks được giữ bằng .gitkeep; chưa có giao diện soạn
 thảo hoàn chỉnh. Không thêm thư viện mới trong Lab 5.
 
-Kiểm tra service độc lập, từ thư mục gốc repository:
+Kiểm tra bảo mật và tài liệu API Recipe trên backend thử nghiệm local,
+từ thư mục gốc repository:
 
 ```powershell
-node scripts/lab5/verify-recipe-service.cjs
+dotnet test tests/CulinaryBlog.Infrastructure.IntegrationTests --no-restore --filter "FullyQualifiedName~Lab5RecipeSecurityTests" -m:1 /nodeReuse:false
 ```
 
-Kiểm tra này dùng Axios adapter và token giả; không gửi request tới backend thật.
+Các test dùng JWT thử nghiệm và repository trong bộ nhớ, không kết nối Supabase.

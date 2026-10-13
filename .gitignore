@@ -91,4 +91,7 @@ tmp/
 temp/
 *.pdf
 *.docx
-!docs/Lab5_2312802_PhanKhanhVuong.docx
+
+# Báo cáo và công cụ hỗ trợ bài nộp cá nhân (giữ local)
+/docs/evidence/lab5/
+/scripts/lab5/
