@@ -17,6 +17,7 @@ using CulinaryBlog.Application.Features.Recipes.ChangeRecipeStatus;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using CulinaryBlog.Domain.Common;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -37,6 +38,8 @@ public static class RecipeEndpoints
                 return Results.Ok(detail);
             })
             .WithName("GetRecipeBySlug")
+            .WithSummary("Xem chi tiết công thức theo slug")
+            .WithDescription("Nạp Steps, Ingredients, Nutrition và Images; công thức chưa xuất bản chỉ dành cho tác giả hoặc Admin.")
             .CacheOutput("RecipeDetail")
             .Produces<RecipeDetailDto>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -63,6 +66,10 @@ public static class RecipeEndpoints
                 }
             })
             .WithName("GetRecipes")
+            .WithSummary("Tìm kiếm, lọc và phân trang công thức đã xuất bản")
+            .WithDescription("Tìm kiếm FTS tiếng Việt, lọc theo danh mục/độ khó/thời gian/khẩu phần và sắp xếp theo whitelist.")
+            .Produces<PaginatedResult<RecipeListDto>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem(StatusCodes.Status400BadRequest)
             .CacheOutput("RecipesCache");
 
         group.MapPost("/", CreateDraftAsync)

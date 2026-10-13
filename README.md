@@ -150,10 +150,13 @@ Mở một cửa sổ Terminal mới:
 # 1. Di chuyển vào thư mục Frontend
 cd frontend
 
-# 2. Cài đặt các gói thư viện
+# 2. Tạo cấu hình frontend (mặc định trỏ tới http://localhost:5000/api/v1)
+Copy-Item .env.example .env.local
+
+# 3. Cài đặt các gói thư viện
 npm install
 
-# 3. Khởi chạy môi trường phát triển
+# 4. Khởi chạy môi trường phát triển
 npm run dev
 ```
 - **Địa chỉ Giao diện Web:** `http://localhost:3000`
