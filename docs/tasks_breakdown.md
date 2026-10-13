@@ -263,18 +263,6 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 ### 👤 THÀNH VIÊN 3: Phan Khánh Vương — MSSV: 2312802
 **Module đảm nhiệm:** Module Quản lý Công thức Lõi (FR-RCP), Tệp tin (FR-FILE) & Resize Ảnh (FR-JOB)
 **Phạm vi chức năng:** `FR-RCP-003`, `FR-RCP-004`, `FR-RCP-007`, `FR-RCP-008`, `FR-RCP-009`, `FR-RCP-010`, `FR-FILE-001`, `FR-FILE-002`, `FR-JOB-002` (**Tổng cộng 9 chức năng**)
-
-#### Cập nhật Lab 5 cá nhân ngày 13 tháng 10 năm 2026
-- [x] Bổ sung TS types Recipe, Nutrition, Steps, Ingredients, Images; enum số khớp backend, RowVersion dạng Base64.
-- [x] Bổ sung Axios Recipe service có types cho 11 thao tác; upload FormData và thao tác 204 trả void.
-- [x] Bổ sung mẫu môi trường front-end, khung components/recipes và script typecheck; npm ci, typecheck và Next.js build thành công; HTTP cổng 3000 trả 200.
-- [x] Kiểm chứng trên backend thử nghiệm local: JWT 401, quyền sở hữu 403, tác giả/Admin 200, CORS theo origin và Rate Limiting 429; không dùng tài khoản hoặc CSDL Supabase thật.
-- [x] Kiểm chứng OpenAPI có Bearer JWT, schema và mã lỗi Recipe, multipart upload; Scalar trả HTML 200. Bổ sung metadata UpdateRecipe và lỗi upload 400.
-- [x] Bộ test local đạt 53/53, trong đó 12 trường hợp Lab 5; kiểm tra adapter cho 11 thao tác service đạt. Minh chứng bài nộp cá nhân lưu riêng trên máy, không theo dõi bằng Git.
-- [x] Tạo báo cáo cá nhân Lab 5 theo mẫu Lab 3 và Lab 4, đã kiểm tra trực quan bố cục ba trang A4 ngang; file nộp bài được giữ local.
-- [ ] Kiểm thử toàn bộ ứng dụng với tài khoản Supabase do nhóm cung cấp và storage thật; chưa thực hiện migration/seed.
-- [ ] API versioning đầy đủ: hiện chỉ có tiền tố `/api/v1`; đầu việc phối hợp nhóm, chưa triển khai trong phần cá nhân.
-- Giao diện tạo/sửa công thức hoàn chỉnh và ImageResizeJob không thuộc đợt hoàn thiện Lab 5 này. Các checkbox nghiệp vụ bên dưới là kế hoạch gốc, không thay thế kết quả kiểm chứng Lab 5 nêu trên.
 **Mức độ** (Aggregate Root phức hợp, Concurrency Token, Tự động renumber bước nấu, Tích hợp Supabase Storage, Cascade Delete)
 
 #### Bước 1: Thiết kế Domain Entity Recipe, Aggregate Root & Database Recipe (Đảm nhận phần Database của TV3)
