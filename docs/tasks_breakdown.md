@@ -360,7 +360,8 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] **Truy Vấn Chi Tiết Eager Loading (FR-RCP-002):**
   - Trong `GetRecipeDetailQueryHandler`: Nạp đầy đủ Steps, Ingredients, Images và Nutrition bằng kỹ thuật `.AsSplitQuery()`.
   - [x] Cache chi tiết bài viết qua Output Cache với TTL 60 phút.
-- [ ] **SEO Schema.org Recipe (JSON-LD):** Phía Next.js (`src/frontend/app/recipes/[slug]/page.tsx`), tự động nhúng thẻ script `@type: "Recipe"`. Frontend Next.js hiện chưa có trong repository nên chưa có vị trí để triển khai.
+- [x] **SEO Schema.org Recipe (JSON-LD):** Frontend Next.js có route `frontend/src/app/recipes/[slug]/page.tsx`, dùng `frontend/src/utils/recipeSeo.ts` để nhúng script `@type: "Recipe"` với thời gian, khẩu phần, nguyên liệu, hướng dẫn và dinh dưỡng từ API.
+- [x] **Frontend Recipe Types & API Client:** Bổ sung `frontend/src/types/recipe.ts` và `frontend/src/services/recipeService.ts` khớp DTO/pagination/query contract của `/api/v1/recipes`.
 
 #### Bước 4: Hiện thực FR-RCP-005 & FR-RCP-006 (Xuất Bản & Lưu Trữ Công Thức)
 - [x] **Quy Tắc Xuất Bản Nghiêm Ngặt (FR-RCP-005):**

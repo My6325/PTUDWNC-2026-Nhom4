@@ -139,9 +139,9 @@ public sealed class RecipeRepository : IRecipeRepository
             throw new ArgumentOutOfRangeException(nameof(pageIndex), "Page index must be greater than zero.");
         }
 
-        if (pageSize < 1)
+        if (pageSize is < 1 or > 50)
         {
-            throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be between 1 and 50.");
         }
 
         var query = _dbContext.Recipes
