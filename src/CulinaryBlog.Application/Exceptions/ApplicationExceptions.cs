@@ -6,6 +6,9 @@ public sealed class ForbiddenException(string message) : Exception(message);
 
 public sealed class UnauthorizedException(string message) : Exception(message);
 
+public sealed class StorageUnavailableException(string message, Exception? innerException = null)
+    : Exception(message, innerException);
+
 public class ConflictException(string code, string message) : Exception(message)
 {
     public string Code { get; } = code;

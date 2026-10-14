@@ -7,47 +7,64 @@
 
 ---
 
-## 1. CẤU TRÚC 4 THƯ MỤC CỐT LÕI 
+## 1. CẤU TRÚC HỆ THỐNG TOÀN DIỆN (BACKEND CLEAN ARCHITECTURE + FRONTEND NEXT.JS 15)
 
-Hệ thống đã dọn dẹp sạch sẽ và tạo sẵn 4 thư mục tương ứng với 4 project trong Solution Clean Architecture:
+Hệ thống được tổ chức phân tách rõ ràng giữa Backend API (.NET 10) và Frontend Web Client (Next.js 15 App Router):
 
 ```text
-d:\Nhom4_WebNangCao/src/
-├── CulinaryBlog.Domain/                           # [TẦNG 1: LÕI TRUNG TÂM - DOMAIN]
-│   ├── Common/                                    # BaseEntity.cs, SlugHelper.cs
-│   ├── Entities/                                  # ApplicationUser, RefreshToken, Category, Recipe,
-│   │                                              # RecipeStep, RecipeIngredient, RecipeImage, RecipeNutrition
-│   ├── Enums/                                     # RecipeDifficulty.cs, RecipeStatus.cs
-│   ├── Exceptions/                                # DomainException.cs, NotFoundException.cs, UnauthorizedException.cs
-│   └── Settings/                                  # JwtSettings.cs
+d:\Nhom4_WebNangCao/
+├── src/                                           # [TOÀN BỘ BACKEND .NET 10 CLEAN ARCHITECTURE]
+│   ├── CulinaryBlog.Domain/                       # [TẦNG 1: LÕI TRUNG TÂM - DOMAIN]
+│   │   ├── Common/                                # BaseEntity.cs, SlugHelper.cs
+│   │   ├── Entities/                              # ApplicationUser, RefreshToken, Category, Recipe,
+│   │   │                                          # RecipeStep, RecipeIngredient, RecipeImage, RecipeNutrition
+│   │   ├── Enums/                                 # RecipeDifficulty.cs, RecipeStatus.cs
+│   │   ├── Exceptions/                            # DomainException.cs, NotFoundException.cs, UnauthorizedException.cs
+│   │   └── Settings/                              # JwtSettings.cs
+│   │
+│   ├── CulinaryBlog.Application/                  # [TẦNG 2: ĐIỀU PHỐI USE CASES - CQRS]
+│   │   ├── Common/Models/                         # PaginatedResult.cs
+│   │   ├── Contracts/                             # Interfaces: IRepository, IRecipeRepository, IUnitOfWork,
+│   │   │                                          # IJwtService, ISupabaseStorageService, IEmailService
+│   │   ├── DTOs/                                  # CategoryDto, AuthDtos, RecipeDtos
+│   │   ├── Features/                              # Slices tính năng theo thành viên:
+│   │   │   ├── Categories/                        # [TV1 - Leader]: Commands, Queries, Validators, Handlers
+│   │   │   ├── Auth/                              # [TV2]: Register, Login, Refresh, Google, Profile
+│   │   │   └── Recipes/                           # [TV3 & TV4]: CreateDraft, Update, Publish, Search FTS
+│   │   └── DependencyInjection.cs                 # Đăng ký MediatR Pipelines & Mapster
+│   │
+│   ├── CulinaryBlog.Infrastructure/               # [TẦNG 3: HẠ TẦNG & CSDL SUPABASE]
+│   │   ├── Persistence/                           # ApplicationDbContext.cs, UnitOfWork.cs
+│   │   │   ├── Configurations/                    # Fluent API Configurations (GIN index, Concurrency, Cascade)
+│   │   │   ├── Repositories/                      # Repository.cs, RecipeRepository.cs (FTS SplitQuery)
+│   │   │   └── Seeders/                           # CulinaryBlogSeeder.cs (Bogus Data)
+│   │   ├── Services/                              # JwtService.cs, SupabaseStorageService.cs, MailKitEmailService.cs
+│   │   ├── Authorization/                         # RecipeAuthorizationHandler.cs (Resource-Based AuthZ)
+│   │   └── DependencyInjection.cs                 # Đăng ký Npgsql DbContext, Identity, Hangfire, Storage
+│   │
+│   └── CulinaryBlog.API/                          # [TẦNG 4: PRESENTATION - MINIMAL APIS]
+│       ├── Endpoints/                             # CategoryEndpoints.cs, AuthEndpoints.cs, RecipeEndpoints.cs, HealthCheckEndpoints.cs
+│       ├── Middlewares/                           # CorrelationIdMiddleware.cs, GlobalExceptionHandler.cs
+│       ├── Program.cs                             # Khởi tạo App, Middleware Pipeline (CORS, RateLimiting), Scalar UI (/scalar/v1)
+│       ├── appsettings.json                       # Cấu hình chung hệ thống
+│       └── appsettings.Development.json           # Cấu hình Logging môi trường Dev (không chứa secrets)
 │
-├── CulinaryBlog.Application/                      # [TẦNG 2: ĐIỀU PHỐI USE CASES - CQRS]
-│   ├── Common/Models/                             # PaginatedResult.cs
-│   ├── Contracts/                                 # Interfaces: IRepository, IRecipeRepository, IUnitOfWork,
-│   │                                              # IJwtService, ISupabaseStorageService, IEmailService
-│   ├── DTOs/                                      # CategoryDto, AuthDtos, RecipeDtos
-│   ├── Features/                                  # Slices tính năng theo thành viên:
-│   │   ├── Categories/                            # [TV1 - Leader]: Commands, Queries, Validators, Handlers
-│   │   ├── Auth/                                  # [TV2]: Register, Login, Refresh, Google, Profile
-│   │   └── Recipes/                               # [TV3 & TV4]: CreateDraft, Update, Publish, Search FTS
-│   └── DependencyInjection.cs                     # Đăng ký MediatR Pipelines & Mapster
+├── frontend/                                      # [GIAO DIỆN CLIENT - NEXT.JS 15 + TYPESCRIPT]
+│   ├── public/                                    # Tệp tĩnh (ảnh favicon, logo, icons)
+│   ├── src/                                       # Mã nguồn Front-end
+│   │   ├── app/                                   # Next.js 15 App Router (layout.tsx, page.tsx, categories/...)
+│   │   ├── components/                            # Các khối giao diện dùng chung (Button, Navbar, Modal...)
+│   │   ├── services/                              # Cấu hình gọi API Backend (apiClient.ts, categoryService.ts)
+│   │   ├── types/                                 # ⭐ Khai báo TypeScript Types (category.ts, auth.ts, recipe.ts...)
+│   │   ├── hooks/                                 # Custom React Hooks
+│   │   └── utils/                                 # Hàm tiện ích (format tiền, ngày tháng, slug)
+│   ├── package.json                               # Danh mục thư viện (Next 15, React 19, Tailwind, Axios, Zod)
+│   ├── tsconfig.json                              # Cấu hình trình biên dịch TypeScript
+│   ├── tailwind.config.ts                         # Cấu hình bảng màu & kiểu dáng Tailwind CSS
+│   ├── postcss.config.mjs                         # Cấu hình PostCSS
+│   └── next.config.ts                             # Cấu hình môi trường Next.js
 │
-├── CulinaryBlog.Infrastructure/                   # [TẦNG 3: HẠ TẦNG & CSDL SUPABASE]
-│   ├── Persistence/                               # ApplicationDbContext.cs, UnitOfWork.cs
-│   │   ├── Configurations/                        # Fluent API Configurations (GIN index, Concurrency, Cascade)
-│   │   ├── Repositories/                          # Repository.cs, RecipeRepository.cs (FTS SplitQuery)
-│   │   └── Seeders/                               # CulinaryBlogSeeder.cs (Bogus Data)
-│   ├── Services/                                  # JwtService.cs, SupabaseStorageService.cs, MailKitEmailService.cs
-│   ├── Authorization/                             # RecipeAuthorizationHandler.cs (Resource-Based AuthZ)
-│   └── DependencyInjection.cs                     # Đăng ký Npgsql DbContext, Identity, Hangfire, Storage
-│
-├── CulinaryBlog.API/                              # [TẦNG 4: PRESENTATION - MINIMAL APIS]
-│   ├── Endpoints/                                 # CategoryEndpoints.cs, AuthEndpoints.cs, RecipeEndpoints.cs
-│   ├── Middlewares/                               # CorrelationIdMiddleware.cs, GlobalExceptionMiddleware.cs
-│   ├── Program.cs                                 # Khởi tạo App, Middleware Pipeline, Scalar UI (/scalar/v1)
-│   ├── appsettings.json                           # Cấu hình chung hệ thống
-│   └── appsettings.Development.json               # Cấu hình Logging môi trường Dev (không chứa secrets)
-│
+├── docs/                                          # [TÀI LIỆU ĐỒ ÁN & KẾ HOẠCH CÁC LAB]
 ├── .env.example                                   # Mẫu biến môi trường (commit lên Git)
 └── .env                                           # Biến môi trường & mật khẩu thật (được .gitignore bảo vệ)
 ```
@@ -323,47 +340,48 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 **Mức độ** (Tối ưu hóa FTS tiếng Việt unaccent, phân trang đa tiêu chí, Projection và Schema.org)
 
 #### Bước 1: Hiện thực FR-SRCH-001 (Cấu hình FTS Tiếng Việt Supabase & Kiểm thử Dữ liệu CSDL - Đảm nhận phần Database của TV4)
-- [ ] **Cấu hình CSDL FTS:**
+- [x] **Cấu hình CSDL FTS:**
   - [x] Kích hoạt extension `unaccent` và `pg_trgm` trong `ApplicationDbContext.OnModelCreating` (TV1 đã tạo khung sườn).
-  - [ ] Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
-  - [ ] Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
+  - [x] Cấu hình Generated Column `SearchVector` tự động cập nhật từ `Title` (trọng số A) và `Description` (trọng số B) trong `RecipeConfiguration.cs`.
+  - [x] Đánh chỉ mục **GIN Index** trên cột `SearchVector`.
 - [x] **Repository LINQ FTS:** Tạo `IRecipeRepository` và cài đặt `RecipeRepository.cs` sử dụng `EF.Functions.ToTsVector()` kết hợp `EF.Functions.PlainToTsQuery()` và hàm `unaccent()` để hỗ trợ tìm kiếm không dấu tiếng Việt bản địa hóa.
 - [x] **Kiểm thử Toàn vẹn Dữ liệu CSDL:** Đã viết kịch bản kiểm thử/nghiệm thu chất lượng dữ liệu FTS không dấu (`unaccent`) và thuật toán phân trang (`PaginatedResult`) trên tập dữ liệu 100 công thức sau khi được Seed vào Supabase. Việc chạy nghiệm thu cần môi trường có kết nối Supabase.
 
 #### Bước 2: Hiện thực FR-SRCH-002, 003, 004 (Lọc Đa Tiêu Chí, Sắp Xếp & Phân Trang)
 - [x] **Request Model:** Tạo `GetRecipesQuery` (nhận `SearchTerm`, `CategoryId`, `Difficulty`, `SortBy`, `PageIndex`, `PageSize`).
 - [x] **CQRS Query & Handler:**
-  - Tạo `GetRecipesQuery` và `GetRecipesQueryValidator` (phân trang an toàn với giới hạn trần `PageSize <= 50`).
-  - Tạo `GetRecipesQueryHandler`: Xếp hạng kết quả, áp dụng các bộ lọc Category, Difficulty, sắp xếp `newest`, tự động join tác giả và ảnh đại diện, phân trang `PaginatedResult<RecipeListDto>`.
+  - [x] Tạo `GetRecipesQuery` và `GetRecipesQueryValidator` (phân trang an toàn với giới hạn trần `PageSize <= 50`, lọc CookTime/Servings và whitelist sort).
+  - [x] Tạo `GetRecipesQueryHandler`: áp dụng Category, Difficulty, CookTime, Servings; sort `newest`, `cookTime`, `relevance`; projection tác giả/ảnh đại diện và phân trang `PaginatedResult<RecipeListDto>`.
 - [x] **API Endpoint:** `GET /api/v1/recipes` trong `RecipeEndpoints.cs` tích hợp Output Cache 15 phút (`RecipesCache`).
 
 #### Bước 3: Hiện thực FR-RCP-001 & FR-RCP-002 (Xem Danh Sách & Chi Tiết Công Thức)
 - [x] **Tối ưu Hóa Truy Vấn Projection (FR-RCP-001):**
   - Trong `RecipeRepository` / `GetRecipesQueryHandler`: Chiết xuất trực tiếp sang `RecipeListDto` chỉ `SELECT` các cột cần thiết, **loại bỏ hoàn toàn việc tải 6 cột `Nutrition_*`**, các bảng Steps và Ingredients khi lấy danh sách.
-- [ ] **Truy Vấn Chi Tiết Eager Loading (FR-RCP-002):**
+- [x] **Truy Vấn Chi Tiết Eager Loading (FR-RCP-002):**
   - Trong `GetRecipeDetailQueryHandler`: Nạp đầy đủ Steps, Ingredients, Images và Nutrition bằng kỹ thuật `.AsSplitQuery()`.
-  - Cache chi tiết bài viết qua Output Cache với TTL 60 phút.
-- [ ] **SEO Schema.org Recipe (JSON-LD):** Phía Next.js (`src/frontend/app/recipes/[slug]/page.tsx`), tự động nhúng thẻ script `@type: "Recipe"` đạt chứng nhận Google Rich Snippets.
+  - [x] Cache chi tiết bài viết qua Output Cache với TTL 60 phút.
+- [ ] **SEO Schema.org Recipe (JSON-LD):** Phía Next.js (`src/frontend/app/recipes/[slug]/page.tsx`), tự động nhúng thẻ script `@type: "Recipe"`. Frontend Next.js hiện chưa có trong repository nên chưa có vị trí để triển khai.
 
 #### Bước 4: Hiện thực FR-RCP-005 & FR-RCP-006 (Xuất Bản & Lưu Trữ Công Thức)
-- [ ] **Quy Tắc Xuất Bản Nghiêm Ngặt (FR-RCP-005):**
+- [x] **Quy Tắc Xuất Bản Nghiêm Ngặt (FR-RCP-005):**
   - Tạo `PublishRecipeCommand(Guid Id) : IRequest;`
   - Tạo `PublishRecipeCommandHandler`: Kiểm tra điều kiện nghiệp vụ:
     ```csharp
-    recipe.Steps.Count >= 1 && recipe.Ingredients.Count >= 1
+    recipe.Steps.Count >= 1 && recipe.Ingredients.Count >= 1 && recipe.Images.Any(image => image.IsPrimary)
     ```
     Nếu không thỏa mãn, ném `DomainException` trả về `HTTP 422 Unprocessable Entity` (`RECIPE_PUBLISH_INCOMPLETE`). Nếu thỏa mãn, đổi trạng thái sang `RecipeStatus.Published` và gán `PublishedAt = UtcNow`.
-- [ ] **Lưu Trữ Công Thức (FR-RCP-006):**
+- [x] **Lưu Trữ Công Thức (FR-RCP-006):**
   - Tạo `ArchiveRecipeCommand(Guid Id) : IRequest;` và handler đổi trạng thái sang `RecipeStatus.Archived` để ẩn khỏi trang chủ.
-- [ ] **API Endpoints:**
+- [x] **API Endpoints:**
   - `POST /api/v1/recipes/{id}/publish`
   - `POST /api/v1/recipes/{id}/unpublish`
   - `POST /api/v1/recipes/{id}/archive`
 
 #### Bước 5: Hiện thực FR-JOB-003 (Sitemap Generation Job)
-- [ ] **Tạo Job:** Tạo `SitemapGenerationJob.cs` trong `Infrastructure/Jobs/`.
-- [ ] **Phương thức `ExecuteAsync()`:** Quét toàn bộ công thức `Published` và danh mục trong Supabase DB, tạo file `sitemap.xml` chuẩn SEO, lưu vào webroot và phát tín hiệu ping đến Google Search Console.
-- [ ] **Đăng ký Định kỳ:** Đăng ký lịch chạy trong `Program.cs` chạy vào lúc **02:00 AM UTC** hàng ngày (`RecurringJob.AddOrUpdate<SitemapGenerationJob>("sitemap-job", job => job.ExecuteAsync(), "0 2 * * *")`).
+- [x] **Tạo Job:** Tạo `SitemapGenerationJob.cs` trong `Infrastructure/Jobs/`.
+- [x] **Phương thức `ExecuteAsync()`:** Quét recipe `Published` chưa xóa và category hoạt động, tạo XML chuẩn, lưu theo `Sitemap:OutputPath`; nếu cấu hình đủ OAuth thì nộp sitemap qua Google Search Console API.
+- [x] **Đăng ký Định kỳ:** Đăng ký lịch chạy trong `Program.cs` lúc **02:00 AM UTC** hàng ngày; Hangfire activator tạo DI scope cho job.
+- [ ] **Cấu hình triển khai:** Thay `PublicSite__BaseUrl` bằng domain public; cấu hình volume cho output nếu hosting cần file bền vững; cấu hình property/OAuth Search Console nếu bật auto-submit. Kiểm chứng trên PostgreSQL/Supabase được nhóm cấp quyền.
 
 ---
 

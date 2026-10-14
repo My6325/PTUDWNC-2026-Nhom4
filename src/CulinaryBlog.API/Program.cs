@@ -18,6 +18,9 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Hangfire;
+using Hangfire.PostgreSql;
+using CulinaryBlog.Infrastructure.Jobs;
+using CulinaryBlog.API.BackgroundJobs;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -56,6 +59,15 @@ builder.Services.AddMemoryCache();
 
 // 4. Đăng ký các dịch vụ tầng Infrastructure (DbContext, Identity Core, JWT, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
+var hangfireEnabled = bool.TryParse(builder.Configuration["Hangfire:Enabled"] ?? Environment.GetEnvironmentVariable("HANGFIRE_ENABLED"), out var hf) && hf;
+var hangfireConnStr = builder.Configuration["Hangfire:ConnectionString"] ?? Environment.GetEnvironmentVariable("HANGFIRE_CONNECTION_STRING");
+if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
+{
+    GlobalConfiguration.Configuration.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnStr));
+    builder.Services.AddSingleton<IHostedService, HangfireServerHostedService>();
+}
+builder.Services.AddScoped<SitemapGenerationJob>();
+builder.Services.AddHttpClient();
 
 // 5. Đăng ký Exception Handling & Problem Details
 builder.Services.AddProblemDetails();
@@ -68,7 +80,7 @@ var corsAllowedOrigins = builder.Configuration["FRONTEND_ORIGINS"]
 var allowedOrigins = !string.IsNullOrWhiteSpace(corsAllowedOrigins)
     ? corsAllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     : builder.Environment.IsDevelopment()
-        ? ["http://localhost:3000"]
+        ? ["http://localhost:3000", "https://localhost:3000"]
         : Array.Empty<string>();
 
 builder.Services.AddCors(options =>
@@ -89,7 +101,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 5.2. Cấu hình Rate Limiting bảo vệ các endpoint nhạy cảm (auth-sensitive)
+// 5.2. Cấu hình Rate Limiting bảo vệ toàn diện hệ thống và các endpoint nhạy cảm (auth-sensitive)
 var authRateLimitPermit = builder.Configuration.GetValue<int?>("RateLimiting:AuthSensitive:PermitLimit") ?? 10;
 var authRateLimitWindowSec = builder.Configuration.GetValue<int?>("RateLimiting:AuthSensitive:WindowSeconds") ?? 60;
 
@@ -103,7 +115,7 @@ builder.Services.AddRateLimiter(options =>
         {
             Status = StatusCodes.Status429TooManyRequests,
             Title = "Quá nhiều yêu cầu",
-            Detail = "Bạn đã gửi quá nhiều yêu cầu xác thực trong thời gian ngắn. Vui lòng thử lại sau.",
+            Detail = "Bạn đã gửi quá nhiều yêu cầu trong thời gian ngắn. Vui lòng thử lại sau.",
             Instance = context.HttpContext.Request.Path
         };
         problem.Extensions["code"] = "TOO_MANY_REQUESTS";
@@ -117,6 +129,20 @@ builder.Services.AddRateLimiter(options =>
         await context.HttpContext.Response.WriteAsJsonAsync(problem, cancellationToken: token);
     };
 
+    // Giới hạn chung 60 requests / phút theo từng địa chỉ IP của Client
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 2
+        });
+    });
+
+    // Chính sách bảo vệ chuyên biệt cho Auth Endpoints nhạy cảm
     options.AddPolicy("auth-sensitive", httpContext =>
     {
         var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-client";
@@ -145,7 +171,7 @@ builder.Services.AddOutputCache(options =>
         .SetVaryByQuery("*")
         .Tag("recipes"));
     options.AddPolicy("RecipeDetail", policy => policy
-        .Expire(TimeSpan.FromMinutes(5))
+        .Expire(TimeSpan.FromMinutes(60))
         .SetVaryByRouteValue("slug"));
 });
 
@@ -178,6 +204,13 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
+{
+    GlobalConfiguration.Configuration.UseActivator(new ScopedHangfireJobActivator(app.Services.GetRequiredService<IServiceScopeFactory>()));
+    RecurringJob.AddOrUpdate<SitemapGenerationJob>("sitemap-job", job => job.ExecuteAsync(CancellationToken.None), "0 2 * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+}
+
 // 10. Cấu hình Middleware pipeline theo thứ tự chuẩn
 app.UseExceptionHandler();
 app.UseCors("FrontendPolicy");
@@ -187,7 +220,6 @@ app.UseAuthorization();
 app.UseOutputCache();
 
 // 10.1. Cấu hình Hangfire Dashboard (bảo vệ bằng HangfireAdminAuthorizationFilter, không để public)
-var hangfireEnabled = bool.TryParse(builder.Configuration["Hangfire:Enabled"] ?? Environment.GetEnvironmentVariable("HANGFIRE_ENABLED"), out var hf) && hf;
 if (hangfireEnabled)
 {
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
@@ -208,26 +240,51 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// 12. Tự động áp dụng migration trước khi seed để bảo đảm schema đã tồn tại.
-using (var scope = app.Services.CreateScope())
+// 12. Migration/seed chỉ chạy khi được bật rõ ràng; WBS yêu cầu điều phối migration tập trung.
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
 {
+    using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
 }
+else
+{
+    app.Logger.LogInformation("Automatic database migrations are disabled. Apply migrations through the team's centralized process.");
+}
 
-// 13. Tự động kiểm tra và nạp dữ liệu mẫu (Seeder) khi khởi động server
-await CulinaryBlogSeeder.SeedAsync(app.Services);
+if (builder.Configuration.GetValue<bool>("Database:SeedOnStartup"))
+{
+    await CulinaryBlogSeeder.SeedAsync(app.Services);
+}
+else
+{
+    app.Logger.LogInformation("Automatic sample data seeding is disabled.");
+}
 
-// 14. Khởi tạo ApiVersionSet cho API v1.0
+// 13. Khởi tạo ApiVersionSet cho API v1.0
 var apiVersionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(1, 0))
     .ReportApiVersions()
     .Build();
 
-// 15. Đăng ký các endpoints nghiệp vụ của cả nhóm gắn với Version Set v1
+// 14. Đăng ký các endpoints nghiệp vụ của cả nhóm gắn với Version Set v1
 app.MapCategoryEndpoints(apiVersionSet);
 app.MapRecipeEndpoints(apiVersionSet);
 app.MapAuthEndpoints(apiVersionSet);
+
+// 15. Tuyến sitemap public phục vụ tìm kiếm SEO
+app.MapGet("/sitemap.xml", async (IConfiguration configuration, SitemapGenerationJob sitemapJob, CancellationToken ct) =>
+{
+    if (!SitemapXmlBuilder.IsValidPublicBaseUrl(configuration["PublicSite:BaseUrl"]))
+    {
+        return Results.Problem("PublicSite:BaseUrl must be configured as an absolute public site URL.", statusCode: 503);
+    }
+
+    return Results.Text(await sitemapJob.GenerateXmlAsync(ct), "application/xml; charset=utf-8");
+})
+    .WithName("GetSitemap")
+    .Produces(StatusCodes.Status200OK, contentType: "application/xml")
+    .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 app.MapHealthCheckEndpoints();
 
 // 16. Chuyển hướng trang chủ sang giao diện tài liệu Scalar UI

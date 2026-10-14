@@ -124,7 +124,10 @@ public static class DependencyInjection
         // 6. Đăng ký IApplicationDbContext phục vụ tầng Application
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
-        // 7. Cấu hình SMTP & Email Service (FR-JOB-001)
+        // 7. Đăng ký dịch vụ lưu trữ Supabase Storage
+        services.AddHttpClient<ISupabaseStorageService, SupabaseStorageService>();
+
+        // 8. Cấu hình SMTP & Email Service (FR-JOB-001)
         var smtpSettings = new SmtpSettings
         {
             Host = configuration["Smtp:Host"] ?? Environment.GetEnvironmentVariable("SMTP_HOST") ?? "localhost",
@@ -150,8 +153,9 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, MailKitEmailService>();
         services.AddScoped<IBackgroundJobService, Jobs.BackgroundJobService>();
         services.AddScoped<Jobs.WelcomeEmailJob>();
+        services.AddScoped<Jobs.GoogleSearchConsoleSitemapSubmitter>();
 
-        // 8. Cấu hình Hangfire Storage (Chỉ kích hoạt khi HANGFIRE_ENABLED=true và có connection string riêng biệt để bảo vệ Supabase Cloud)
+        // 9. Cấu hình Hangfire Storage (Chỉ kích hoạt khi HANGFIRE_ENABLED=true và có connection string riêng biệt để bảo vệ Supabase Cloud)
         var hangfireEnabled = bool.TryParse(configuration["Hangfire:Enabled"] ?? Environment.GetEnvironmentVariable("HANGFIRE_ENABLED"), out var hf) && hf;
         var hangfireConnStr = configuration["Hangfire:ConnectionString"] ?? Environment.GetEnvironmentVariable("HANGFIRE_CONNECTION_STRING");
         if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))

@@ -27,6 +27,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Chưa xác thực", "UNAUTHORIZED"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Không có quyền", "FORBIDDEN"),
             NotFoundException => (StatusCodes.Status404NotFound, "Không tìm thấy", "NOT_FOUND"),
+            StorageUnavailableException => (StatusCodes.Status502BadGateway, "Dịch vụ lưu trữ không khả dụng", "STORAGE_UNAVAILABLE"),
             ConflictException conflict => (StatusCodes.Status409Conflict, "Xung đột dữ liệu", conflict.Code),
             _ => (StatusCodes.Status500InternalServerError, "Lỗi hệ thống", "INTERNAL_SERVER_ERROR")
         };

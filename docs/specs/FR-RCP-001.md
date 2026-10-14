@@ -24,7 +24,9 @@ Cung cấp endpoint công khai để tìm kiếm, lọc, sắp xếp và phân t
 | `SearchTerm` | string? | Không có | Từ khóa FTS; bỏ qua khi null/rỗng sau Trim |
 | `CategoryId` | Guid? | Không có | Lọc chính xác theo ID danh mục |
 | `Difficulty` | `RecipeDifficulty`? | Không có | Nhận giá trị enum hợp lệ: `Easy`, `Medium`, `Hard` |
-| `SortBy` | string? | `newest` | Giá trị được hỗ trợ phải được xác định rõ trong phần sắp xếp bên dưới |
+| `MinCookTimeMinutes`, `MaxCookTimeMinutes` | int? | Không có | Khoảng thời gian nấu, biên bao gồm; giá trị >= 0 và min không vượt max |
+| `MinServings`, `MaxServings` | int? | Không có | Khoảng khẩu phần, biên bao gồm; giá trị > 0 và min không vượt max |
+| `SortBy` | string? | `newest` | `newest`, `cookTime`, hoặc `relevance` (relevance cần SearchTerm) |
 | `PageIndex` | int | `1` | Tối thiểu là 1 |
 | `PageSize` | int | `10` | Trong khoảng 1–50, bao gồm hai đầu (theo giới hạn SRS) |
 
@@ -42,7 +44,9 @@ Tên query parameter dùng PascalCase theo yêu cầu; cần đảm bảo binder
 ## Sắp xếp
 
 - `newest` (mặc định): `CreatedAt` giảm dần, rồi `Id` tăng dần để thứ tự ổn định giữa các trang.
-- `popular`: **chưa thể định nghĩa chính xác theo schema hiện tại**. `Recipe` hiện không có lượt xem, lượt yêu thích hay điểm phổ biến. Trước khi triển khai giá trị này cần chọn nguồn đo lường (và có thể cần schema/thống kê mới). Nếu chưa có quyết định, chỉ `newest` được hỗ trợ và giá trị `popular` phải bị từ chối validation thay vì ngụy trang bằng một thứ tự khác.
+- `cookTime`: `CookTimeMinutes` tăng dần, sau đó `CreatedAt` giảm dần và `Id` tăng dần.
+- `relevance`: chỉ khi có `SearchTerm`, dùng `ts_rank(SearchVector, query)` giảm dần, sau đó `CreatedAt` giảm dần và `Id` tăng dần.
+- `popular`: **chưa thể định nghĩa chính xác theo schema hiện tại**. `Recipe` hiện không có lượt xem, lượt yêu thích hay điểm phổ biến. Giá trị này bị từ chối validation cho đến khi có metric được thống nhất.
 - Không nhận tên cột hoặc biểu thức sắp xếp tùy ý từ client.
 
 ## Response DTO
@@ -69,7 +73,8 @@ Không đưa `Description`, `Instructions`, `Nutrition`, `Steps` hoặc `Ingredi
 - `PageIndex >= 1`.
 - `1 <= PageSize <= 50`.
 - `Difficulty` phải là giá trị enum đã định nghĩa.
-- `SortBy` chỉ nhận giá trị được hỗ trợ (hiện tại `newest`; `popular` chờ định nghĩa metric).
+- Thời gian nấu phải >= 0; khẩu phần phải > 0; min không vượt max.
+- `SortBy` chỉ nhận `newest`, `cookTime`, `relevance`; relevance cần SearchTerm. `popular` tiếp tục bị từ chối vì chưa có metric.
 
 Cách biểu diễn lỗi validation trên HTTP cần theo quy ước Problem Details hiện có của API. Mã trạng thái dự kiến `400 Bad Request`.
 
@@ -92,7 +97,9 @@ Cách biểu diễn lỗi validation trên HTTP cần theo quy ước Problem De
 
 ## Ghi chú phù hợp với codebase
 
-- Domain đã có `RecipeDifficulty`, `RecipeStatus`, `PaginatedResult<T>` và các quan hệ Recipe–Category–Images; author dùng khóa string kiểu ASP.NET Identity.
-- `RecipeRepository` hiện đã dùng `.AsNoTracking()` và biểu thức FTS `unaccent`, nhưng chưa lọc trạng thái công khai, chưa project DTO, chưa hỗ trợ Category/Difficulty/SortBy và hiện sắp xếp theo Title.
-- Giới hạn `PageSize` được chốt theo SRS: tối đa 50.
-- Metric cho `popular` và hành vi ảnh đại diện khi dữ liệu không nhất quán cần được chốt trước khi triển khai đầy đủ các nhánh tương ứng.
+- `RecipeRepository.SearchRecipesAsync` hiện lọc recipe Published chưa xóa, áp dụng FTS trên generated `SearchVector`, lọc Category/Difficulty/CookTime/Servings, đếm sau filter, project trực tiếp sang DTO và phân trang ổn định.
+- `SortBy` hiện whitelist `newest`, `cookTime`, `relevance`; relevance yêu cầu SearchTerm và dùng `ts_rank`, sau đó tie-break theo CreatedAt/Id. `popular` vẫn chưa được hỗ trợ vì chưa có metric.
+- `RecipeConfiguration` khai báo generated `SearchVector` trọng số A/B cùng GIN index; migration `20261006120000_AddRecipeSearchAndPublication` tạo helper `recipe_unaccent` và `PublishedAt`.
+- `RecipeListDto` chỉ giữ tám trường đã mô tả. Ảnh chính được chọn theo OrderIndex rồi Id; URL Medium ưu tiên, fallback Original, không có ảnh chính thì null.
+- Output Cache của endpoint list là 900 giây, biến thiên theo query và gắn tag `recipes`; các use case cập nhật trạng thái invalidate tag này.
+- Kết quả truy vấn PostgreSQL thật vẫn cần được nghiệm thu trong môi trường có extension/migration và dữ liệu seed tương ứng.
