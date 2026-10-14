@@ -1,11 +1,26 @@
 import { apiClient } from "./apiClient";
 import type {
+  AddIngredientRequest,
+  AddRecipeStepRequest,
+  CreateRecipeDraftRequest,
   PaginatedResult,
   RecipeDetail,
+  RecipeDto,
+  RecipeImageResponseDto,
+  RecipeIngredientResponseDto,
   RecipeListItem,
   RecipeSearchParams,
+  RecipeStepResponseDto,
+  UpdateIngredientRequest,
+  UpdateRecipeRequest,
+  UpdateRecipeStepRequest,
 } from "@/types/recipe";
 
+const recipePath = (id: string) => `/recipes/${encodeURIComponent(id)}`;
+
+/**
+ * Lấy danh sách công thức đã xuất bản kèm tìm kiếm FTS tiếng Việt, lọc đa tiêu chí và phân trang.
+ */
 export async function getRecipes(
   params: RecipeSearchParams = {},
 ): Promise<PaginatedResult<RecipeListItem>> {
@@ -15,7 +30,91 @@ export async function getRecipes(
   return response.data;
 }
 
+/**
+ * Lấy chi tiết công thức ẩm thực theo Slug URL.
+ */
 export async function getRecipeBySlug(slug: string): Promise<RecipeDetail> {
   const response = await apiClient.get<RecipeDetail>(`/recipes/${encodeURIComponent(slug)}`);
   return response.data;
 }
+
+/**
+ * Service quản trị Recipe Core (Tạo nháp, cập nhật OCC, xóa mềm, upload ảnh, quản lý bước nấu & nguyên liệu).
+ */
+export const recipeService = {
+  getRecipes,
+  getRecipeBySlug,
+
+  async createDraft(request: CreateRecipeDraftRequest): Promise<RecipeDto> {
+    return (await apiClient.post<RecipeDto>("/recipes", request)).data;
+  },
+
+  async update(id: string, request: UpdateRecipeRequest): Promise<RecipeDto> {
+    return (await apiClient.put<RecipeDto>(recipePath(id), request)).data;
+  },
+
+  async delete(id: string): Promise<void> {
+    await apiClient.delete<void>(recipePath(id));
+  },
+
+  async addStep(id: string, request: AddRecipeStepRequest): Promise<RecipeStepResponseDto> {
+    return (await apiClient.post<RecipeStepResponseDto>(`${recipePath(id)}/steps`, request)).data;
+  },
+
+  async updateStep(
+    id: string,
+    stepId: string,
+    request: UpdateRecipeStepRequest,
+  ): Promise<RecipeStepResponseDto> {
+    return (
+      await apiClient.put<RecipeStepResponseDto>(
+        `${recipePath(id)}/steps/${encodeURIComponent(stepId)}`,
+        request,
+      )
+    ).data;
+  },
+
+  async deleteStep(id: string, stepId: string): Promise<void> {
+    await apiClient.delete<void>(`${recipePath(id)}/steps/${encodeURIComponent(stepId)}`);
+  },
+
+  async addIngredient(
+    id: string,
+    request: AddIngredientRequest,
+  ): Promise<RecipeIngredientResponseDto> {
+    return (await apiClient.post<RecipeIngredientResponseDto>(`${recipePath(id)}/ingredients`, request)).data;
+  },
+
+  async updateIngredient(
+    id: string,
+    ingredientId: string,
+    request: UpdateIngredientRequest,
+  ): Promise<RecipeIngredientResponseDto> {
+    return (
+      await apiClient.put<RecipeIngredientResponseDto>(
+        `${recipePath(id)}/ingredients/${encodeURIComponent(ingredientId)}`,
+        request,
+      )
+    ).data;
+  },
+
+  async deleteIngredient(id: string, ingredientId: string): Promise<void> {
+    await apiClient.delete<void>(`${recipePath(id)}/ingredients/${encodeURIComponent(ingredientId)}`);
+  },
+
+  async uploadImage(id: string, file: File): Promise<RecipeImageResponseDto> {
+    const data = new FormData();
+    data.append("file", file);
+    return (
+      await apiClient.post<RecipeImageResponseDto>(`${recipePath(id)}/images`, data, {
+        headers: { "Content-Type": undefined },
+      })
+    ).data;
+  },
+
+  async deleteImage(id: string, imageId: string): Promise<void> {
+    await apiClient.delete<void>(`${recipePath(id)}/images/${encodeURIComponent(imageId)}`);
+  },
+};
+
+export default recipeService;

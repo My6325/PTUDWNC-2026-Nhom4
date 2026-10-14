@@ -3,6 +3,15 @@ using Microsoft.OpenApi;
 
 namespace CulinaryBlog.API.OpenApi;
 
+public static class ApiDocumentationExtensions
+{
+    public static IServiceCollection AddCulinaryOpenApi(this IServiceCollection services)
+    {
+        services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+        return services;
+    }
+}
+
 internal sealed class BearerSecuritySchemeTransformer : IOpenApiDocumentTransformer
 {
     public Task TransformAsync(

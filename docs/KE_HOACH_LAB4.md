@@ -16,9 +16,9 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **TV1: Nguyễn Thị Trà My** (Trưởng nhóm) | Danh mục (FR-CAT) & Giám sát (FR-OBS) | **8 API** | 8 API | 0 API | 100.0% |
 | **TV2: Hoàng Trịnh Việt Linh** | Xác thực người dùng (FR-AUTH) & Email | **7 API** | 2 API | 5 API | 28.6% |
-| **TV3: Phan Khánh Vương** | Công thức cốt lõi (FR-RCP), Nguyên liệu, Bước làm & Media | **10 API** | 2 API | 8 API | 20.0% |
+| **TV3: Phan Khánh Vương** | Công thức cốt lõi (FR-RCP), Nguyên liệu, Bước làm & Media | **10 API** | 10 API | 0 API | 100.0% |
 | **TV4: Lê Phạm Mi Đoan** | Tìm kiếm FTS, Chi tiết, Xuất bản & Sitemap | **5 API** | 5 API | 0 API | 100.0% (đã có source; chờ nghiệm thu môi trường) |
-| **TOÀN HỆ THỐNG** | **4 MODULES - ĐỦ 27 CHỨC NĂNG SRS** | **30 API** | **17 API** | **13 API** | **56.7%** |
+| **TOÀN HỆ THỐNG** | **4 MODULES - ĐỦ 27 CHỨC NĂNG SRS** | **30 API** | **25 API** | **5 API** | **83.3%** |
 
 ---
 
@@ -73,26 +73,20 @@ Toàn bộ hệ thống Backend **Culinary Blog** quy định chuẩn mực gồ
 * **Module đảm nhiệm:** Quản lý Công thức Lõi (FR-RCP-003, 004, 007 $\rightarrow$ 010), Media Storage (FR-FILE-001, 002) & Job Resize
 * **Tổng số API quy định:** **10 API**
 
-#### A. Danh sách các API ĐÃ HOÀN THÀNH (2/10 API)
+#### A. Danh sách các API ĐÃ HOÀN THÀNH (10/10 API - ĐẠT 100% NHIỆM VỤ LAB 4)
 1. `POST /api/v1/recipes` (FR-RCP-003): Tạo bản nháp công thức (`RecipeStatus.Draft`, gán `AuthorId = currentUserId`, sinh slug tự động).
 2. `PUT /api/v1/recipes/{id:guid}` (FR-RCP-004): Cập nhật công thức (Kiểm tra quyền sở hữu bài viết, Optimistic Concurrency Control qua `RowVersion` $\rightarrow$ ném 409 nếu xung đột).
+3. `DELETE /api/v1/recipes/{id:guid}` (FR-RCP-007): Xóa công thức (Quyền Tác giả hoặc Admin, Soft Delete cascade, xóa cache liên quan).
+4. `POST /api/v1/recipes/{id:guid}/images` (FR-RCP-008 & FR-FILE-001): Tải ảnh công thức lên Supabase Storage (Thẩm duyệt Magic Bytes JPEG/PNG/WebP, chống Path Traversal, tải lên bucket `culinary-blog`, tự động gán `IsPrimary = true` cho ảnh đầu tiên).
+5. `DELETE /api/v1/recipes/{id:guid}/images/{imageId:guid}` (FR-RCP-008 & FR-FILE-002): Xóa ảnh công thức (Xóa file trên Supabase Storage, nếu xóa ảnh đại diện chính thì tự chọn ảnh tiếp theo làm ảnh chính).
+6. `POST /api/v1/recipes/{recipeId:guid}/steps` (FR-RCP-010): Thêm bước làm mới (Tự động gán `StepNumber = Steps.Count + 1`).
+7. `PUT /api/v1/recipes/{recipeId:guid}/steps/{stepId:guid}` (FR-RCP-010): Cập nhật nội dung bước nấu ăn (Title, Description, TimerMinutes, ImageUrl).
+8. `DELETE /api/v1/recipes/{recipeId:guid}/steps/{stepId:guid}` (FR-RCP-010): Xóa bước làm (Tự động đánh lại số thứ tự liên tục `StepNumber = 1, 2, 3...` Automatic Renumbering).
+9. `POST /api/v1/recipes/{recipeId:guid}/ingredients` (FR-RCP-009): Thêm nguyên liệu món ăn (Name, Quantity, Unit, Notes).
+10. `PUT /api/v1/recipes/{recipeId:guid}/ingredients/{ingredientId:guid}` (FR-RCP-009): Sửa nguyên liệu món ăn (kèm `DELETE /api/v1/recipes/{recipeId:guid}/ingredients/{ingredientId:guid}`: Xóa nguyên liệu).
 
-#### B. Danh sách các API CẦN HOÀN THÀNH TRONG LAB 4 (8 API)
-1. `DELETE /api/v1/recipes/{id:guid}` (FR-RCP-007): Xóa công thức.
-   * *Quyền:* Tác giả bài viết hoặc Admin (`RecipeAuthorizationHandler`).
-   * *Nghiệp vụ:* Soft Delete hoặc Cascade Delete, tự động xóa cache liên quan.
-2. `POST /api/v1/recipes/{id:guid}/images` (FR-RCP-008 & FR-FILE-001): Tải ảnh công thức lên Supabase Storage.
-   * *Nghiệp vụ:* Thẩm duyệt Magic Bytes (JPEG/PNG/WebP), chống Path Traversal, tải lên bucket `culinary-blog`, tự động gán `IsPrimary = true` cho ảnh đầu tiên.
-3. `DELETE /api/v1/recipes/{id:guid}/images/{imageId:guid}` (FR-RCP-008 & FR-FILE-002): Xóa ảnh công thức.
-   * *Nghiệp vụ:* Xóa file trên Supabase Storage, nếu xóa ảnh đại diện chính thì tự chọn ảnh tiếp theo làm ảnh chính.
-4. `POST /api/v1/recipes/{recipeId:guid}/steps` (FR-RCP-010): Thêm bước làm mới.
-   * *Nghiệp vụ:* Tự động gán `StepNumber = Steps.Count + 1`.
-5. `PUT /api/v1/recipes/{recipeId:guid}/steps/{stepId:guid}` (FR-RCP-010): Cập nhật nội dung bước nấu ăn (Title, Description, TimerMinutes, ImageUrl).
-6. `DELETE /api/v1/recipes/{recipeId:guid}/steps/{stepId:guid}` (FR-RCP-010): Xóa bước làm.
-   * *Nghiệp vụ:* Tự động đánh lại số thứ tự liên tục `StepNumber = 1, 2, 3...` (Automatic Renumbering).
-7. `POST /api/v1/recipes/{recipeId:guid}/ingredients` (FR-RCP-009): Thêm nguyên liệu món ăn (Name, Quantity, Unit, Notes).
-8. `PUT /api/v1/recipes/{recipeId:guid}/ingredients/{ingredientId:guid}` (FR-RCP-009): Sửa nguyên liệu món ăn.
-   *(Kèm `DELETE /api/v1/recipes/{recipeId:guid}/ingredients/{ingredientId:guid}`: Xóa nguyên liệu).*
+#### B. Danh sách các API CẦN HOÀN THÀNH TIẾP THEO
+*(Đã hoàn thành 10/10 API - 100% nhiệm vụ của TV3 trong Lab 4, toàn bộ 40 test suites đã pass).*
 
 ---
 

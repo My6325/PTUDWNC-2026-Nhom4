@@ -4,6 +4,7 @@ using CulinaryBlog.Domain.Settings;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Repositories;
 using CulinaryBlog.Infrastructure.Services;
+using CulinaryBlog.Infrastructure.Jobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -122,6 +123,10 @@ public static class DependencyInjection
 
         // 7. Đăng ký dịch vụ lưu trữ Supabase Storage
         services.AddHttpClient<ISupabaseStorageService, SupabaseStorageService>();
+
+        // 8. Đăng ký Background Job xử lý ảnh (FR-JOB-002)
+        services.AddHttpClient<ImageResizeJob>();
+        services.AddScoped<IImageResizeJob>(sp => sp.GetRequiredService<ImageResizeJob>());
 
         return services;
     }

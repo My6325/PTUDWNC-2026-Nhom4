@@ -84,6 +84,9 @@ public static class RecipeEndpoints
 
         group.MapPut("/{id:guid}", UpdateAsync)
             .RequireAuthorization()
+            .WithName("UpdateRecipe")
+            .WithSummary("Cập nhật công thức của tác giả hoặc Admin")
+            .WithDescription("Gửi RowVersion dạng Base64 nhận từ RecipeDto; trả 409 nếu phiên bản đã thay đổi.")
             .Produces<RecipeDto>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -171,6 +174,7 @@ public static class RecipeEndpoints
             .WithSummary("Tải ảnh công thức lên Supabase Storage")
             .WithDescription("Thẩm duyệt Magic Bytes (JPEG/PNG/WebP), chống Path Traversal, tải lên bucket culinary-blog, tự động gán IsPrimary = true cho ảnh đầu tiên.")
             .Produces<RecipeImageResponseDto>(StatusCodes.Status201Created)
+            .ProducesValidationProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status502BadGateway)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

@@ -50,6 +50,7 @@ coverage/
 !/tests/CulinaryBlog.Infrastructure.IntegrationTests/**
 /tests/CulinaryBlog.Infrastructure.IntegrationTests/bin/
 /tests/CulinaryBlog.Infrastructure.IntegrationTests/obj/
+/tests/CulinaryBlog.Infrastructure.IntegrationTests/TestResults/
 
 # -------------------------------------------------------------------
 # 3. Next.js 15 / Node.js / React
@@ -89,3 +90,8 @@ scratch/
 tmp/
 temp/
 *.pdf
+*.docx
+
+# Báo cáo và công cụ hỗ trợ bài nộp cá nhân (giữ local)
+/docs/evidence/lab5/
+/scripts/lab5/

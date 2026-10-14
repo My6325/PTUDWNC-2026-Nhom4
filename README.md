@@ -8,7 +8,6 @@
 ## 1. THÔNG TIN SINH VIÊN VÀ PHÂN CÔNG CHỨC NĂNG (NHÓM 4 THÀNH VIÊN)
 
 > **Ghi chú phân bổ cân bằng:** Toàn bộ danh mục chức năng dưới đây bám sát **100% tài liệu đặc tả gốc SRS v1.0.0 (IEEE 830)** gồm đúng **27 Yêu cầu Chức năng (FR)** (được chi tiết hóa thành các đầu việc cụ thể).  
-> Khối lượng công việc đã được phân bổ lại đồng đều: Nhóm trưởng nhận thêm 2 chức năng liên quan (`FR-OBS-002` và `FR-OBS-003`) để quản trị trọn vẹn toàn bộ Module Giám sát & Quan sát Hệ thống, đảm bảo độ khó từ **Trung bình đến Khá** và số lượng chức năng ít hơn 1 đầu việc so với thành viên khác để cân đối với vai trò quản trị dự án.
 
 ### 👤 Thành viên 1 (Trưởng nhóm): Nguyễn Thị Trà My — MSSV: 2312693
 * **Module đảm nhiệm:** Module Quản lý Danh mục (FR-CAT) & Module Giám sát & Quan sát Hệ thống (FR-OBS)
