@@ -63,7 +63,7 @@ public sealed class PublishRecipeCommandTests
         var recipe = Recipe.Create("Soup", "soup", null, null, null, "author", 5, 10, 2, RecipeDifficulty.Easy);
         recipe.AddStep(RecipeStep.Create(recipe.Id, 1, "Cook", "Cook it", null, null));
         recipe.AddIngredient(RecipeIngredient.Create(recipe.Id, 0, "Water", 1, "cup", null));
-        recipe.AddImage(new RecipeImage { RecipeId = recipe.Id, OriginalUrl = "https://cdn.com/test.jpg", IsPrimary = true });
+        recipe.AddImage(new RecipeImage { RecipeId = recipe.Id, OriginalUrl = "https://example.com/image.jpg", IsPrimary = true, OrderIndex = 1 });
         return recipe;
     }
 

@@ -30,12 +30,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     {
         base.OnModelCreating(builder);
 
-        // Kích hoạt PostgreSQL Extensions trên Supabase phục vụ tìm kiếm toàn văn FTS tiếng Việt không dấu
-        builder.HasPostgresExtension("unaccent");
-        builder.HasPostgresExtension("pg_trgm");
+        if (Database.IsNpgsql())
+        {
+            // Kích hoạt PostgreSQL Extensions trên Supabase phục vụ tìm kiếm toàn văn FTS tiếng Việt không dấu
+            builder.HasPostgresExtension("unaccent");
+            builder.HasPostgresExtension("pg_trgm");
+        }
 
         // Tự động quét và nạp toàn bộ cấu hình Fluent API trong Assembly Infrastructure
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        if (!Database.IsNpgsql())
+        {
+            builder.Entity<Recipe>().Ignore("SearchVector");
+        }
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -12,6 +12,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 namespace CulinaryBlog.Infrastructure;
 
@@ -112,6 +114,8 @@ public static class DependencyInjection
         // 4. Đăng ký JwtService với lifetime Scoped
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IClientContext, ClientContext>();
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
         // 5. Đăng ký repository nghiệp vụ
         services.AddScoped<IRecipeRepository, RecipeRepository>();
@@ -127,6 +131,49 @@ public static class DependencyInjection
         // 8. Đăng ký Background Job xử lý ảnh (FR-JOB-002)
         services.AddHttpClient<ImageResizeJob>();
         services.AddScoped<IImageResizeJob>(sp => sp.GetRequiredService<ImageResizeJob>());
+
+        // 9. Cấu hình SMTP & Email Service (FR-JOB-001)
+        var smtpSettings = new SmtpSettings
+        {
+            Host = configuration["Smtp:Host"] ?? Environment.GetEnvironmentVariable("SMTP_HOST") ?? "localhost",
+            Port = int.TryParse(configuration["Smtp:Port"] ?? Environment.GetEnvironmentVariable("SMTP_PORT"), out var port) ? port : 587,
+            EnableSsl = bool.TryParse(configuration["Smtp:EnableSsl"] ?? Environment.GetEnvironmentVariable("SMTP_ENABLE_SSL"), out var ssl) ? ssl : true,
+            UserName = configuration["Smtp:UserName"] ?? Environment.GetEnvironmentVariable("SMTP_USERNAME"),
+            Password = configuration["Smtp:Password"] ?? Environment.GetEnvironmentVariable("SMTP_PASSWORD"),
+            FromEmail = configuration["Smtp:FromEmail"] ?? Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "noreply@culinaryblog.local",
+            FromName = configuration["Smtp:FromName"] ?? Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? "Culinary Blog"
+        };
+
+        services.Configure<SmtpSettings>(options =>
+        {
+            options.Host = smtpSettings.Host;
+            options.Port = smtpSettings.Port;
+            options.EnableSsl = smtpSettings.EnableSsl;
+            options.UserName = smtpSettings.UserName;
+            options.Password = smtpSettings.Password;
+            options.FromEmail = smtpSettings.FromEmail;
+            options.FromName = smtpSettings.FromName;
+        });
+
+        services.AddScoped<IEmailService, MailKitEmailService>();
+        services.AddScoped<IBackgroundJobService, Jobs.BackgroundJobService>();
+        services.AddScoped<Jobs.WelcomeEmailJob>();
+        services.AddScoped<Jobs.GoogleSearchConsoleSitemapSubmitter>();
+
+        // 10. Cấu hình Hangfire Storage (Chỉ kích hoạt khi HANGFIRE_ENABLED=true và có connection string riêng biệt để bảo vệ Supabase Cloud)
+        var hangfireEnabled = bool.TryParse(configuration["Hangfire:Enabled"] ?? Environment.GetEnvironmentVariable("HANGFIRE_ENABLED"), out var hf) && hf;
+        var hangfireConnStr = configuration["Hangfire:ConnectionString"] ?? Environment.GetEnvironmentVariable("HANGFIRE_CONNECTION_STRING");
+        if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
+        {
+            services.AddHangfire(config =>
+            {
+                config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                      .UseSimpleAssemblyNameTypeSerializer()
+                      .UseRecommendedSerializerSettings()
+                      .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(hangfireConnStr));
+            });
+            services.AddHangfireServer();
+        }
 
         return services;
     }

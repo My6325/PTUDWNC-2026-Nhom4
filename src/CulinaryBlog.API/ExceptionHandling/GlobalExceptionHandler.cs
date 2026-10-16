@@ -15,7 +15,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     {
         var (status, title, code) = exception switch
         {
-            InvalidRefreshTokenException => (StatusCodes.Status401Unauthorized, "Refresh token không hợp lệ", "INVALID_REFRESH_TOKEN"),
+            InvalidRefreshTokenException invalidEx => (StatusCodes.Status401Unauthorized, "Refresh token không hợp lệ", invalidEx.Code),
             UserAccountLockedException => (StatusCodes.Status423Locked, "Tài khoản bị khóa", "ACCOUNT_LOCKED"),
             RecipeDomainException =>
                 (StatusCodes.Status422UnprocessableEntity, "Quy tắc công thức không hợp lệ", "RECIPE_DOMAIN_ERROR"),

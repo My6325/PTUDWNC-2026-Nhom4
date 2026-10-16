@@ -1,33 +1,37 @@
 /**
- * Định nghĩa các kiểu dữ liệu TypeScript (TS Types) cho Phân hệ Danh mục Ẩm thực (FR-CAT).
- * Khớp 100% với DTO của Backend .NET 10.
+ * Định nghĩa các kiểu dữ liệu TypeScript cho Phân hệ Danh mục Ẩm thực (FR-CAT).
+ * Khớp 100% với C# DTOs: CategoryDto, CategoryDetailDto, CategoryRecipeSummaryDto.
  */
 
 export interface CategoryDto {
   id: string;
   name: string;
   slug: string;
-  description?: string;
-  imageUrl?: string;
+  description?: string | null;
+  imageUrl?: string | null;
   orderIndex: number;
 }
 
-export interface RecipeSummaryDto {
+export interface CategoryRecipeSummaryDto {
   id: string;
   title: string;
   slug: string;
-  imageUrl?: string;
-  cookingTimeMinutes: number;
+  description?: string | null;
+  prepTimeMinutes: number;
+  cookTimeMinutes: number;
+  servings: number;
+  difficulty: string;
+  primaryImageUrl?: string | null;
 }
 
 export interface CategoryDetailDto {
   id: string;
   name: string;
   slug: string;
-  description?: string;
-  imageUrl?: string;
+  description?: string | null;
+  imageUrl?: string | null;
   orderIndex: number;
-  recipes: RecipeSummaryDto[];
+  recipes: CategoryRecipeSummaryDto[];
 }
 
 export interface CreateCategoryRequest {
