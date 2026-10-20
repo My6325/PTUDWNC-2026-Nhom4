@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { buildRecipeQuery } from "@/utils/recipeQuery";
 import type {
   AddIngredientRequest,
   AddRecipeStepRequest,
@@ -25,67 +26,11 @@ const recipePath = (id: string) => `/recipes/${encodeURIComponent(id)}`;
  */
 export async function getRecipes(
   params?: RecipeSearchParams,
+  signal?: AbortSignal,
 ): Promise<PaginatedResult<RecipeListDto>> {
-  const queryParams: Record<string, unknown> = {};
-
-  if (params) {
-    const term = params.searchTerm ?? params.SearchTerm;
-    if (term?.trim()) {
-      queryParams.SearchTerm = term.trim();
-    }
-
-    const catId = params.categoryId ?? params.CategoryId;
-    if (catId) {
-      queryParams.CategoryId = catId;
-    }
-
-    const diff = params.difficulty ?? params.Difficulty;
-    if (diff) {
-      queryParams.Difficulty = diff;
-    }
-
-    const minCook = params.minCookTimeMinutes ?? params.MinCookTimeMinutes;
-    if (typeof minCook === "number") {
-      queryParams.MinCookTimeMinutes = minCook;
-    }
-
-    const maxCook = params.maxCookTimeMinutes ?? params.MaxCookTimeMinutes;
-    if (typeof maxCook === "number") {
-      queryParams.MaxCookTimeMinutes = maxCook;
-    }
-
-    const minServ = params.minServings ?? params.MinServings;
-    if (typeof minServ === "number") {
-      queryParams.MinServings = minServ;
-    }
-
-    const maxServ = params.maxServings ?? params.MaxServings;
-    if (typeof maxServ === "number") {
-      queryParams.MaxServings = maxServ;
-    }
-
-    const sort = params.sortBy ?? params.SortBy;
-    if (sort === "relevance" && !queryParams.SearchTerm) {
-      queryParams.SortBy = "newest";
-    } else if (sort) {
-      queryParams.SortBy = sort;
-    } else {
-      queryParams.SortBy = "newest";
-    }
-
-    const pageIdx = params.pageIndex ?? params.PageIndex;
-    if (typeof pageIdx === "number" && pageIdx > 0) {
-      queryParams.PageIndex = pageIdx;
-    }
-
-    const pageSize = params.pageSize ?? params.PageSize;
-    if (typeof pageSize === "number" && pageSize > 0) {
-      queryParams.PageSize = pageSize;
-    }
-  }
-
   const response = await apiClient.get<PaginatedResult<RecipeListDto>>("/recipes", {
-    params: queryParams,
+    params: buildRecipeQuery(params),
+    signal,
   });
   return response.data;
 }
@@ -125,6 +70,10 @@ export const recipeService = {
   // TV4 & TV2: Publish / Archive / Unarchive
   async publishRecipe(id: string): Promise<void> {
     await apiClient.put<void>(`${recipePath(id)}/publish`);
+  },
+
+  async unpublishRecipe(id: string): Promise<void> {
+    await apiClient.post<void>(`${recipePath(id)}/unpublish`);
   },
 
   async archiveRecipe(id: string): Promise<void> {
