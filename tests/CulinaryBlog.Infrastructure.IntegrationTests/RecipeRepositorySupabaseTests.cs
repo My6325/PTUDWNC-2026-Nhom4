@@ -8,13 +8,18 @@ namespace CulinaryBlog.Infrastructure.IntegrationTests;
 
 public sealed class RecipeRepositorySupabaseTests
 {
-    [Fact]
-    public async Task SearchRecipesAsync_ShouldMatchVietnameseTitleWithoutDiacritics()
+    [Theory]
+    [InlineData("bun bo", "newest")]
+    [InlineData("bun bo", "cookTime")]
+    [InlineData("bun bo", "relevance")]
+    [InlineData("Bún Bò", "relevance")]
+    [InlineData("  bun bo  ", "relevance")]
+    public async Task SearchRecipesAsync_ShouldMatchVietnameseTitle(string searchTerm, string sortBy)
     {
         await using var context = CreateDbContext();
         var repository = new RecipeRepository(context);
 
-        var result = await repository.SearchRecipesAsync("bun bo", 1, 20, CancellationToken.None);
+        var result = await repository.SearchRecipesAsync(searchTerm, null, null, sortBy, 1, 20, CancellationToken.None);
 
         Assert.NotEmpty(result.Items);
         Assert.Contains(result.Items, recipe =>
@@ -85,12 +90,12 @@ public sealed class RecipeRepositorySupabaseTests
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, ".env")))
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "src", "CulinaryBlog.slnx")))
         {
             directory = directory.Parent;
         }
 
         return directory?.FullName
-            ?? throw new DirectoryNotFoundException("Could not locate the repository root containing .env.");
+            ?? throw new DirectoryNotFoundException("Could not locate the repository root containing src/CulinaryBlog.slnx.");
     }
 }

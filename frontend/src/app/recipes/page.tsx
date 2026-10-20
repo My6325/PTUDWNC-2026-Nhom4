@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
@@ -25,6 +25,7 @@ import { RecipeListDto, GetRecipesParams } from "@/types/recipe";
 import { CategoryDto } from "@/types/category";
 import { PaginatedResult } from "@/types/common";
 import { getErrorMessage } from "@/utils/apiError";
+import { normalizeRecipePagination } from "@/utils/recipeQuery";
 
 function RecipesContent() {
   const router = useRouter();
@@ -35,7 +36,7 @@ function RecipesContent() {
   const currentCategoryId = searchParams.get("CategoryId") || "";
   const currentDifficulty = searchParams.get("Difficulty") || "";
   const currentSortBy = searchParams.get("SortBy") || "newest";
-  const currentPageIndex = parseInt(searchParams.get("PageIndex") || "1", 10);
+  const currentPageIndex = normalizeRecipePagination(searchParams.get("PageIndex"), 12).pageIndex;
   const currentMinCookTime = searchParams.get("MinCookTimeMinutes") || "";
   const currentMaxCookTime = searchParams.get("MaxCookTimeMinutes") || "";
   const currentMinServings = searchParams.get("MinServings") || "";
@@ -56,6 +57,7 @@ function RecipesContent() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const activeRequest = useRef<AbortController | null>(null);
 
   // Nạp danh mục
   useEffect(() => {
@@ -70,7 +72,7 @@ function RecipesContent() {
       const params = new URLSearchParams(searchParams.toString());
 
       Object.entries(newParams).forEach(([key, value]) => {
-        if (value === undefined || value === null || value === "" || value === 0) {
+        if (value === undefined || value === null || value === "") {
           params.delete(key);
         } else {
           params.set(key, String(value));
@@ -94,6 +96,9 @@ function RecipesContent() {
 
   // Nạp công thức khi searchParams thay đổi
   const fetchRecipes = useCallback(async () => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     setIsLoading(true);
     setError(null);
 
@@ -112,13 +117,14 @@ function RecipesContent() {
     if (currentMaxServings) query.maxServings = parseInt(currentMaxServings, 10);
 
     try {
-      const result = await recipeService.getRecipes(query);
-      setPaginatedData(result);
+      const result = await recipeService.getRecipes(query, controller.signal);
+      if (!controller.signal.aborted) setPaginatedData(result);
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error("Lỗi khi tìm kiếm công thức:", err);
       setError(getErrorMessage(err, "Không thể tải danh sách công thức. Vui lòng thử lại."));
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) setIsLoading(false);
     }
   }, [
     currentSearchTerm,
@@ -133,7 +139,8 @@ function RecipesContent() {
   ]);
 
   useEffect(() => {
-    fetchRecipes();
+    void fetchRecipes();
+    return () => activeRequest.current?.abort();
   }, [fetchRecipes]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -429,6 +436,8 @@ function RecipesContent() {
             <div>
               {isLoading ? (
                 <span>Đang tìm kiếm công thức...</span>
+              ) : error ? (
+                <span>Chưa tải được kết quả</span>
               ) : (
                 <span>
                   Tìm thấy <strong className="text-stone-900 dark:text-white">{paginatedData.totalCount}</strong> công thức
@@ -457,7 +466,7 @@ function RecipesContent() {
           )}
 
           {/* Lưới công thức */}
-          <RecipeGrid
+          {!error && <RecipeGrid
             recipes={paginatedData.items}
             isLoading={isLoading}
             skeletonCount={12}
@@ -474,15 +483,15 @@ function RecipesContent() {
                 }
               />
             }
-          />
+          />}
 
           {/* Phân trang dùng chung (Pagination Component - Tiêu chí 5 Lab 6) */}
-          <Pagination
+          {!error && <Pagination
             currentPage={paginatedData.pageIndex}
             totalPages={paginatedData.totalPages}
             onPageChange={(page) => updateFilters({ PageIndex: page })}
             isLoading={isLoading}
-          />
+          />}
         </main>
       </div>
     </div>

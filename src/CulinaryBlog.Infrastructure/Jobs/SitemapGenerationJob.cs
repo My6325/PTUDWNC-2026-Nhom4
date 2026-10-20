@@ -20,7 +20,7 @@ public static class SitemapXmlBuilder
     public static string Build(string publicBaseUrl, IEnumerable<SitemapXmlEntry> entries)
     {
         if (!IsValidPublicBaseUrl(publicBaseUrl) ||
-            !Uri.TryCreate(publicBaseUrl.TrimEnd('/'), UriKind.Absolute, out var publicUri))
+            !Uri.TryCreate(publicBaseUrl.TrimEnd('/') + "/", UriKind.Absolute, out var publicUri))
         {
             throw new InvalidOperationException("PublicSite:BaseUrl must be configured as an absolute HTTP(S) URL.");
         }

@@ -13,6 +13,11 @@ public sealed class GetRecipesQueryValidator : AbstractValidator<GetRecipesQuery
         RuleFor(query => query.PageSize)
             .InclusiveBetween(1, 50);
 
+        RuleFor(query => query.PageIndex)
+            .Must((query, pageIndex) => ((long)pageIndex - 1) * query.PageSize <= int.MaxValue)
+            .When(query => query.PageIndex >= 1 && query.PageSize is >= 1 and <= 50)
+            .WithMessage("Pagination offset exceeds the supported range.");
+
         RuleFor(query => query.Difficulty)
             .Must(BeValidDifficulty)
             .When(query => !string.IsNullOrWhiteSpace(query.Difficulty))
