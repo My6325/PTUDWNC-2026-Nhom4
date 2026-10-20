@@ -44,4 +44,20 @@ public sealed class CategoryRepository(ApplicationDbContext dbContext) : ICatego
             .MaxAsync(cancellationToken);
         return maxOrderIndex.GetValueOrDefault(-1) + 1;
     }
+
+    public Task<Category?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.Categories.FirstOrDefaultAsync(
+            category => category.Id == id && category.IsDeleted,
+            cancellationToken);
+    }
+
+    public Task<List<Category>> GetDeletedCategoriesAsync(CancellationToken cancellationToken)
+    {
+        return dbContext.Categories
+            .AsNoTracking()
+            .Where(category => category.IsDeleted)
+            .OrderByDescending(category => category.DeletedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

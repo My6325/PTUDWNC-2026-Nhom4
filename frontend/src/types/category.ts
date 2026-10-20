@@ -10,6 +10,10 @@ export interface CategoryDto {
   description?: string | null;
   imageUrl?: string | null;
   orderIndex: number;
+  createdAt?: string;
+  updatedAt?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
 }
 
 export interface CategoryRecipeSummaryDto {
@@ -32,6 +36,10 @@ export interface CategoryDetailDto {
   imageUrl?: string | null;
   orderIndex: number;
   recipes: CategoryRecipeSummaryDto[];
+  createdAt?: string;
+  updatedAt?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
 }
 
 export interface CreateCategoryRequest {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ChefHat, Search, Menu, X, User, LogOut, PenSquare } from "lucide-react";
+import { ChefHat, Search, Menu, X, User, LogOut, PenSquare, Shield } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/services/authService";
 import { useAuthStore } from "@/stores/auth-store";
@@ -46,6 +46,11 @@ export const SiteHeader: React.FC = () => {
     { label: "Công thức", href: "/recipes" },
     { label: "Danh mục", href: "/categories" },
   ];
+
+  // Phân quyền RBAC cho giao diện: Admin, Author (Đầu bếp), User (Độc giả/Người dùng)
+  const isAdmin = user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const isAuthor = user?.roles?.some((r) => r.toLowerCase() === "author") ?? false;
+  const canCreateRecipe = isAdmin || isAuthor;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-white/95 dark:bg-stone-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-stone-900/80 transition-colors">
@@ -105,32 +110,84 @@ export const SiteHeader: React.FC = () => {
             </form>
           </div>
 
-          {/* User Account & Actions */}
+          {/* User Account & Actions - Phân rõ 4 trạng thái: Guest, Admin, Author, User */}
           <div className="hidden md:flex items-center gap-2">
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
+                {/* 1. Nút Quản trị - CHỈ DÀNH RIÊNG CHO ADMIN */}
+                {isAdmin && (
+                  <Button
+                    href="/admin/categories"
+                    variant="outline"
+                    size="sm"
+                    className="border-brand-500/50 text-brand-600 dark:text-brand-400 bg-brand-50/70 dark:bg-brand-950/40 font-semibold shadow-sm hover:bg-brand-100 dark:hover:bg-brand-900/40"
+                    leftIcon={<Shield className="w-3.5 h-3.5" />}
+                    title="Truy cập khu vực Quản trị hệ thống & Danh mục"
+                  >
+                    Quản trị
+                  </Button>
+                )}
+
+                {/* 2. Nút Viết món mới - CHỈ HIỂN THỊ VỚI ĐẦU BẾP (AUTHOR) VÀ QUẢN TRỊ VIÊN (ADMIN) */}
+                {canCreateRecipe && (
+                  <Button
+                    href="/recipes/create"
+                    variant="default"
+                    size="sm"
+                    leftIcon={<PenSquare className="w-4 h-4" />}
+                    title="Đăng tải công thức nấu ăn mới"
+                  >
+                    Viết món mới
+                  </Button>
+                )}
+
+                {/* 3. Nút Hồ sơ người dùng kèm Role Badge nhận diện trực quan */}
                 <Button
-                  href="/recipes/create"
-                  variant="default"
+                  href="/profile"
+                  variant="ghost"
                   size="sm"
-                  leftIcon={<PenSquare className="w-4 h-4" />}
+                  className="flex items-center gap-1.5"
+                  leftIcon={
+                    isAdmin ? (
+                      <Shield className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                    ) : isAuthor ? (
+                      <ChefHat className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <User className="w-4 h-4 text-stone-500" />
+                    )
+                  }
                 >
-                  Viết món mới
+                  <span className="max-w-[120px] truncate">{user?.displayName || "Tài khoản"}</span>
+                  {isAdmin && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">
+                      Admin
+                    </span>
+                  )}
+                  {!isAdmin && isAuthor && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                      Đầu bếp
+                    </span>
+                  )}
+                  {!isAdmin && !isAuthor && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                      Thành viên
+                    </span>
+                  )}
                 </Button>
-                <Button href="/profile" variant="ghost" size="sm" leftIcon={<User className="w-4 h-4" />}>
-                  {user?.displayName || "Tài khoản"}
-                </Button>
+
+                {/* 4. Nút Đăng xuất */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleLogout}
                   leftIcon={<LogOut className="w-4 h-4 text-stone-400" />}
-                  title="Đăng xuất"
+                  title="Đăng xuất khỏi hệ thống"
                 >
                   Thoát
                 </Button>
               </div>
             ) : (
+              /* Trạng thái Khách vãng lai (Guest - Chưa đăng nhập) */
               <div className="flex items-center gap-2">
                 <Button href="/login" variant="ghost" size="sm">
                   Đăng nhập
@@ -186,34 +243,74 @@ export const SiteHeader: React.FC = () => {
               ))}
             </nav>
 
-            {/* Auth Buttons */}
+            {/* Auth Buttons trên Mobile */}
             <div className="pt-2 border-t border-surface-border flex flex-col gap-2">
               {isAuthenticated ? (
                 <>
-                  <Button
-                    href="/recipes/create"
-                    variant="default"
-                    size="sm"
-                    className="w-full justify-start"
-                    leftIcon={<PenSquare className="w-4 h-4" />}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Viết món mới
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      href="/admin/categories"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start border-brand-500/50 text-brand-600 dark:text-brand-400 bg-brand-50/70 dark:bg-brand-950/40 font-semibold"
+                      leftIcon={<Shield className="w-4 h-4" />}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Bảng Quản trị (Admin)
+                    </Button>
+                  )}
+                  {canCreateRecipe && (
+                    <Button
+                      href="/recipes/create"
+                      variant="default"
+                      size="sm"
+                      className="w-full justify-start"
+                      leftIcon={<PenSquare className="w-4 h-4" />}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Viết món mới
+                    </Button>
+                  )}
                   <Button
                     href="/profile"
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start"
-                    leftIcon={<User className="w-4 h-4" />}
+                    className="w-full justify-between"
+                    leftIcon={
+                      isAdmin ? (
+                        <Shield className="w-4 h-4 text-brand-600" />
+                      ) : isAuthor ? (
+                        <ChefHat className="w-4 h-4 text-amber-600" />
+                      ) : (
+                        <User className="w-4 h-4 text-stone-500" />
+                      )
+                    }
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    {user?.displayName || "Trang cá nhân"}
+                    <span className="truncate">{user?.displayName || "Trang cá nhân"}</span>
+                    {isAdmin && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-100 text-brand-700">
+                        Admin
+                      </span>
+                    )}
+                    {!isAdmin && isAuthor && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                        Đầu bếp
+                      </span>
+                    )}
+                    {!isAdmin && !isAuthor && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-stone-100 text-stone-600">
+                        Thành viên
+                      </span>
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleLogout}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
                     className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40"
                     leftIcon={<LogOut className="w-4 h-4" />}
                   >
