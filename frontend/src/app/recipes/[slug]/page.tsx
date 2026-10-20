@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -408,12 +408,16 @@ export default function RecipeDetailPage() {
         {/* Tiêu đề & Danh mục */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            {recipe.category && (
+            {recipe.category ? (
               <Link href={`/categories/${recipe.category.slug}`}>
                 <Badge variant="brand" size="md" className="hover:opacity-90 cursor-pointer">
                   {recipe.category.name}
                 </Badge>
               </Link>
+            ) : (
+              <Badge variant="outline" size="md" className="text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-700">
+                Chưa phân loại
+              </Badge>
             )}
             <Badge difficulty={recipe.difficulty} size="md" />
           </div>
@@ -704,7 +708,7 @@ export default function RecipeDetailPage() {
                         {/* Đồng hồ hẹn giờ đếm ngược cho bước nếu có TimerMinutes */}
                         {step.timerMinutes && step.timerMinutes > 0 ? (
                           <StepTimer timerMinutes={step.timerMinutes} stepNumber={step.stepNumber} />
-                        ) : null}
+                        )}
 
                         {/* Ảnh minh họa của bước nếu có */}
                         {step.imageUrl && (

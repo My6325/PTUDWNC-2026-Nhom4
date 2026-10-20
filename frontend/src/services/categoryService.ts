@@ -16,6 +16,14 @@ export const categoryService = {
   },
 
   /**
+   * Lấy danh sách danh mục trong Thùng rác (đã bị xóa mềm) dành cho Admin.
+   */
+  async getTrashCategories(): Promise<CategoryDto[]> {
+    const response = await apiClient.get<CategoryDto[]>("/categories/trash");
+    return response.data;
+  },
+
+  /**
    * Lấy chi tiết danh mục kèm danh sách công thức tóm tắt theo slug (FR-CAT-002).
    */
   async getCategoryBySlug(slug: string): Promise<CategoryDetailDto> {
@@ -41,9 +49,17 @@ export const categoryService = {
 
   /**
    * Xóa mềm danh mục ẩm thực (Yêu cầu quyền Admin - FR-CAT-005).
-   * Trả về 409 Conflict nếu danh mục còn chứa công thức.
+   * Chuyển danh mục vào Thùng rác lưu trữ 30 ngày, bảo toàn các công thức liên quan.
    */
   async deleteCategory(id: string): Promise<void> {
     await apiClient.delete(`/categories/${id}`);
+  },
+
+  /**
+   * Khôi phục danh mục ẩm thực từ Thùng rác về trạng thái hoạt động (Admin).
+   */
+  async restoreCategory(id: string): Promise<CategoryDto> {
+    const response = await apiClient.post<CategoryDto>(`/categories/${id}/restore`);
+    return response.data;
   },
 };

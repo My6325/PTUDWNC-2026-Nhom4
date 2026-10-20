@@ -61,9 +61,13 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, className }) => 
 
         {/* Badges góc trên ảnh */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {recipe.categoryName && (
+          {recipe.categoryName ? (
             <Badge variant="brand" size="sm" className="backdrop-blur-md bg-white/90 dark:bg-stone-900/90 shadow-sm">
               {recipe.categoryName}
+            </Badge>
+          ) : (
+            <Badge variant="outline" size="sm" className="backdrop-blur-md bg-white/90 dark:bg-stone-900/90 text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-700 shadow-sm">
+              Chưa phân loại
             </Badge>
           )}
         </div>

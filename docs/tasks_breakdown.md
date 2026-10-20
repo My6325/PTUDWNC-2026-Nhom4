@@ -146,36 +146,50 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] **API Endpoints:** Đăng ký các endpoints trong `CulinaryBlog.API/Endpoints/CategoryEndpoints.cs`:
   - `app.MapGet("/api/v1/categories", ...)` với OpenAPI metadata.
   - `app.MapGet("/api/v1/categories/{slug}", ...)`.
-- [ ] **Frontend Hooks & UI:**
+- [x] **Frontend Hooks & UI:**
   - Tạo hook `useCategories()` trong `src/frontend/hooks/useRecipes.ts` sử dụng TanStack Query v5.
   - Tạo trang hiển thị danh mục `src/frontend/app/categories/page.tsx` và `src/frontend/app/categories/[slug]/page.tsx`.
 
 #### Bước 3: Hiện thực FR-CAT-003 (Tạo Danh mục Mới [Admin])
-- [ ] **Request Record:** Tạo `public record CreateCategoryRequest(string Name, string? Description, string? ImageUrl, int OrderIndex);`
-- [ ] **CQRS Command & Handler:**
-  - Tạo `CreateCategoryCommand(CreateCategoryRequest Request) : IRequest<Guid>;`
+- [x] **Request Record:** Tạo `public record CreateCategoryRequest(string Name, string? Description, string? ImageUrl, int OrderIndex);`
+- [x] **CQRS Command & Handler:**
+  - Tạo `CreateCategoryCommand(CreateCategoryRequest Request) : IRequest<CategoryDto>;`
   - Tạo `CreateCategoryValidator`: Kiểm tra `Name` không được rỗng, độ dài từ 2 đến 100 ký tự.
   - Tạo `CreateCategoryCommandHandler`: Gọi `SlugHelper.GenerateSlug(request.Name)`, kiểm tra nếu trùng thì thêm hậu tố số tăng dần (`-2`, `-3`), lưu vào Supabase DB qua `IUnitOfWork`, đồng thời gọi `_cache.Remove("categories:all")`.
-- [ ] **API Endpoint:** Cài đặt endpoint `POST /api/v1/categories` trong `CategoryEndpoints.cs` yêu cầu `[Authorize(Roles = "Admin")]`.
+- [x] **API Endpoint:** Cài đặt endpoint `POST /api/v1/categories` trong `CategoryEndpoints.cs` yêu cầu `[Authorize(Roles = "Admin")]`.
 
 #### Bước 4: Hiện thực FR-CAT-004 (Cập nhật Danh mục [Admin])
-- [ ] **Request Record:** Tạo `public record UpdateCategoryRequest(string Name, string? Description, string? ImageUrl, int OrderIndex);`
-- [ ] **CQRS Command & Handler:**
-  - Tạo `UpdateCategoryCommand(Guid Id, UpdateCategoryRequest Request) : IRequest;`
+- [x] **Request Record:** Tạo `public record UpdateCategoryRequest(string Name, string? Description, string? ImageUrl, int OrderIndex);`
+- [x] **CQRS Command & Handler:**
+  - Tạo `UpdateCategoryCommand(Guid Id, UpdateCategoryRequest Request) : IRequest<CategoryDto>;`
   - Tạo `UpdateCategoryValidator`: Kiểm tra `Id` và `Name`.
   - Tạo `UpdateCategoryCommandHandler`: Tìm category theo ID; nếu không thấy ném `NotFoundException`; cập nhật `Name`, `Description`, `ImageUrl`, `OrderIndex` (giữ nguyên `Slug` ban đầu để bảo vệ liên kết SEO); xóa cache `"categories:all"`.
-- [ ] **API Endpoint:** Cài đặt endpoint `PUT /api/v1/categories/{id}` trong `CategoryEndpoints.cs`.
+- [x] **API Endpoint:** Cài đặt endpoint `PUT /api/v1/categories/{id}` trong `CategoryEndpoints.cs`.
 
-#### Bước 5: Hiện thực FR-CAT-005 (Xóa Danh mục [Admin])
-- [ ] **CQRS Command & Handler:**
+#### Bước 5: Hiện thực FR-CAT-005 (Xóa Mềm, Thùng Rác & Khôi Phục Danh mục [Admin])
+- [x] **CQRS Command & Handler:**
   - Tạo `DeleteCategoryCommand(Guid Id) : IRequest;`
-  - Tạo `DeleteCategoryCommandHandler`: Kiểm tra trong Supabase DB nếu còn công thức đang trực thuộc danh mục (`_context.Recipes.Any(r => r.CategoryId == id && !r.IsDeleted)`); nếu còn -> ném ngoại lệ trả về `HTTP 409 Conflict`; nếu 0 công thức -> tiến hành xóa danh mục và xóa cache `"categories:all"`.
-- [ ] **API Endpoint:** Cài đặt endpoint `DELETE /api/v1/categories/{id}` trong `CategoryEndpoints.cs`.
-- [ ] **Giao diện Quản trị Frontend:** Tạo trang quản trị danh mục `src/frontend/app/admin/categories/page.tsx` cho phép Admin thêm, sửa, xóa danh mục trực quan.
+  - Tạo `DeleteCategoryCommandHandler`: Thực hiện nghiệp vụ Xóa mềm (`IsDeleted = true`, `DeletedAt = DateTime.UtcNow`), đưa danh mục vào Thùng rác lưu trữ 30 ngày trước khi hệ thống dọn dẹp vĩnh viễn. Không xóa vật lý dữ liệu nhằm bảo toàn trọn vẹn các công thức liên kết, sẵn sàng cho việc khôi phục bất cứ lúc nào; đồng thời xóa cache `"categories:all"`.
+- [x] **API Endpoint:** Cài đặt endpoint `DELETE /api/v1/categories/{id}` trong `CategoryEndpoints.cs`.
+- [x] **CQRS Query & Handler (Thùng rác - Recycle Bin):**
+  - Tạo `GetTrashCategoriesQuery() : IRequest<List<CategoryDto>>;`
+  - Tạo `GetTrashCategoriesQueryHandler`: Truy vấn danh sách các danh mục đã bị xóa mềm (`IsDeleted == true`), sắp xếp theo `DeletedAt` giảm dần để quản trị viên theo dõi và đếm ngược hạn 30 ngày lưu vết.
+- [x] **CQRS Command & Handler (Khôi phục - Restore):**
+  - Tạo `RestoreCategoryCommand(Guid Id) : IRequest<CategoryDto>;`
+  - Tạo `RestoreCategoryCommandHandler`: Khôi phục danh mục từ Thùng rác về trạng thái hoạt động bình thường (`IsDeleted = false`, `DeletedAt = null`), tự động mở lại khả năng truy cập cho các công thức liên kết và xóa cache `"categories:all"`.
+- [x] **API Endpoints Mở Rộng:**
+  - `GET /api/v1/categories/trash`: Xem danh sách danh mục trong Thùng rác (yêu cầu vai trò `Admin`).
+  - `POST /api/v1/categories/{id}/restore`: Khôi phục danh mục từ Thùng rác (yêu cầu vai trò `Admin`).
+- [x] **Giao diện Quản trị Frontend:** Xây dựng hoàn chỉnh trang `src/frontend/app/admin/categories/page.tsx` dành riêng cho Quản trị viên (Admin):
+  - Phân quyền Admin Guard nghiêm ngặt (chuyển hướng người dùng vãng lai hoặc Author).
+  - Tab kép "Đang hoạt động" và "Thùng rác" kèm số lượng Badge trực quan theo thời gian thực.
+  - Khung cảnh báo chuyên nghiệp: dữ liệu trong Thùng rác tự động xóa vĩnh viễn sau 30 ngày kèm đồng hồ đếm ngược số ngày còn lại.
+  - Cột lịch sử thời gian hiển thị ngày tạo (`createdAt`), ngày sửa (`updatedAt`) và ngày chuyển vào thùng rác (`deletedAt`).
+  - Đầy đủ các Modal thao tác: Thêm mới (FR-CAT-003), Chỉnh sửa (FR-CAT-004), Xác nhận xóa mềm an toàn (FR-CAT-005), và Khôi phục (Restore) nhanh chóng.
 
 #### Bước 6: Hiện thực FR-OBS-001 (Health Check Endpoints)
-- [ ] **Cấu hình Health Checks:** Cài đặt gói `AspNetCore.HealthChecks.Npgsql` trong `CulinaryBlog.API.csproj`.
-- [ ] **Đăng ký Endpoints trong `Program.cs`:**
+- [x] **Cấu hình Health Checks:** Cài đặt gói `AspNetCore.HealthChecks.Npgsql` trong `CulinaryBlog.API.csproj`.
+- [x] **Đăng ký Endpoints trong `Program.cs`:**
   - `GET /health/live`: Liveness probe kiểm tra process API.
   - `GET /health/ready`: Readiness probe kiểm tra kết nối Supabase PostgreSQL.
   - `GET /health`: Báo cáo chi tiết dạng JSON về tài nguyên hệ thống.

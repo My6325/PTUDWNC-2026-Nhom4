@@ -69,6 +69,8 @@ public sealed class UpdateCategoryCommandHandler(
             category.Slug,
             category.Description,
             category.ImageUrl,
-            category.OrderIndex);
+            category.OrderIndex,
+            category.CreatedAt,
+            category.UpdatedAt);
     }
 }

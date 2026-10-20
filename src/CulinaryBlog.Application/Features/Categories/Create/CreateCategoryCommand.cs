@@ -10,7 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace CulinaryBlog.Application.Features.Categories.Create;
 
-public sealed record CreateCategoryRequest(string Name, string? Description);
+public sealed record CreateCategoryRequest(string Name, string? Description, string? ImageUrl = null);
 public sealed record CreateCategoryCommand(CreateCategoryRequest Request) : IRequest<CategoryDto>;
 
 public sealed class CreateCategoryValidator : AbstractValidator<CreateCategoryCommand>
@@ -53,6 +53,7 @@ public sealed class CreateCategoryCommandHandler(
             Name = name,
             Slug = slug,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             OrderIndex = await categoryRepository.GetNextOrderIndexAsync(cancellationToken)
         };
 
@@ -61,6 +62,6 @@ public sealed class CreateCategoryCommandHandler(
         memoryCache.Remove(CategoryCacheKeys.All);
 
         return new CategoryDto(category.Id, category.Name, category.Slug, category.Description,
-            category.ImageUrl, category.OrderIndex);
+            category.ImageUrl, category.OrderIndex, category.CreatedAt, category.UpdatedAt);
     }
 }

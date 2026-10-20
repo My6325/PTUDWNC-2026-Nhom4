@@ -15,4 +15,8 @@ public interface ICategoryRepository
     Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken);
 
     Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken);
+
+    Task<Category?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    Task<List<Category>> GetDeletedCategoriesAsync(CancellationToken cancellationToken);
 }
