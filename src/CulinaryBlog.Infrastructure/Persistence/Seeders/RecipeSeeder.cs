@@ -78,6 +78,49 @@ public static class RecipeSeeder
         "Trình bày món ăn"
     ];
 
+    private static readonly Dictionary<string, string> RecipeDishImages = new()
+    {
+        ["Cá kho tộ nước dừa"] = "https://images.unsplash.com/photo-1544025162-d76694265947",
+        ["Thịt kho trứng kiểu miền Nam"] = "https://images.unsplash.com/photo-1544025162-d76694265947",
+        ["Gà nướng mật ong sả ớt"] = "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b",
+        ["Bò lúc lắc sốt tiêu đen"] = "https://images.unsplash.com/photo-1558030006-450675393462",
+        ["Canh chua cá lóc"] = "https://images.unsplash.com/photo-1547592166-23ac45744acd",
+        ["Bún bò Huế sa tế"] = "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec",
+        ["Phở bò tái nạm"] = "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43",
+        ["Mì Quảng gà ta"] = "https://images.unsplash.com/photo-1569718212165-3a8278d5f624",
+        ["Cơm tấm sườn bì chả"] = "https://images.unsplash.com/photo-1504674900247-0877df9cc836",
+        ["Gỏi cuốn tôm thịt"] = "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb",
+        ["Nem rán giòn Hà Nội"] = "https://images.unsplash.com/photo-1541544741938-0af808871cc0",
+        ["Lẩu thái hải sản"] = "https://images.unsplash.com/photo-1547496502-affa22d38842",
+        ["Tôm rim mặn ngọt"] = "https://images.unsplash.com/photo-1534939561126-855b8675edd7",
+        ["Mực xào sa tế"] = "https://images.unsplash.com/photo-1534939561126-855b8675edd7",
+        ["Đậu hũ sốt cà chua"] = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
+        ["Rau muống xào tỏi"] = "https://images.unsplash.com/photo-1540420773420-3366772f4999",
+        ["Sườn xào chua ngọt"] = "https://images.unsplash.com/photo-1544025162-d76694265947",
+        ["Cháo gà nấm hương"] = "https://images.unsplash.com/photo-1547592166-23ac45744acd",
+        ["Bánh mì pate trứng"] = "https://images.unsplash.com/photo-1626804475297-41608ea09aeb",
+        ["Chè đậu xanh nha đam"] = "https://images.unsplash.com/photo-1551024709-8f23befc6f87",
+        ["Bánh flan cà phê"] = "https://images.unsplash.com/photo-1578985545062-69928b1d9587",
+        ["Sinh tố bơ sữa đặc"] = "https://images.unsplash.com/photo-1553530666-ba11a7da3888",
+        ["Cà phê sữa đá"] = "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
+        ["Gỏi gà bắp cải"] = "https://images.unsplash.com/photo-1540420773420-3366772f4999",
+        ["Vịt om sấu"] = "https://images.unsplash.com/photo-1587593810167-a84920ea0781",
+        ["Bánh xèo miền Tây"] = "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8",
+        ["Bún thịt nướng"] = "https://images.unsplash.com/photo-1559847844-5315695dadae",
+        ["Cá hồi áp chảo"] = "https://images.unsplash.com/photo-1467003909585-2f8a72700288",
+        ["Chả cá thì là"] = "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb",
+        ["Xôi gấc đậu xanh"] = "https://images.unsplash.com/photo-1509722747041-616f39b57569"
+    };
+
+    private static readonly string[] StepImageUrls =
+    [
+        "https://images.unsplash.com/photo-1556910103-1c02745aae4d",
+        "https://images.unsplash.com/photo-1506368249639-73a05d6f6488",
+        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f",
+        "https://images.unsplash.com/photo-1547592180-85f173990554",
+        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"
+    ];
+
     public static async Task SeedAsync(ApplicationDbContext context)
     {
         // Lấy các tài khoản Author do UserSeeder tạo để gán làm tác giả công thức.
@@ -232,7 +275,8 @@ public static class RecipeSeeder
         {
             var recipeNumber = existingRecipeCount + offset;
             var recipeId = CreateRecipeId(recipeNumber);
-            var title = $"{faker.PickRandom(RecipeTitles)} #{recipeNumber:D3}";
+            var baseTitle = faker.PickRandom(RecipeTitles);
+            var title = $"{baseTitle} #{recipeNumber:D3}";
             var slug = $"{SlugHelper.GenerateSlug(title)}-{recipeNumber:D3}";
             var ingredientCount = faker.Random.Int(10, 14);
             var stepCount = faker.Random.Int(5, 8);
@@ -265,7 +309,7 @@ public static class RecipeSeeder
 
             AddIngredients(recipe, recipeId, recipeNumber, ingredientCount, faker);
             AddSteps(recipe, recipeId, recipeNumber, stepCount, faker);
-            AddImage(recipe, recipeId, recipeNumber);
+            AddImage(recipe, recipeId, recipeNumber, baseTitle);
 
             recipes.Add(recipe);
         }
@@ -347,22 +391,26 @@ public static class RecipeSeeder
                 Description = faker.Lorem.Paragraph(),
                 TimerMinutes = faker.Random.Bool(0.7f) ? faker.Random.Int(3, 25) : null,
                 ImageUrl = faker.Random.Bool(0.4f)
-                    ? $"https://picsum.photos/seed/recipe-step-{recipeNumber:D3}-{stepNumber}/900/600"
+                    ? $"{StepImageUrls[(stepNumber - 1) % StepImageUrls.Length]}?w=900&auto=format&fit=crop&q=80"
                     : null
             });
         }
     }
 
-    private static void AddImage(Recipe recipe, Guid recipeId, int recipeNumber)
+    private static void AddImage(Recipe recipe, Guid recipeId, int recipeNumber, string baseTitle)
     {
-        // Tạo một ảnh chính với ba kích thước để phục vụ các giao diện khác nhau.
+        var baseImageUrl = RecipeDishImages.TryGetValue(baseTitle, out var url)
+            ? url
+            : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
+
+        // Tạo một ảnh chính từ kho ảnh Unsplash chuẩn xác theo từng món ăn
         recipe.Images.Add(new RecipeImage
         {
             Id = CreateImageId(recipeNumber),
             RecipeId = recipeId,
-            OriginalUrl = $"https://picsum.photos/seed/recipe-{recipeNumber:D3}/1200/900",
-            MediumUrl = $"https://picsum.photos/seed/recipe-{recipeNumber:D3}/800/600",
-            ThumbnailUrl = $"https://picsum.photos/seed/recipe-{recipeNumber:D3}/300/300",
+            OriginalUrl = $"{baseImageUrl}?w=1200&auto=format&fit=crop&q=80",
+            MediumUrl = $"{baseImageUrl}?w=800&auto=format&fit=crop&q=80",
+            ThumbnailUrl = $"{baseImageUrl}?w=300&auto=format&fit=crop&q=80",
             IsPrimary = true,
             OrderIndex = 1
         });
