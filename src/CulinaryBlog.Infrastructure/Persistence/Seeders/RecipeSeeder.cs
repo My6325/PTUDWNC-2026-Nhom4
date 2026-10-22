@@ -18,39 +18,173 @@ public static class RecipeSeeder
     // NormalizedName của vai trò Author trong ASP.NET Core Identity.
     private const string AuthorRoleName = "AUTHOR";
 
-    private static readonly string[] RecipeTitles =
+    private sealed record DishTemplate(string Title, string ImageUrl);
+
+    private static readonly DishTemplate[] DefaultTemplates =
     [
-        "Cá kho tộ nước dừa",
-        "Thịt kho trứng kiểu miền Nam",
-        "Gà nướng mật ong sả ớt",
-        "Bò lúc lắc sốt tiêu đen",
-        "Canh chua cá lóc",
-        "Bún bò Huế sa tế",
-        "Phở bò tái nạm",
-        "Mì Quảng gà ta",
-        "Cơm tấm sườn bì chả",
-        "Gỏi cuốn tôm thịt",
-        "Nem rán giòn Hà Nội",
-        "Lẩu thái hải sản",
-        "Tôm rim mặn ngọt",
-        "Mực xào sa tế",
-        "Đậu hũ sốt cà chua",
-        "Rau muống xào tỏi",
-        "Sườn xào chua ngọt",
-        "Cháo gà nấm hương",
-        "Bánh mì pate trứng",
-        "Chè đậu xanh nha đam",
-        "Bánh flan cà phê",
-        "Sinh tố bơ sữa đặc",
-        "Cà phê sữa đá",
-        "Gỏi gà bắp cải",
-        "Vịt om sấu",
-        "Bánh xèo miền Tây",
-        "Bún thịt nướng",
-        "Cá hồi áp chảo",
-        "Chả cá thì là",
-        "Xôi gấc đậu xanh"
+        new("Món ngon gia đình thanh đạm", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c")
     ];
+
+    /// <summary>
+    /// Ma trận phân loại món ăn chuẩn ngữ nghĩa (Semantic Category Mapping).
+    /// Ánh xạ chính xác Slug danh mục ẩm thực sang các món ăn thực tế và ảnh tương ứng.
+    /// </summary>
+    private static readonly Dictionary<string, DishTemplate[]> CategoryDishMap = new()
+    {
+        ["mon-khai-vi"] =
+        [
+            new("Gỏi cuốn tôm thịt thanh đạm", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb"),
+            new("Nem rán giòn truyền thống", "https://images.unsplash.com/photo-1541544741938-0af808871cc0"),
+            new("Salad ức gà xé phay", "https://images.unsplash.com/photo-1540420773420-3366772f4999")
+        ],
+        ["mon-canh-sup"] =
+        [
+            new("Canh chua cá lóc Nam Bộ", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
+            new("Cháo gà nấm hương nóng hổi", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
+            new("Canh sườn hầm rau củ", "https://images.unsplash.com/photo-1547592166-23ac45744acd")
+        ],
+        ["mon-kho-rim"] =
+        [
+            new("Cá kho tộ nước dừa", "https://images.unsplash.com/photo-1544025162-d76694265947"),
+            new("Thịt kho trứng kiểu miền Nam", "https://images.unsplash.com/photo-1544025162-d76694265947"),
+            new("Tôm rim mặn ngọt đưa cơm", "https://images.unsplash.com/photo-1534939561126-855b8675edd7")
+        ],
+        ["mon-xao-ap-chao"] =
+        [
+            new("Bò lúc lắc sốt tiêu đen", "https://images.unsplash.com/photo-1558030006-450675393462"),
+            new("Mực xào sa tế giòn ngọt", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
+            new("Cá hồi áp chảo sốt bơ tỏi", "https://images.unsplash.com/photo-1467003909585-2f8a72700288"),
+            new("Rau muống xào tỏi xanh mướt", "https://images.unsplash.com/photo-1540420773420-3366772f4999")
+        ],
+        ["mon-chien-ran"] =
+        [
+            new("Nem rán giòn Hà Nội", "https://images.unsplash.com/photo-1541544741938-0af808871cc0"),
+            new("Bánh xèo miền Tây giòn rụm", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8"),
+            new("Cánh gà chiên nước mắm", "https://images.unsplash.com/photo-1562967914-608f82629710")
+        ],
+        ["mon-nuong-bbq"] =
+        [
+            new("Gà nướng mật ong sả ớt", "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b"),
+            new("Bún thịt nướng than hoa", "https://images.unsplash.com/photo-1559847844-5315695dadae"),
+            new("Sườn heo nướng mật ong", "https://images.unsplash.com/photo-1544025162-d76694265947")
+        ],
+        ["mon-hap-luoc"] =
+        [
+            new("Gà ta hấp lá chanh", "https://images.unsplash.com/photo-1587593810167-a84920ea0781"),
+            new("Tôm sú hấp nước dừa", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
+            new("Thịt ba chỉ luộc chấm mắm tỏi", "https://images.unsplash.com/photo-1544025162-d76694265947")
+        ],
+        ["bun-mi-pho"] =
+        [
+            new("Phở bò tái nạm Hà Nội", "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43"),
+            new("Bún bò Huế sa tế đậm đà", "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec"),
+            new("Mì Quảng gà ta chính gốc", "https://images.unsplash.com/photo-1569718212165-3a8278d5f624"),
+            new("Bún thịt nướng chả giò", "https://images.unsplash.com/photo-1559847844-5315695dadae")
+        ],
+        ["com-xoi"] =
+        [
+            new("Cơm tấm sườn bì chả Sài Gòn", "https://images.unsplash.com/photo-1504674900247-0877df9cc836"),
+            new("Xôi gấc đậu xanh dẻo thơm", "https://images.unsplash.com/photo-1509722747041-616f39b57569"),
+            new("Cơm chiên hải sản hoàng kim", "https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6")
+        ],
+        ["mon-cuon-goi"] =
+        [
+            new("Gỏi cuốn tôm thịt chấm tương đen", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb"),
+            new("Gỏi gà bắp cải hành tây", "https://images.unsplash.com/photo-1540420773420-3366772f4999"),
+            new("Gỏi ngó sen tôm thịt chua ngọt", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb")
+        ],
+        ["mon-lau-nong-hoi"] =
+        [
+            new("Lẩu thái hải sản chua cay", "https://images.unsplash.com/photo-1547496502-affa22d38842"),
+            new("Lẩu gà nấm thanh ngọt", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
+            new("Lẩu riêu cua bắp bò", "https://images.unsplash.com/photo-1569718212165-3a8278d5f624")
+        ],
+        ["hai-san-bien"] =
+        [
+            new("Mực xào sa tế cay nồng", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
+            new("Cá hồi áp chảo sốt chanh leo", "https://images.unsplash.com/photo-1467003909585-2f8a72700288"),
+            new("Tôm rim mặn ngọt miền Trung", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
+            new("Chả cá thì là Hà Thành", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb")
+        ],
+        ["mon-bo-dam-vi"] =
+        [
+            new("Bò lúc lắc sốt tiêu đen mềm ngon", "https://images.unsplash.com/photo-1558030006-450675393462"),
+            new("Bò sốt vang bánh mì", "https://images.unsplash.com/photo-1558030006-450675393462"),
+            new("Phở bò tái lăn áp chảo", "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43")
+        ],
+        ["mon-heo-gia-dinh"] =
+        [
+            new("Thịt kho trứng cút kiểu miền Nam", "https://images.unsplash.com/photo-1544025162-d76694265947"),
+            new("Sườn xào chua ngọt chuẩn vị", "https://images.unsplash.com/photo-1544025162-d76694265947"),
+            new("Thịt ba chỉ luộc mắm nêm", "https://images.unsplash.com/photo-1544025162-d76694265947")
+        ],
+        ["mon-ga-vit"] =
+        [
+            new("Gà nướng mật ong sả ớt thơm lừng", "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b"),
+            new("Vịt om sấu chua thanh Hà Nội", "https://images.unsplash.com/photo-1587593810167-a84920ea0781"),
+            new("Gỏi gà bắp cải hoa chuối", "https://images.unsplash.com/photo-1540420773420-3366772f4999")
+        ],
+        ["mon-chay-thanh-tinh"] =
+        [
+            new("Đậu hũ sốt cà chua nấm đông cô", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"),
+            new("Rau muống xào tỏi chay thanh nhẹ", "https://images.unsplash.com/photo-1540420773420-3366772f4999"),
+            new("Nấm kho tiêu chay đưa cơm", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c")
+        ],
+        ["an-vat-duong-pho"] =
+        [
+            new("Bánh xèo giòn rụm đường phố", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8"),
+            new("Bánh mì que pate giòn tan", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb"),
+            new("Nem chua rán giòn rụm", "https://images.unsplash.com/photo-1541544741938-0af808871cc0")
+        ],
+        ["banh-mi-sandwich"] =
+        [
+            new("Bánh mì pate trứng ốp la", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb"),
+            new("Bánh mì xíu mại sốt cà chua", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb"),
+            new("Bánh mì kẹp thịt nướng giòn bì", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb")
+        ],
+        ["banh-ngot-banh-nuong"] =
+        [
+            new("Bánh flan cà phê caramel mềm mịn", "https://images.unsplash.com/photo-1578985545062-69928b1d9587"),
+            new("Bánh bông lan trứng muối chà bông", "https://images.unsplash.com/photo-1578985545062-69928b1d9587"),
+            new("Bánh chuối nướng nước cốt dừa", "https://images.unsplash.com/photo-1578985545062-69928b1d9587")
+        ],
+        ["che-trang-mieng"] =
+        [
+            new("Chè đậu xanh nha đam thanh nhiệt", "https://images.unsplash.com/photo-1551024709-8f23befc6f87"),
+            new("Bánh flan caramen cà phê", "https://images.unsplash.com/photo-1578985545062-69928b1d9587"),
+            new("Chè bưởi nước cốt dừa An Giang", "https://images.unsplash.com/photo-1551024709-8f23befc6f87")
+        ],
+        ["do-uong-sinh-to"] =
+        [
+            new("Sinh tố bơ sữa đặc béo ngậy", "https://images.unsplash.com/photo-1553530666-ba11a7da3888"),
+            new("Sinh tố xoài sữa chua mát lạnh", "https://images.unsplash.com/photo-1553530666-ba11a7da3888"),
+            new("Nước ép dưa hấu bạc hà", "https://images.unsplash.com/photo-1553530666-ba11a7da3888")
+        ],
+        ["tra-ca-phe"] =
+        [
+            new("Cà phê sữa đá pha phin đậm đà", "https://images.unsplash.com/photo-1509042239860-f550ce710b93"),
+            new("Cà phê đen đá nguyên chất", "https://images.unsplash.com/photo-1509042239860-f550ce710b93"),
+            new("Trà sen vàng hạt sen nhãn nhục", "https://images.unsplash.com/photo-1509042239860-f550ce710b93")
+        ],
+        ["nuoc-cham-gia-vi"] =
+        [
+            new("Nước mắm tỏi ớt chua ngọt chuẩn vị", "https://images.unsplash.com/photo-1544025162-d76694265947"),
+            new("Muối ớt xanh chấm hải sản nha trang", "https://images.unsplash.com/photo-1544025162-d76694265947"),
+            new("Sốt me chấm bánh tráng chua cay", "https://images.unsplash.com/photo-1544025162-d76694265947")
+        ],
+        ["am-thuc-mien-bac"] =
+        [
+            new("Phở bò tái chín phố cổ Hà Nội", "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43"),
+            new("Vịt om sấu chua thanh xứ Bắc", "https://images.unsplash.com/photo-1587593810167-a84920ea0781"),
+            new("Chả cá Lã Vọng thì là hành hoa", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb")
+        ],
+        ["am-thuc-mien-nam"] =
+        [
+            new("Cơm tấm sườn bì chả Sài Thành", "https://images.unsplash.com/photo-1504674900247-0877df9cc836"),
+            new("Canh chua cá lóc bông điên điển", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
+            new("Bánh xèo tôm nhảy miền Tây", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8")
+        ]
+    };
 
     private static readonly string[] IngredientNames =
     [
@@ -78,40 +212,6 @@ public static class RecipeSeeder
         "Trình bày món ăn"
     ];
 
-    private static readonly Dictionary<string, string> RecipeDishImages = new()
-    {
-        ["Cá kho tộ nước dừa"] = "https://images.unsplash.com/photo-1544025162-d76694265947",
-        ["Thịt kho trứng kiểu miền Nam"] = "https://images.unsplash.com/photo-1544025162-d76694265947",
-        ["Gà nướng mật ong sả ớt"] = "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b",
-        ["Bò lúc lắc sốt tiêu đen"] = "https://images.unsplash.com/photo-1558030006-450675393462",
-        ["Canh chua cá lóc"] = "https://images.unsplash.com/photo-1547592166-23ac45744acd",
-        ["Bún bò Huế sa tế"] = "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec",
-        ["Phở bò tái nạm"] = "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43",
-        ["Mì Quảng gà ta"] = "https://images.unsplash.com/photo-1569718212165-3a8278d5f624",
-        ["Cơm tấm sườn bì chả"] = "https://images.unsplash.com/photo-1504674900247-0877df9cc836",
-        ["Gỏi cuốn tôm thịt"] = "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb",
-        ["Nem rán giòn Hà Nội"] = "https://images.unsplash.com/photo-1541544741938-0af808871cc0",
-        ["Lẩu thái hải sản"] = "https://images.unsplash.com/photo-1547496502-affa22d38842",
-        ["Tôm rim mặn ngọt"] = "https://images.unsplash.com/photo-1534939561126-855b8675edd7",
-        ["Mực xào sa tế"] = "https://images.unsplash.com/photo-1534939561126-855b8675edd7",
-        ["Đậu hũ sốt cà chua"] = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
-        ["Rau muống xào tỏi"] = "https://images.unsplash.com/photo-1540420773420-3366772f4999",
-        ["Sườn xào chua ngọt"] = "https://images.unsplash.com/photo-1544025162-d76694265947",
-        ["Cháo gà nấm hương"] = "https://images.unsplash.com/photo-1547592166-23ac45744acd",
-        ["Bánh mì pate trứng"] = "https://images.unsplash.com/photo-1626804475297-41608ea09aeb",
-        ["Chè đậu xanh nha đam"] = "https://images.unsplash.com/photo-1551024709-8f23befc6f87",
-        ["Bánh flan cà phê"] = "https://images.unsplash.com/photo-1578985545062-69928b1d9587",
-        ["Sinh tố bơ sữa đặc"] = "https://images.unsplash.com/photo-1553530666-ba11a7da3888",
-        ["Cà phê sữa đá"] = "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
-        ["Gỏi gà bắp cải"] = "https://images.unsplash.com/photo-1540420773420-3366772f4999",
-        ["Vịt om sấu"] = "https://images.unsplash.com/photo-1587593810167-a84920ea0781",
-        ["Bánh xèo miền Tây"] = "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8",
-        ["Bún thịt nướng"] = "https://images.unsplash.com/photo-1559847844-5315695dadae",
-        ["Cá hồi áp chảo"] = "https://images.unsplash.com/photo-1467003909585-2f8a72700288",
-        ["Chả cá thì là"] = "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb",
-        ["Xôi gấc đậu xanh"] = "https://images.unsplash.com/photo-1509722747041-616f39b57569"
-    };
-
     private static readonly string[] StepImageUrls =
     [
         "https://images.unsplash.com/photo-1556910103-1c02745aae4d",
@@ -133,119 +233,24 @@ public static class RecipeSeeder
             return;
         }
 
-        // Lấy danh mục do CategorySeeder tạo và chỉ sinh số công thức còn thiếu đến mốc 120.
-        var categoryIds = await GetCategoryIdsAsync(context);
-        var recipes = CreateRecipes(existingRecipeCount, categoryIds, authorIds);
+        // Lấy danh mục do CategorySeeder tạo và sinh công thức theo ánh xạ ngữ nghĩa chính xác.
+        var categories = await GetCategoriesAsync(context);
+        var recipes = CreateRecipes(existingRecipeCount, categories, authorIds);
 
         await context.Recipes.AddRangeAsync(recipes);
         await context.SaveChangesAsync();
     }
 
-    // private static async Task EnsureRecipeTablesExistAsync(ApplicationDbContext context)
-    // {
-    //     await context.Database.ExecuteSqlRawAsync("""
-    //         CREATE TABLE IF NOT EXISTS "Recipes" (
-    //             "Id" uuid NOT NULL,
-    //             "Title" character varying(200) NOT NULL,
-    //             "Slug" character varying(220) NOT NULL,
-    //             "Description" text NULL,
-    //             "Instructions" text NULL,
-    //             "PrepTimeMinutes" integer NOT NULL,
-    //             "CookTimeMinutes" integer NOT NULL,
-    //             "Servings" integer NOT NULL,
-    //             "Difficulty" integer NOT NULL,
-    //             "Status" integer NOT NULL,
-    //             "CategoryId" uuid NULL,
-    //             "AuthorId" character varying(450) NOT NULL,
-    //             "Nutrition_Calories" integer NULL,
-    //             "Nutrition_Protein" numeric(10,2) NULL,
-    //             "Nutrition_Carbohydrates" numeric(10,2) NULL,
-    //             "Nutrition_Fat" numeric(10,2) NULL,
-    //             "Nutrition_Fiber" numeric(10,2) NULL,
-    //             "Nutrition_Sodium" numeric(10,2) NULL,
-    //             "CreatedAt" timestamp with time zone NOT NULL,
-    //             "UpdatedAt" timestamp with time zone NULL,
-    //             "IsDeleted" boolean NOT NULL,
-    //             "DeletedAt" timestamp with time zone NULL,
-    //             CONSTRAINT "PK_Recipes" PRIMARY KEY ("Id"),
-    //             CONSTRAINT "FK_Recipes_Categories_CategoryId" FOREIGN KEY ("CategoryId")
-    //                 REFERENCES "Categories" ("Id") ON DELETE SET NULL
-    //         );
-
-    //         CREATE TABLE IF NOT EXISTS "RecipeImages" (
-    //             "Id" uuid NOT NULL,
-    //             "RecipeId" uuid NOT NULL,
-    //             "OriginalUrl" text NOT NULL,
-    //             "MediumUrl" text NULL,
-    //             "ThumbnailUrl" text NULL,
-    //             "IsPrimary" boolean NOT NULL,
-    //             "OrderIndex" integer NOT NULL,
-    //             "CreatedAt" timestamp with time zone NOT NULL,
-    //             "UpdatedAt" timestamp with time zone NULL,
-    //             "IsDeleted" boolean NOT NULL,
-    //             "DeletedAt" timestamp with time zone NULL,
-    //             "RowVersion" bigint NOT NULL,
-    //             CONSTRAINT "PK_RecipeImages" PRIMARY KEY ("Id"),
-    //             CONSTRAINT "FK_RecipeImages_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
-    //                 REFERENCES "Recipes" ("Id") ON DELETE CASCADE
-    //         );
-
-    //         CREATE TABLE IF NOT EXISTS "RecipeIngredients" (
-    //             "Id" uuid NOT NULL,
-    //             "RecipeId" uuid NOT NULL,
-    //             "Name" text NOT NULL,
-    //             "Quantity" numeric NULL,
-    //             "Unit" text NULL,
-    //             "Notes" text NULL,
-    //             "OrderIndex" integer NOT NULL,
-    //             "CreatedAt" timestamp with time zone NOT NULL,
-    //             "UpdatedAt" timestamp with time zone NULL,
-    //             "IsDeleted" boolean NOT NULL,
-    //             "DeletedAt" timestamp with time zone NULL,
-    //             "RowVersion" bigint NOT NULL,
-    //             CONSTRAINT "PK_RecipeIngredients" PRIMARY KEY ("Id"),
-    //             CONSTRAINT "FK_RecipeIngredients_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
-    //                 REFERENCES "Recipes" ("Id") ON DELETE CASCADE
-    //         );
-
-    //         CREATE TABLE IF NOT EXISTS "RecipeSteps" (
-    //             "Id" uuid NOT NULL,
-    //             "RecipeId" uuid NOT NULL,
-    //             "StepNumber" integer NOT NULL,
-    //             "Title" text NOT NULL,
-    //             "Description" text NOT NULL,
-    //             "TimerMinutes" integer NULL,
-    //             "ImageUrl" text NULL,
-    //             "CreatedAt" timestamp with time zone NOT NULL,
-    //             "UpdatedAt" timestamp with time zone NULL,
-    //             "IsDeleted" boolean NOT NULL,
-    //             "DeletedAt" timestamp with time zone NULL,
-    //             "RowVersion" bigint NOT NULL,
-    //             CONSTRAINT "PK_RecipeSteps" PRIMARY KEY ("Id"),
-    //             CONSTRAINT "FK_RecipeSteps_Recipes_RecipeId" FOREIGN KEY ("RecipeId")
-    //                 REFERENCES "Recipes" ("Id") ON DELETE CASCADE
-    //         );
-
-    //         CREATE UNIQUE INDEX IF NOT EXISTS "IX_Recipes_Slug" ON "Recipes" ("Slug");
-    //         CREATE INDEX IF NOT EXISTS "IX_Recipes_CategoryId" ON "Recipes" ("CategoryId");
-    //         CREATE INDEX IF NOT EXISTS "IX_RecipeImages_RecipeId" ON "RecipeImages" ("RecipeId");
-    //         CREATE INDEX IF NOT EXISTS "IX_RecipeIngredients_RecipeId" ON "RecipeIngredients" ("RecipeId");
-    //         CREATE INDEX IF NOT EXISTS "IX_RecipeSteps_RecipeId" ON "RecipeSteps" ("RecipeId");
-    //         """);
-    // }
-
-    private static async Task<List<Guid>> GetCategoryIdsAsync(ApplicationDbContext context)
+    private static async Task<List<Category>> GetCategoriesAsync(ApplicationDbContext context)
     {
-        // Đọc trực tiếp CategoryId có sẵn thay vì ghi cứng ID của thành viên khác.
-        var categoryIds = await context.Categories
+        var categories = await context.Categories
             .AsNoTracking()
             .OrderBy(category => category.OrderIndex)
-            .Select(category => category.Id)
             .ToListAsync();
 
-        if (categoryIds.Count > 0)
+        if (categories.Count > 0)
         {
-            return categoryIds;
+            return categories;
         }
 
         // Nếu chưa có danh mục, chạy CategorySeeder trước rồi truy vấn lại.
@@ -254,13 +259,12 @@ public static class RecipeSeeder
         return await context.Categories
             .AsNoTracking()
             .OrderBy(category => category.OrderIndex)
-            .Select(category => category.Id)
             .ToListAsync();
     }
 
     private static List<Recipe> CreateRecipes(
         int existingRecipeCount,
-        IReadOnlyList<Guid> categoryIds,
+        IReadOnlyList<Category> categories,
         IReadOnlyList<string> authorIds)
     {
         // Seed cố định theo MSSV để các lần tạo mới cho kết quả ngẫu nhiên có thể tái lập.
@@ -275,7 +279,20 @@ public static class RecipeSeeder
         {
             var recipeNumber = existingRecipeCount + offset;
             var recipeId = CreateRecipeId(recipeNumber);
-            var baseTitle = faker.PickRandom(RecipeTitles);
+
+            // Phân bổ đều và tuần tự công thức cho 25 danh mục ẩm thực
+            var category = categories[(recipeNumber - 1) % categories.Count];
+
+            // Tra cứu danh sách món ăn ngữ nghĩa chuẩn theo Slug của danh mục
+            var templates = CategoryDishMap.TryGetValue(category.Slug, out var mappedTemplates) && mappedTemplates.Length > 0
+                ? mappedTemplates
+                : DefaultTemplates;
+
+            // Chọn món ăn tương ứng trong danh mục để đảm bảo không bị trùng lặp liên tiếp
+            var templateIndex = ((recipeNumber - 1) / categories.Count) % templates.Length;
+            var selectedDish = templates[templateIndex];
+
+            var baseTitle = selectedDish.Title;
             var title = $"{baseTitle} #{recipeNumber:D3}";
             var slug = $"{SlugHelper.GenerateSlug(title)}-{recipeNumber:D3}";
             var ingredientCount = faker.Random.Int(10, 14);
@@ -293,8 +310,8 @@ public static class RecipeSeeder
                 Servings = faker.Random.Int(2, 8),
                 Difficulty = faker.PickRandom<RecipeDifficulty>(),
                 Status = RecipeStatus.Published,
-                // Phân bổ luân phiên công thức cho các danh mục và tác giả hiện có.
-                CategoryId = categoryIds[(recipeNumber - 1) % categoryIds.Count],
+                // Gán CategoryId theo đúng danh mục ngữ nghĩa của món ăn
+                CategoryId = category.Id,
                 AuthorId = authorIds[(recipeNumber - 1) % authorIds.Count],
                 Nutrition = new RecipeNutrition
                 {
@@ -309,7 +326,7 @@ public static class RecipeSeeder
 
             AddIngredients(recipe, recipeId, recipeNumber, ingredientCount, faker);
             AddSteps(recipe, recipeId, recipeNumber, stepCount, faker);
-            AddImage(recipe, recipeId, recipeNumber, baseTitle);
+            AddImage(recipe, recipeId, recipeNumber, selectedDish.ImageUrl);
 
             recipes.Add(recipe);
         }
@@ -397,12 +414,8 @@ public static class RecipeSeeder
         }
     }
 
-    private static void AddImage(Recipe recipe, Guid recipeId, int recipeNumber, string baseTitle)
+    private static void AddImage(Recipe recipe, Guid recipeId, int recipeNumber, string baseImageUrl)
     {
-        var baseImageUrl = RecipeDishImages.TryGetValue(baseTitle, out var url)
-            ? url
-            : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
-
         // Tạo một ảnh chính từ kho ảnh Unsplash chuẩn xác theo từng món ăn
         recipe.Images.Add(new RecipeImage
         {
