@@ -85,8 +85,8 @@ public sealed class CreateCategoryCommandTests
             return Task.CompletedTask;
         }
         public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Categories.FirstOrDefault(c => c.Id == id));
-        public Task<Category?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult<Category?>(null);
-        public Task<List<Category>> GetDeletedCategoriesAsync(CancellationToken cancellationToken) => Task.FromResult<List<Category>>([]);
+
+
         public Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) => Task.FromResult(Categories.Count);
         public Task<Category?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken) =>

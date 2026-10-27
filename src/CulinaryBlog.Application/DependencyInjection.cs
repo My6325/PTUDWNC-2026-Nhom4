@@ -21,6 +21,7 @@ public static class DependencyInjection
         {
             configuration.RegisterServicesFromAssembly(assembly);
             configuration.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            configuration.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
 
         // 2. Đăng ký FluentValidation

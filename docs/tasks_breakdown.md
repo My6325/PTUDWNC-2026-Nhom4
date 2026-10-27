@@ -195,8 +195,8 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
   - `GET /health`: Báo cáo chi tiết dạng JSON về tài nguyên hệ thống.
 
 #### Bước 7: Hiện thực FR-OBS-002 (Structured Logging với Serilog & CorrelationId)
-- [ ] **Cài đặt Middleware Truy Vết:** Tạo `CorrelationIdMiddleware.cs` trong `CulinaryBlog.API/Middlewares/`: Đọc mã `X-Correlation-ID` từ HTTP Header gửi lên hoặc tự sinh GUID mới, gắn vào Response Header và đẩy vào `LogContext.PushProperty("CorrelationId", correlationId)`.
-- [ ] **Cảnh Báo Request Chạy Chậm:** Viết MediatR Pipeline Behavior `LoggingBehavior.cs` đo thời gian bằng `Stopwatch`: Nếu thời gian xử lý request vượt quá **500ms**, tự động ghi log cảnh báo mức `Log.Warning("Long Running Request: {RequestName} ({ElapsedMs} milliseconds) with CorrelationId: {CorrelationId}", ...)`.
+- [x] **Cài đặt Middleware Truy Vết:** Tạo `CorrelationIdMiddleware.cs` trong `CulinaryBlog.API/Middlewares/`: Đọc mã `X-Correlation-ID` từ HTTP Header gửi lên hoặc tự sinh GUID mới, gắn vào Response Header và đẩy vào `LogContext.PushProperty("CorrelationId", correlationId)`.
+- [x] **Cảnh Báo Request Chạy Chậm:** Viết MediatR Pipeline Behavior `LoggingBehavior.cs` đo thời gian bằng `Stopwatch`: Nếu thời gian xử lý request vượt quá **500ms**, tự động ghi log cảnh báo mức `Log.Warning("Long Running Request: {RequestName} ({ElapsedMs} milliseconds) with CorrelationId: {CorrelationId}", ...)`.
 
 #### Bước 8: Hiện thực FR-OBS-003 (Distributed Tracing & Cấu hình Scalar UI)
 - [ ] **Cấu hình OpenTelemetry Tracing:** Đăng ký `.AddOpenTelemetry().WithTracing(builder => builder.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddNpgsql())` trong `Program.cs` để giám sát vết phân tán từ request qua EF Core xuống CSDL Supabase.
