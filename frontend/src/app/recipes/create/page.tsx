@@ -283,20 +283,23 @@ export default function CreateRecipePage() {
         }
       }
 
+      let publishWarning = "";
       // 3. Nếu người dùng chọn Xuất bản ngay (FR-RCP-007)
       if (shouldPublish) {
         try {
           await recipeService.publishRecipe(created.id);
         } catch (pubErr) {
           console.warn("Lỗi khi xuất bản công thức:", pubErr);
+          publishWarning = ` (Lưu ý: Công thức tạm thời lưu ở dạng bản nháp vì chưa đủ điều kiện xuất bản: ${extractApiErrorMessage(pubErr, "Cần có ảnh đại diện, nguyên liệu và các bước nấu")})`;
         }
       }
 
       setSuccessMessage(
-        (shouldPublish
+        (shouldPublish && !publishWarning
           ? "Đã xuất bản công thức món ăn thành công!"
           : "Đã lưu bản nháp công thức thành công vào sổ tay ẩm thực của bạn!") +
-        (imageWarning ? imageWarning : " Đang chuyển hướng...")
+        (imageWarning ? imageWarning : "") +
+        (publishWarning ? publishWarning : " Đang chuyển hướng...")
       );
 
       setTimeout(() => {

@@ -316,20 +316,23 @@ export default function EditRecipePage() {
         }
       }
 
+      let publishWarning = "";
       // 3. Nếu người dùng chọn Xuất bản ngay
       if (shouldPublish) {
         try {
           await recipeService.publishRecipe(recipe.id);
         } catch (pubErr) {
           console.warn("Lỗi khi xuất bản công thức:", pubErr);
+          publishWarning = ` (Lưu ý: Chưa thể xuất bản: ${extractApiErrorMessage(pubErr, "Cần có ảnh đại diện chính, nguyên liệu và các bước")})`;
         }
       }
 
       setSuccessMessage(
-        (shouldPublish
+        (shouldPublish && !publishWarning
           ? "Đã cập nhật và xuất bản công thức thành công!"
           : "Đã cập nhật công thức thành công!") +
-        (imageWarning ? imageWarning : " Đang chuyển hướng...")
+        (imageWarning ? imageWarning : "") +
+        (publishWarning ? publishWarning : " Đang chuyển hướng...")
       );
       setRowVersion(updated.rowVersion);
 
