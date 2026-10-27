@@ -286,16 +286,37 @@ export default function EditRecipePage() {
       // 1. Gửi lệnh cập nhật công thức (FR-RCP-004)
       const updated = await recipeService.update(recipe.id, requestPayload);
 
-      // 2. Nếu có chọn tệp hình ảnh mới, tải lên Supabase Storage
-      if (selectedFile) {
+      // 2. Nếu có chọn tệp hình ảnh mới hoặc dán URL mới, tải lên Supabase Storage
+      let fileToUpload = selectedFile;
+      const initialPrimaryImg =
+        recipe.images?.find((img) => img.isPrimary)?.originalUrl ||
+        recipe.images?.[0]?.originalUrl ||
+        "";
+      if (!fileToUpload && imageUrl.trim() && imageUrl.trim() !== initialPrimaryImg) {
         try {
-          await recipeService.uploadRecipeImage(recipe.id, selectedFile);
-        } catch (uploadErr) {
-          console.warn("Không thể tải ảnh đại diện mới:", uploadErr);
+          const res = await fetch(imageUrl.trim());
+          if (res.ok) {
+            const blob = await res.blob();
+            const mimeType = blob.type || "image/jpeg";
+            const ext = mimeType.includes("png") ? ".png" : mimeType.includes("webp") ? ".webp" : ".jpg";
+            fileToUpload = new File([blob], `cover${ext}`, { type: mimeType });
+          }
+        } catch (fetchErr) {
+          console.warn("Không thể tải ảnh từ URL:", fetchErr);
         }
       }
 
-      setSuccessMessage("Đã cập nhật công thức thành công! Đang chuyển hướng...");
+      let imageWarning = "";
+      if (fileToUpload) {
+        try {
+          await recipeService.uploadRecipeImage(recipe.id, fileToUpload);
+        } catch (uploadErr) {
+          console.warn("Không thể tải ảnh đại diện mới:", uploadErr);
+          imageWarning = ` (Lưu ý: Không thể tải ảnh lên Supabase - ${extractApiErrorMessage(uploadErr, "Lỗi kết nối Storage")})`;
+        }
+      }
+
+      setSuccessMessage(`Đã cập nhật công thức thành công!${imageWarning ? imageWarning : " Đang chuyển hướng..."}`);
       setRowVersion(updated.rowVersion);
 
       setTimeout(() => {

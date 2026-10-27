@@ -257,12 +257,29 @@ export default function CreateRecipePage() {
       // 1. Gọi API tạo bản nháp (FR-RCP-003)
       const created = await recipeService.createDraft(payload);
 
-      // 2. Nếu có tệp ảnh tải lên, gửi lên Supabase Storage (FR-FILE-001)
-      if (selectedFile) {
+      // 2. Nếu có tệp ảnh tải lên hoặc URL ảnh, gửi lên Supabase Storage (FR-FILE-001)
+      let fileToUpload = selectedFile;
+      if (!fileToUpload && imageUrl.trim()) {
         try {
-          await recipeService.uploadRecipeImage(created.id, selectedFile);
+          const res = await fetch(imageUrl.trim());
+          if (res.ok) {
+            const blob = await res.blob();
+            const mimeType = blob.type || "image/jpeg";
+            const ext = mimeType.includes("png") ? ".png" : mimeType.includes("webp") ? ".webp" : ".jpg";
+            fileToUpload = new File([blob], `cover${ext}`, { type: mimeType });
+          }
+        } catch (fetchErr) {
+          console.warn("Không thể tải ảnh từ URL:", fetchErr);
+        }
+      }
+
+      let imageWarning = "";
+      if (fileToUpload) {
+        try {
+          await recipeService.uploadRecipeImage(created.id, fileToUpload);
         } catch (uploadErr) {
           console.warn("Không thể tải ảnh lên Supabase:", uploadErr);
+          imageWarning = ` (Lưu ý: Không thể tải ảnh lên Supabase - ${extractApiErrorMessage(uploadErr, "Lỗi kết nối Storage")})`;
         }
       }
 
@@ -276,9 +293,10 @@ export default function CreateRecipePage() {
       }
 
       setSuccessMessage(
-        shouldPublish
-          ? "Đã xuất bản công thức món ăn thành công! Đang chuyển hướng..."
-          : "Đã lưu bản nháp công thức thành công vào sổ tay ẩm thực của bạn!"
+        (shouldPublish
+          ? "Đã xuất bản công thức món ăn thành công!"
+          : "Đã lưu bản nháp công thức thành công vào sổ tay ẩm thực của bạn!") +
+        (imageWarning ? imageWarning : " Đang chuyển hướng...")
       );
 
       setTimeout(() => {
