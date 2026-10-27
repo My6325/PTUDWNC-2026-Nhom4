@@ -41,3 +41,25 @@ export interface UpdateProfileRequest {
   avatarUrl?: string | null;
   bio?: string | null;
 }
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetToken?: string | null;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}

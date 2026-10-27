@@ -21,6 +21,10 @@ import {
   Link as LinkIcon,
   Sparkles,
   Camera,
+  Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { authService } from "@/services/authService";
 import { useAuthStore } from "@/stores/auth-store";
@@ -64,6 +68,35 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
+// Zod schema thẩm định form đổi mật khẩu
+const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Vui lòng nhập mật khẩu hiện tại."),
+    newPassword: z
+      .string()
+      .min(1, "Vui lòng nhập mật khẩu mới.")
+      .min(8, "Mật khẩu mới phải có tối thiểu 8 ký tự.")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+        "Mật khẩu mới phải bao gồm ít nhất một chữ hoa, một chữ thường và một chữ số."
+      ),
+    confirmNewPassword: z
+      .string()
+      .min(1, "Vui lòng xác nhận mật khẩu mới."),
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: "Mật khẩu mới không được trùng với mật khẩu hiện tại.",
+    path: ["newPassword"],
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Xác nhận mật khẩu mới không trùng khớp.",
+    path: ["confirmNewPassword"],
+  });
+
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -180,6 +213,59 @@ export default function ProfilePage() {
           extractApiErrorMessage(
             err,
             "Cập nhật hồ sơ không thành công. Vui lòng kiểm tra lại thông tin."
+          )
+        );
+      }
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
+
+  // State và Form quản lý Đổi mật khẩu
+  const [passwordSuccess, setPasswordSuccess] = useState<boolean>(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const {
+    register: registerPassword,
+    handleSubmit: handleSubmitPassword,
+    reset: resetPasswordForm,
+    formState: { errors: passwordErrors, isSubmitting: isSubmittingPassword },
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    },
+  });
+
+  const onPasswordSubmit = async (data: ChangePasswordFormData) => {
+    setPasswordSuccess(false);
+    setPasswordError(null);
+    try {
+      await authService.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+        confirmNewPassword: data.confirmNewPassword,
+      });
+
+      setPasswordSuccess(true);
+      resetPasswordForm();
+      setTimeout(() => setPasswordSuccess(false), 5000);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        await authService.logout();
+        useAuthStore.getState().logout();
+        router.push("/login?redirect=/profile");
+      } else {
+        setPasswordError(
+          extractApiErrorMessage(
+            err,
+            "Đổi mật khẩu không thành công. Vui lòng kiểm tra lại mật khẩu hiện tại."
           )
         );
       }
@@ -374,141 +460,341 @@ export default function ProfilePage() {
                   : "Bạn là Thành viên độc giả (FR-AUTH, có thể khám phá công thức và bình luận)."}
               </p>
             </div>
+            {/* Thanh điều hướng chức năng */}
+            <div className="rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 p-2 space-y-1 shadow-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("profile")}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left",
+                  activeTab === "profile"
+                    ? "bg-brand-500 text-white shadow-xs shadow-brand-500/20"
+                    : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/60"
+                )}
+              >
+                <User className="w-4 h-4 shrink-0" />
+                <span>Hồ sơ cá nhân</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("password")}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left",
+                  activeTab === "password"
+                    ? "bg-brand-500 text-white shadow-xs shadow-brand-500/20"
+                    : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/60"
+                )}
+              >
+                <Lock className="w-4 h-4 shrink-0" />
+                <span>Bảo mật & Đổi mật khẩu</span>
+              </button>
+            </div>
           </div>
 
-          {/* CỘT PHẢI: FORM CHỈNH SỬA HỒ SƠ */}
+          {/* CỘT PHẢI: FORM CHỈNH SỬA HỒ SƠ HOẶC ĐỔI MẬT KHẨU */}
           <div className="md:col-span-2">
             <div className="rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm p-6 sm:p-8">
-              <div className="mb-6 pb-4 border-b border-stone-100 dark:border-stone-800">
-                <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
-                  Thông tin cá nhân
-                </h1>
-                <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">
-                  Quản lý thông tin hiển thị của bạn trên các bài viết và bình luận
-                </p>
+              {/* Tab Header Switcher */}
+              <div className="flex items-center gap-3 border-b border-stone-200 dark:border-stone-800 mb-6 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("profile")}
+                  className={cn(
+                    "flex items-center gap-2 pb-3 px-3 text-sm font-bold border-b-2 transition-all -mb-[10px]",
+                    activeTab === "profile"
+                      ? "border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
+                      : "border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200"
+                  )}
+                >
+                  <User className="w-4 h-4" />
+                  Hồ sơ cá nhân
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("password")}
+                  className={cn(
+                    "flex items-center gap-2 pb-3 px-3 text-sm font-bold border-b-2 transition-all -mb-[10px]",
+                    activeTab === "password"
+                      ? "border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400"
+                      : "border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200"
+                  )}
+                >
+                  <Lock className="w-4 h-4" />
+                  Bảo mật & Đổi mật khẩu
+                </button>
               </div>
 
-              {/* Thông báo cập nhật thành công */}
-              {saveSuccess && (
-                <Alert
-                  variant="success"
-                  title="Cập nhật thành công!"
-                  className="mb-6"
-                  dismissible
-                  onDismiss={() => setSaveSuccess(false)}
-                >
-                  Thông tin hồ sơ cá nhân của bạn đã được lưu lại thành công vào hệ thống.
-                </Alert>
-              )}
+              {activeTab === "profile" ? (
+                <div>
+                  <div className="mb-6 pb-4 border-b border-stone-100 dark:border-stone-800">
+                    <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
+                      Thông tin cá nhân
+                    </h1>
+                    <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">
+                      Quản lý thông tin hiển thị của bạn trên các bài viết và bình luận
+                    </p>
+                  </div>
 
-              {/* Thông báo lỗi cập nhật */}
-              {saveError && (
-                <Alert
-                  variant="error"
-                  title="Không thể lưu thay đổi"
-                  className="mb-6"
-                  dismissible
-                  onDismiss={() => setSaveError(null)}
-                >
-                  {saveError}
-                </Alert>
-              )}
+                  {/* Thông báo cập nhật thành công */}
+                  {saveSuccess && (
+                    <Alert
+                      variant="success"
+                      title="Cập nhật thành công!"
+                      className="mb-6"
+                      dismissible
+                      onDismiss={() => setSaveSuccess(false)}
+                    >
+                      Thông tin hồ sơ cá nhân của bạn đã được lưu lại thành công vào hệ thống.
+                    </Alert>
+                  )}
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-                {/* 1. Email (Read-only / Không cho sửa) */}
-                <div className="space-y-1">
-                  <Input
-                    label="Địa chỉ Email (Cố định)"
-                    value={user?.email || ""}
-                    disabled
-                    readOnly
-                    leftIcon={<Mail className="w-4 h-4 text-stone-400" />}
-                    className="bg-stone-100/70 dark:bg-stone-800/70 text-stone-500 cursor-not-allowed"
-                  />
-                  <span className="text-[11px] text-stone-400 block px-1">
-                    Email đăng nhập được bảo mật và không thể tự thay đổi qua trang này.
-                  </span>
-                </div>
+                  {/* Thông báo lỗi cập nhật */}
+                  {saveError && (
+                    <Alert
+                      variant="error"
+                      title="Không thể lưu thay đổi"
+                      className="mb-6"
+                      dismissible
+                      onDismiss={() => setSaveError(null)}
+                    >
+                      {saveError}
+                    </Alert>
+                  )}
 
-                {/* 2. UserName (Read-only / Không cho sửa) */}
-                <div className="space-y-1">
-                  <Input
-                    label="Tên tài khoản / Username (Cố định)"
-                    value={user?.userName || ""}
-                    disabled
-                    readOnly
-                    leftIcon={<AtSign className="w-4 h-4 text-stone-400" />}
-                    className="bg-stone-100/70 dark:bg-stone-800/70 text-stone-500 cursor-not-allowed"
-                  />
-                  <span className="text-[11px] text-stone-400 block px-1">
-                    Tên người dùng là mã định danh duy nhất của tài khoản.
-                  </span>
-                </div>
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+                    {/* 1. Email (Read-only / Không cho sửa) */}
+                    <div className="space-y-1">
+                      <Input
+                        label="Địa chỉ Email (Cố định)"
+                        value={user?.email || ""}
+                        disabled
+                        readOnly
+                        leftIcon={<Mail className="w-4 h-4 text-stone-400" />}
+                        className="bg-stone-100/70 dark:bg-stone-800/70 text-stone-500 cursor-not-allowed"
+                      />
+                      <span className="text-[11px] text-stone-400 block px-1">
+                        Email đăng nhập được bảo mật và không thể tự thay đổi qua trang này.
+                      </span>
+                    </div>
 
-                {/* 3. Tên hiển thị (DisplayName - Cho phép sửa) */}
-                <Input
-                  label="Tên hiển thị công khai *"
-                  placeholder="Ví dụ: Bếp trưởng Minh Hưng"
-                  leftIcon={<User className="w-4 h-4 text-stone-400" />}
-                  error={errors.displayName?.message}
-                  {...register("displayName")}
-                />
+                    {/* 2. UserName (Read-only / Không cho sửa) */}
+                    <div className="space-y-1">
+                      <Input
+                        label="Tên tài khoản / Username (Cố định)"
+                        value={user?.userName || ""}
+                        disabled
+                        readOnly
+                        leftIcon={<AtSign className="w-4 h-4 text-stone-400" />}
+                        className="bg-stone-100/70 dark:bg-stone-800/70 text-stone-500 cursor-not-allowed"
+                      />
+                      <span className="text-[11px] text-stone-400 block px-1">
+                        Tên người dùng là mã định danh duy nhất của tài khoản.
+                      </span>
+                    </div>
 
-                {/* 4. Avatar URL (Cho phép sửa) */}
-                <div className="space-y-1">
-                  <Input
-                    label="Đường dẫn ảnh đại diện (Avatar URL)"
-                    placeholder="https://example.com/avatar.jpg"
-                    leftIcon={<LinkIcon className="w-4 h-4 text-stone-400" />}
-                    error={errors.avatarUrl?.message}
-                    {...register("avatarUrl")}
-                  />
-                  <span className="text-[11px] text-stone-400 block px-1">
-                    Nhập đường dẫn URL ảnh công khai (để trống nếu muốn sử dụng ảnh mặc định).
-                  </span>
-                </div>
-
-                {/* 5. Giới thiệu / Bio (Cho phép sửa) */}
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300">
-                    Tiểu sử ngắn gọn (Bio)
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      rows={4}
-                      placeholder="Chia sẻ đôi nét về niềm đam mê ẩm thực của bạn..."
-                      maxLength={500}
-                      className={cn(
-                        "w-full px-4 py-3 text-sm rounded-xl border bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all",
-                        errors.bio && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                      )}
-                      {...register("bio")}
+                    {/* 3. Tên hiển thị (DisplayName - Cho phép sửa) */}
+                    <Input
+                      label="Tên hiển thị công khai *"
+                      placeholder="Ví dụ: Bếp trưởng Minh Hưng"
+                      leftIcon={<User className="w-4 h-4 text-stone-400" />}
+                      error={errors.displayName?.message}
+                      {...register("displayName")}
                     />
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-stone-400 px-1">
-                    {errors.bio?.message ? (
-                      <span className="text-red-500">{errors.bio.message}</span>
-                    ) : (
-                      <span>Tối đa 500 ký tự</span>
-                    )}
-                    <span>{watchedBio.length}/500</span>
-                  </div>
-                </div>
 
-                {/* Nút Lưu thay đổi */}
-                <div className="pt-4 flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="md"
-                    isLoading={isSubmitting}
-                    disabled={isSubmitting || !isDirty}
-                    leftIcon={<Save className="w-4 h-4" />}
-                  >
-                    {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-                  </Button>
+                    {/* 4. Avatar URL (Cho phép sửa) */}
+                    <div className="space-y-1">
+                      <Input
+                        label="Đường dẫn ảnh đại diện (Avatar URL)"
+                        placeholder="https://example.com/avatar.jpg"
+                        leftIcon={<LinkIcon className="w-4 h-4 text-stone-400" />}
+                        error={errors.avatarUrl?.message}
+                        {...register("avatarUrl")}
+                      />
+                      <span className="text-[11px] text-stone-400 block px-1">
+                        Nhập đường dẫn URL ảnh công khai (để trống nếu muốn sử dụng ảnh mặc định).
+                      </span>
+                    </div>
+
+                    {/* 5. Giới thiệu / Bio (Cho phép sửa) */}
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300">
+                        Tiểu sử ngắn gọn (Bio)
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          rows={4}
+                          placeholder="Chia sẻ đôi nét về niềm đam mê ẩm thực của bạn..."
+                          maxLength={500}
+                          className={cn(
+                            "w-full px-4 py-3 text-sm rounded-xl border bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all",
+                            errors.bio && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                          )}
+                          {...register("bio")}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-stone-400 px-1">
+                        {errors.bio?.message ? (
+                          <span className="text-red-500">{errors.bio.message}</span>
+                        ) : (
+                          <span>Tối đa 500 ký tự</span>
+                        )}
+                        <span>{watchedBio.length}/500</span>
+                      </div>
+                    </div>
+
+                    {/* Nút Lưu thay đổi */}
+                    <div className="pt-4 flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="md"
+                        isLoading={isSubmitting}
+                        disabled={isSubmitting || !isDirty}
+                        leftIcon={<Save className="w-4 h-4" />}
+                      >
+                        {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                      </Button>
+                    </div>
+                  </form>
                 </div>
-              </form>
+              ) : (
+                /* TAB ĐỔI MẬT KHẨU */
+                <div>
+                  <div className="mb-6 pb-4 border-b border-stone-100 dark:border-stone-800">
+                    <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
+                      Đổi mật khẩu tài khoản
+                    </h1>
+                    <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">
+                      Cập nhật mật khẩu định kỳ giúp bảo vệ tài khoản Culinary Blog của bạn an toàn hơn
+                    </p>
+                  </div>
+
+                  {/* Thông báo đổi mật khẩu thành công */}
+                  {passwordSuccess && (
+                    <Alert
+                      variant="success"
+                      title="Đổi mật khẩu thành công!"
+                      className="mb-6"
+                      dismissible
+                      onDismiss={() => setPasswordSuccess(false)}
+                    >
+                      Mật khẩu của bạn đã được cập nhật thành công. Hãy sử dụng mật khẩu mới trong các lần đăng nhập tiếp theo.
+                    </Alert>
+                  )}
+
+                  {/* Thông báo lỗi đổi mật khẩu */}
+                  {passwordError && (
+                    <Alert
+                      variant="error"
+                      title="Không thể đổi mật khẩu"
+                      className="mb-6"
+                      dismissible
+                      onDismiss={() => setPasswordError(null)}
+                    >
+                      {passwordError}
+                    </Alert>
+                  )}
+
+                  <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className="space-y-5" noValidate>
+                    {/* Mật khẩu hiện tại */}
+                    <div className="space-y-1.5">
+                      <Input
+                        label="Mật khẩu hiện tại *"
+                        type={showCurrentPassword ? "text" : "password"}
+                        placeholder="Nhập mật khẩu bạn đang sử dụng"
+                        autoComplete="current-password"
+                        leftIcon={<Lock className="w-4 h-4 text-stone-400" />}
+                        rightIcon={
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors focus:outline-none"
+                            tabIndex={-1}
+                            aria-label={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                          >
+                            {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        }
+                        error={passwordErrors.currentPassword?.message}
+                        {...registerPassword("currentPassword")}
+                      />
+                    </div>
+
+                    {/* Mật khẩu mới */}
+                    <div className="space-y-1.5">
+                      <Input
+                        label="Mật khẩu mới *"
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="Tối thiểu 8 ký tự (hoa, thường, số)"
+                        autoComplete="new-password"
+                        leftIcon={<KeyRound className="w-4 h-4 text-stone-400" />}
+                        rightIcon={
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors focus:outline-none"
+                            tabIndex={-1}
+                            aria-label={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                          >
+                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        }
+                        error={passwordErrors.newPassword?.message}
+                        {...registerPassword("newPassword")}
+                      />
+                    </div>
+
+                    {/* Xác nhận mật khẩu mới */}
+                    <div className="space-y-1.5">
+                      <Input
+                        label="Xác nhận mật khẩu mới *"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Nhập lại mật khẩu mới"
+                        autoComplete="new-password"
+                        leftIcon={<ShieldCheck className="w-4 h-4 text-stone-400" />}
+                        rightIcon={
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors focus:outline-none"
+                            tabIndex={-1}
+                            aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        }
+                        error={passwordErrors.confirmNewPassword?.message}
+                        {...registerPassword("confirmNewPassword")}
+                      />
+                    </div>
+
+                    {/* Tiêu chí an toàn mật khẩu */}
+                    <div className="p-4 bg-stone-50 dark:bg-stone-800/50 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 text-xs text-stone-600 dark:text-stone-400 space-y-1.5">
+                      <p className="font-bold text-stone-700 dark:text-stone-300">Quy tắc bảo mật mật khẩu:</p>
+                      <ul className="list-disc list-inside space-y-1 pl-1">
+                        <li>Độ dài tối thiểu 8 ký tự.</li>
+                        <li>Bao gồm ít nhất một chữ in hoa (A-Z) và một chữ thường (a-z).</li>
+                        <li>Bao gồm ít nhất một chữ số (0-9).</li>
+                        <li>Không được trùng với mật khẩu hiện tại.</li>
+                      </ul>
+                    </div>
+
+                    {/* Nút Đổi mật khẩu */}
+                    <div className="pt-4 flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="md"
+                        isLoading={isSubmittingPassword}
+                        disabled={isSubmittingPassword}
+                        leftIcon={<Lock className="w-4 h-4" />}
+                      >
+                        {isSubmittingPassword ? "Đang xử lý..." : "Cập nhật mật khẩu"}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>

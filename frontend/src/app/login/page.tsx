@@ -138,6 +138,16 @@ function LoginFormContent() {
           />
         </div>
 
+        {/* Quên mật khẩu */}
+        <div className="flex items-center justify-end -mt-1">
+          <Link
+            href="/forgot-password"
+            className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:underline transition-colors"
+          >
+            Quên mật khẩu?
+          </Link>
+        </div>
+
         {/* Nút đăng nhập */}
         <Button
           type="submit"

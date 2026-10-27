@@ -178,6 +178,49 @@ public static class AuthEndpoints
         .ProducesProblem(401)
         .ProducesProblem(422);
 
+        group.MapPost("/change-password", async (CulinaryBlog.Application.Features.Auth.ChangePassword.ChangePasswordRequest request, ISender sender, CancellationToken cancellationToken) =>
+        {
+            var command = new CulinaryBlog.Application.Features.Auth.ChangePassword.ChangePasswordCommand(request);
+            await sender.Send(command, cancellationToken);
+            return Results.Ok(new { message = "Đổi mật khẩu thành công." });
+        })
+        .WithName("ChangePassword")
+        .WithSummary("Đổi mật khẩu cho người dùng hiện tại")
+        .RequireAuthorization()
+        .Produces(200)
+        .ProducesProblem(400)
+        .ProducesProblem(401)
+        .ProducesProblem(422);
+
+        group.MapPost("/forgot-password", async (CulinaryBlog.Application.Features.Auth.ForgotPassword.ForgotPasswordRequest request, ISender sender, CancellationToken cancellationToken) =>
+        {
+            var command = new CulinaryBlog.Application.Features.Auth.ForgotPassword.ForgotPasswordCommand(request);
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Ok(response);
+        })
+        .WithName("ForgotPassword")
+        .WithSummary("Yêu cầu gửi liên kết đặt lại mật khẩu qua email")
+        .AllowAnonymous()
+        .RequireRateLimiting("auth-sensitive")
+        .Produces<CulinaryBlog.Application.Features.Auth.ForgotPassword.ForgotPasswordResponseDto>(200)
+        .ProducesProblem(422)
+        .ProducesProblem(429);
+
+        group.MapPost("/reset-password", async (CulinaryBlog.Application.Features.Auth.ResetPassword.ResetPasswordRequest request, ISender sender, CancellationToken cancellationToken) =>
+        {
+            var command = new CulinaryBlog.Application.Features.Auth.ResetPassword.ResetPasswordCommand(request);
+            await sender.Send(command, cancellationToken);
+            return Results.Ok(new { message = "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới." });
+        })
+        .WithName("ResetPassword")
+        .WithSummary("Đặt lại mật khẩu bằng mã token")
+        .AllowAnonymous()
+        .RequireRateLimiting("auth-sensitive")
+        .Produces(200)
+        .ProducesProblem(400)
+        .ProducesProblem(422)
+        .ProducesProblem(429);
+
         return app;
     }
 }
