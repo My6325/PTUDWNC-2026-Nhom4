@@ -708,7 +708,7 @@ export default function RecipeDetailPage() {
                         {/* Đồng hồ hẹn giờ đếm ngược cho bước nếu có TimerMinutes */}
                         {step.timerMinutes && step.timerMinutes > 0 ? (
                           <StepTimer timerMinutes={step.timerMinutes} stepNumber={step.stepNumber} />
-                        )}
+                        ) : null}
 
                         {/* Ảnh minh họa của bước nếu có */}
                         {step.imageUrl && (
