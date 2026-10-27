@@ -25,6 +25,9 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  ChefHat,
+  Send,
+  Clock,
 } from "lucide-react";
 import { authService } from "@/services/authService";
 import { useAuthStore } from "@/stores/auth-store";
@@ -107,6 +110,13 @@ export default function ProfilePage() {
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Trạng thái yêu cầu nâng cấp lên Đầu bếp (Chính sách 1 Mục V)
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [requestNote, setRequestNote] = useState("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [requestSuccessMessage, setRequestSuccessMessage] = useState<string | null>(null);
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -124,6 +134,36 @@ export default function ProfilePage() {
 
   const watchedAvatarUrl = watch("avatarUrl");
   const watchedBio = watch("bio") || "";
+
+  const isReaderUser = Boolean(
+    user &&
+    !user.roles.some((r) => r.toLowerCase() === "admin" || r.toLowerCase() === "author")
+  );
+
+  const handleSendAuthorRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingRequest(true);
+    setRequestErrorMessage(null);
+    setRequestSuccessMessage(null);
+    try {
+      const res = await authService.requestAuthorUpgrade(requestNote);
+      setRequestSuccessMessage(res.message);
+      setIsRequestModalOpen(false);
+      if (user) {
+        setUser({
+          ...user,
+          authorRequestStatus: "Pending",
+          authorRequestNote: requestNote,
+        });
+      }
+    } catch (err: unknown) {
+      setRequestErrorMessage(
+        extractApiErrorMessage(err, "Không thể gửi yêu cầu nâng cấp. Vui lòng thử lại sau.")
+      );
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
 
   // 1. Kiểm tra phiên đăng nhập và tải thông tin người dùng từ GET /auth/me
   useEffect(() => {
@@ -408,19 +448,33 @@ export default function ProfilePage() {
               {/* Danh sách vai trò (Roles) */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
                 {user?.roles && user.roles.length > 0 ? (
-                  user.roles.map((role) => (
-                    <Badge
-                      key={role}
-                      variant={role.toLowerCase() === "admin" ? "danger" : role.toLowerCase() === "author" ? "brand" : "default"}
-                      size="sm"
-                    >
-                      <ShieldCheck className="w-3 h-3 mr-1" />
-                      {role}
-                    </Badge>
-                  ))
+                  user.roles.map((role) => {
+                    const rLower = role.toLowerCase();
+                    const isAdm = rLower === "admin";
+                    const isAuth = rLower === "author";
+                    const isUsr = rLower === "user";
+                    const roleLabel = isAdm ? "Quản trị viên" : isAuth ? "Đầu bếp" : isUsr ? "Độc giả" : role;
+                    return (
+                      <Badge
+                        key={role}
+                        variant={isAdm ? "danger" : isAuth ? "brand" : "default"}
+                        size="sm"
+                      >
+                        {isAdm ? (
+                          <ShieldCheck className="w-3 h-3 mr-1" />
+                        ) : isAuth ? (
+                          <ChefHat className="w-3 h-3 mr-1" />
+                        ) : (
+                          <User className="w-3 h-3 mr-1" />
+                        )}
+                        {roleLabel}
+                      </Badge>
+                    );
+                  })
                 ) : (
                   <Badge variant="default" size="sm">
-                    Thành viên
+                    <User className="w-3 h-3 mr-1" />
+                    Độc giả
                   </Badge>
                 )}
               </div>
@@ -460,6 +514,83 @@ export default function ProfilePage() {
                   : "Bạn là Thành viên độc giả (FR-AUTH, có thể khám phá công thức và bình luận)."}
               </p>
             </div>
+
+            {/* THẺ ĐĂNG KÝ TRỞ THÀNH ĐẦU BẾP (CHÍNH SÁCH 1 MỤC V) */}
+            {isReaderUser && (
+              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-stone-900 dark:to-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 p-5 space-y-3 shadow-xs">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
+                  <ChefHat className="w-4 h-4" />
+                  <span>Trở thành Tác giả ẩm thực</span>
+                </div>
+                <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+                  Bạn có công thức nấu ăn độc đáo muốn chia sẻ cùng cộng đồng Bếp Việt? Hãy gửi yêu cầu để được cấp quyền Đầu bếp!
+                </p>
+
+                {requestSuccessMessage && (
+                  <Alert variant="success" className="text-xs p-2.5">
+                    {requestSuccessMessage}
+                  </Alert>
+                )}
+                {requestErrorMessage && (
+                  <Alert variant="error" className="text-xs p-2.5">
+                    {requestErrorMessage}
+                  </Alert>
+                )}
+
+                {user?.authorRequestStatus === "Pending" ? (
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-100/70 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-medium">
+                    <Clock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Yêu cầu đang chờ Ban quản trị xét duyệt...</span>
+                  </div>
+                ) : user?.authorRequestStatus === "Approved" ? (
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <span>Yêu cầu đã được phê duyệt! Hãy tải lại trang.</span>
+                  </div>
+                ) : isRequestModalOpen ? (
+                  <form onSubmit={handleSendAuthorRequest} className="space-y-3 pt-1">
+                    <textarea
+                      value={requestNote}
+                      onChange={(e) => setRequestNote(e.target.value)}
+                      placeholder="Giới thiệu đôi nét về đam mê, kinh nghiệm nấu ăn của bạn (tùy chọn)..."
+                      className="w-full text-xs p-2.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none h-20"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        variant="default"
+                        className="bg-amber-600 hover:bg-amber-700 text-white text-xs py-1.5 flex-1"
+                        isLoading={isSubmittingRequest}
+                        leftIcon={<Send className="w-3.5 h-3.5" />}
+                      >
+                        Gửi yêu cầu
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs py-1.5"
+                        onClick={() => setIsRequestModalOpen(false)}
+                      >
+                        Hủy
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-amber-300 hover:bg-amber-100/60 dark:border-amber-800 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 text-xs font-semibold"
+                    onClick={() => setIsRequestModalOpen(true)}
+                    leftIcon={<ChefHat className="w-3.5 h-3.5" />}
+                  >
+                    Gửi yêu cầu nâng cấp Đầu bếp
+                  </Button>
+                )}
+              </div>
+            )}
             {/* Thanh điều hướng chức năng */}
             <div className="rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 p-2 space-y-1 shadow-xs">
               <button

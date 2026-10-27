@@ -9,6 +9,8 @@ import {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   ResetPasswordRequest,
+  AdminUserItemDto,
+  ChangeUserRoleRequest,
 } from "@/types/auth";
 
 export const AUTH_CHANGED_EVENT = "culinary_blog_auth_changed";
@@ -190,5 +192,31 @@ export const authService = {
   getAccessToken(): string | null {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("accessToken");
+  },
+
+  /**
+   * Độc giả gửi yêu cầu nâng cấp lên Đầu bếp (Author)
+   */
+  async requestAuthorUpgrade(note?: string): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>("/users/me/request-author", { note });
+    return response.data;
+  },
+
+  /**
+   * Quản trị viên lấy danh sách toàn bộ người dùng và trạng thái vai trò
+   */
+  async getAdminUsers(): Promise<AdminUserItemDto[]> {
+    const response = await apiClient.get<AdminUserItemDto[]>("/admin/users");
+    return response.data;
+  },
+
+  /**
+   * Quản trị viên thay đổi vai trò người dùng (Author <-> User)
+   */
+  async changeUserRole(userId: string, targetRole: "Author" | "User"): Promise<{ message: string; roles: string[] }> {
+    const response = await apiClient.post<{ message: string; roles: string[] }>(`/admin/users/${userId}/roles`, {
+      targetRole,
+    });
+    return response.data;
   },
 };

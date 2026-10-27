@@ -72,5 +72,27 @@ public static class UserSeeder
                 Console.WriteLine("==> [UserSeeder] Đã tạo thành công tài khoản Author.");
             }
         }
+
+        // 4. Tạo User thường mẫu (Độc giả ẩm thực)
+        var readerEmail = "reader@culinary.local";
+        if (await userManager.FindByEmailAsync(readerEmail) == null)
+        {
+            var readerUser = new ApplicationUser
+            {
+                Id = "33333333-3333-3333-3333-333333333301",
+                UserName = readerEmail,
+                Email = readerEmail,
+                DisplayName = "Độc giả ẩm thực",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var result = await userManager.CreateAsync(readerUser, "User@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(readerUser, "User");
+                Console.WriteLine("==> [UserSeeder] Đã tạo thành công tài khoản User (Độc giả).");
+            }
+        }
     }
 }

@@ -72,7 +72,7 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
                 throw new System.Exception($"Failed to create user: {errors}");
             }
 
-            await _userManager.AddToRoleAsync(user, "Author");
+            await _userManager.AddToRoleAsync(user, "User");
             await _userManager.AddClaimAsync(user, new Claim("LoginProvider", "Google"));
         }
 

@@ -34,6 +34,30 @@ export interface UserDto {
   bio?: string | null;
   roles: string[];
   createdAt: string;
+  authorRequestStatus?: string | null;
+  authorRequestNote?: string | null;
+}
+
+export interface RequestAuthorUpgradeRequest {
+  note?: string;
+}
+
+export interface ChangeUserRoleRequest {
+  targetRole: "Author" | "User";
+}
+
+export interface AdminUserItemDto {
+  id: string;
+  userName: string;
+  email: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  roles: string[];
+  authorRequestStatus?: string | null;
+  authorRequestNote?: string | null;
 }
 
 export interface UpdateProfileRequest {

@@ -227,18 +227,23 @@ public sealed class AuthApiTests
     {
         await using var backend = await TemporaryAuthBackend.StartAsync();
 
-        // 1. Đăng ký tài khoản thường (mặc định nhận role "Author")
-        var registerRequest = new RegisterRequest("author@example.com", "Password123!", "Author User", "authoruser");
+        // 1. Đăng ký tài khoản thường (Chính sách 1: mặc định nhận role "User")
+        var registerRequest = new RegisterRequest("reader@example.com", "Password123!", "Reader User", "readeruser");
         var registerResponse = await backend.Client.PostAsJsonAsync("/api/v1/auth/register", registerRequest);
         Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+        var registerAuthResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
+        Assert.NotNull(registerAuthResponse?.AccessToken);
+        Assert.Contains("User", registerAuthResponse.Roles);
+        Assert.DoesNotContain("Author", registerAuthResponse.Roles);
 
-        // 2. Đăng nhập để nhận token của Author
-        var loginResponse = await backend.Client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("author@example.com", "Password123!"));
+        // 2. Đăng nhập để nhận token của User
+        var loginResponse = await backend.Client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest("reader@example.com", "Password123!"));
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
         var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
         Assert.NotNull(authResponse?.AccessToken);
+        Assert.Contains("User", authResponse.Roles);
 
-        // 3. Gọi endpoint yêu cầu role "Admin" với token của Author -> nhận 403 Forbidden
+        // 3. Gọi endpoint yêu cầu role "Admin" với token của User -> nhận 403 Forbidden
         using var adminRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/test/admin-only");
         adminRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
 

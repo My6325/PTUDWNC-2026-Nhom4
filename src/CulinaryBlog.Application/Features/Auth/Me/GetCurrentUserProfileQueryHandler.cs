@@ -35,6 +35,9 @@ public class GetCurrentUserProfileQueryHandler : IRequestHandler<GetCurrentUserP
         }
 
         var roles = await _userManager.GetRolesAsync(user);
+        var claims = await _userManager.GetClaimsAsync(user);
+        var authorRequestStatus = claims.FirstOrDefault(c => c.Type == "AuthorRequest")?.Value;
+        var authorRequestNote = claims.FirstOrDefault(c => c.Type == "AuthorRequestNote")?.Value;
 
         return new UserDto(
             Id: user.Id,
@@ -44,7 +47,9 @@ public class GetCurrentUserProfileQueryHandler : IRequestHandler<GetCurrentUserP
             AvatarUrl: user.AvatarUrl,
             Bio: user.Bio,
             Roles: roles,
-            CreatedAt: user.CreatedAt
+            CreatedAt: user.CreatedAt,
+            AuthorRequestStatus: authorRequestStatus,
+            AuthorRequestNote: authorRequestNote
         );
     }
 }

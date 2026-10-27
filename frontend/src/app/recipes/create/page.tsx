@@ -65,6 +65,11 @@ export default function CreateRecipePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuthStore();
 
+  // Kiểm tra vai trò Author hoặc Admin theo Chính sách 1 (RBAC)
+  const isAuthorOrAdmin = user?.roles?.some(
+    (r) => r.toLowerCase() === "author" || r.toLowerCase() === "admin"
+  ) ?? false;
+
   // Dữ liệu danh mục
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState<boolean>(true);
@@ -197,6 +202,11 @@ export default function CreateRecipePage() {
     if (!isAuthenticated) {
       setErrorMessage("Vui lòng đăng nhập để lưu công thức món ăn.");
       router.push("/login?redirect=/recipes/create");
+      return;
+    }
+
+    if (!isAuthorOrAdmin) {
+      setErrorMessage("Tài khoản của bạn là Độc giả (User), chỉ Đầu bếp (Author) hoặc Quản trị viên (Admin) mới có quyền tạo công thức món ăn.");
       return;
     }
 
@@ -365,19 +375,48 @@ export default function CreateRecipePage() {
           </div>
         )}
 
-        {/* Báo lỗi / Thành công */}
-        {errorMessage && (
-          <Alert variant="error" title="Không thể lưu công thức" className="mb-6" dismissible onDismiss={() => setErrorMessage(null)}>
-            {errorMessage}
-          </Alert>
-        )}
-        {successMessage && (
-          <Alert variant="success" title="Thao tác thành công" className="mb-6">
-            {successMessage}
-          </Alert>
-        )}
+        {/* Giới hạn quyền truy cập cho Độc giả (Chính sách 1 RBAC) */}
+        {!isAuthLoading && isAuthenticated && !isAuthorOrAdmin ? (
+          <div className="rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm p-8 sm:p-12 text-center max-w-2xl mx-auto my-8">
+            <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950/60 border border-brand-200/80 dark:border-brand-800 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <ChefHat className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight mb-3">
+              Khu vực dành riêng cho Đầu bếp & Tác giả ẩm thực
+            </h2>
+            <p className="text-stone-600 dark:text-stone-300 text-sm sm:text-base leading-relaxed mb-8">
+              Tài khoản của bạn hiện đang ở vai trò <strong className="text-stone-900 dark:text-stone-100">Độc giả (User)</strong>.
+              Quyền soạn thảo và xuất bản công thức món ăn mới chỉ dành cho các tài khoản <strong className="text-brand-600 dark:text-brand-400">Đầu bếp (Author)</strong> hoặc <strong className="text-stone-900 dark:text-stone-100">Quản trị viên (Admin)</strong>.
+              <br className="hidden sm:inline" /> Hãy khám phá hàng trăm công thức tuyệt hảo, lưu lại món yêu thích và để lại cảm nhận nấu nướng của bạn!
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link href="/recipes">
+                <Button variant="default" leftIcon={<Sparkles className="w-4 h-4" />}>
+                  Khám phá công thức nấu ăn
+                </Button>
+              </Link>
+              <Link href="/profile">
+                <Button variant="outline" leftIcon={<Users className="w-4 h-4" />}>
+                  Xem hồ sơ cá nhân
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Báo lỗi / Thành công */}
+            {errorMessage && (
+              <Alert variant="error" title="Không thể lưu công thức" className="mb-6" dismissible onDismiss={() => setErrorMessage(null)}>
+                {errorMessage}
+              </Alert>
+            )}
+            {successMessage && (
+              <Alert variant="success" title="Thao tác thành công" className="mb-6">
+                {successMessage}
+              </Alert>
+            )}
 
-        {/* Bố cục 2 cột chuẩn Budget Bytes */}
+            {/* Bố cục 2 cột chuẩn Budget Bytes */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* CỘT TRÁI: FORM SOẠN THẢO CHI TIẾT (8 Cột) */}
           <form onSubmit={(e) => handleSubmitRecipe(e, false)} className="lg:col-span-7 xl:col-span-8 space-y-8">
@@ -812,6 +851,8 @@ export default function CreateRecipePage() {
             </div>
           </div>
         </div>
+      </>
+    )}
       </div>
     </div>
   );

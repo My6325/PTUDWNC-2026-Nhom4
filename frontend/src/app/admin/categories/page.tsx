@@ -23,6 +23,7 @@ import {
   Clock,
   RotateCcw,
   Info,
+  Users,
 } from "lucide-react";
 import { categoryService } from "@/services/categoryService";
 import { CategoryDto, CreateCategoryRequest, UpdateCategoryRequest } from "@/types/category";
@@ -379,6 +380,21 @@ export default function AdminCategoriesPage() {
                 Thêm Danh mục Mới
               </Button>
             </div>
+          </div>
+
+          {/* Sub-Navigation Tabs liên kết các phân hệ Quản trị */}
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-stone-100 dark:border-stone-800">
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 border border-brand-200/60 dark:border-brand-900/40">
+              <FolderHeart className="w-3.5 h-3.5" />
+              <span>Danh mục ẩm thực</span>
+            </div>
+            <Link
+              href="/admin/users"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Người dùng & Phân quyền RBAC</span>
+            </Link>
           </div>
         </div>
       </div>

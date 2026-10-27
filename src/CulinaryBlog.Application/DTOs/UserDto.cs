@@ -8,5 +8,8 @@ public record UserDto(
     string? AvatarUrl,
     string? Bio,
     IList<string> Roles,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? AuthorRequestStatus = null,
+    string? AuthorRequestNote = null
 );
+
