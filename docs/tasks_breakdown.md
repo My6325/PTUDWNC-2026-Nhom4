@@ -199,7 +199,7 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
 - [x] **Cảnh Báo Request Chạy Chậm:** Viết MediatR Pipeline Behavior `LoggingBehavior.cs` đo thời gian bằng `Stopwatch`: Nếu thời gian xử lý request vượt quá **500ms**, tự động ghi log cảnh báo mức `Log.Warning("Long Running Request: {RequestName} ({ElapsedMs} milliseconds) with CorrelationId: {CorrelationId}", ...)`.
 
 #### Bước 8: Hiện thực FR-OBS-003 (Distributed Tracing & Cấu hình Scalar UI)
-- [ ] **Cấu hình OpenTelemetry Tracing:** Đăng ký `.AddOpenTelemetry().WithTracing(builder => builder.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddNpgsql())` trong `Program.cs` để giám sát vết phân tán từ request qua EF Core xuống CSDL Supabase.
+- [x] **Cấu hình OpenTelemetry Tracing:** Đăng ký `.AddOpenTelemetry().WithTracing(builder => builder.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddNpgsql())` trong `Program.cs` để giám sát vết phân tán từ request qua EF Core xuống CSDL Supabase.
 - [x] **Cấu hình Scalar UI Native:** Đăng ký `app.MapOpenApi()` và `app.MapScalarApiReference(options => options.WithTheme(ScalarTheme.Purple))` trong `Program.cs` để cung cấp giao diện tài liệu OpenAPI trực quan tại `http://localhost:5000/scalar/v1`.
 
 ---

@@ -24,6 +24,9 @@ using Hangfire.PostgreSql;
 using CulinaryBlog.Infrastructure.Jobs;
 using CulinaryBlog.API.BackgroundJobs;
 using Serilog;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Npgsql;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -59,7 +62,18 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}"));
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}"));
+
+// 1.2. Cấu hình Distributed Tracing với OpenTelemetry (FR-OBS-003)
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("CulinaryBlog.API"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+        })
+        .AddHttpClientInstrumentation()
+        .AddNpgsql());
 
 // 2. Đăng ký các dịch vụ tầng Application (MediatR, FluentValidation, Mapster)
 builder.Services.AddApplication();
@@ -102,8 +116,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(allowedOrigins)
                   .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                  .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Correlation-ID", "traceparent")
-                  .WithExposedHeaders("X-Correlation-ID")
+                  .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Correlation-ID", "X-Trace-ID", "traceparent")
+                  .WithExposedHeaders("X-Correlation-ID", "X-Trace-ID", "traceparent")
                   .AllowCredentials();
         }
         else
