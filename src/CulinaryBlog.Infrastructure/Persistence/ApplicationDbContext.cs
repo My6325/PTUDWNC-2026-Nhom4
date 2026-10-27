@@ -3,6 +3,7 @@ using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace CulinaryBlog.Infrastructure.Persistence;
 
@@ -17,6 +18,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
+        ChangeTracker.Tracked += OnEntityTracked;
+    }
+
+    private void OnEntityTracked(object? sender, EntityTrackedEventArgs e)
+    {
+        // Khi một thực thể con kế thừa BaseEntity được thêm vào qua navigation collection của thực thể cha đang được track,
+        // do BaseEntity.Id đã được khởi tạo sẵn Guid.NewGuid(), EF Core mặc định gán State = Modified thay vì Added.
+        // Điều này dẫn đến câu lệnh UPDATE vào bản ghi chưa tồn tại và gây lỗi DbUpdateConcurrencyException (409 Conflict).
+        // Hook này tự động ép State = Added cho các thực thể chưa từng được query từ database.
+        if (!e.FromQuery && e.Entry.Entity is BaseEntity && e.Entry.State == EntityState.Modified)
+        {
+            e.Entry.State = EntityState.Added;
+        }
     }
 
     public DbSet<Category> Categories => Set<Category>();
