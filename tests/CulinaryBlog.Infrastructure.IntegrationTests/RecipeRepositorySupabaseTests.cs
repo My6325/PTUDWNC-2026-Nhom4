@@ -1,5 +1,6 @@
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Repositories;
+using CulinaryBlog.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Xunit;
@@ -39,6 +40,58 @@ public sealed class RecipeRepositorySupabaseTests
         Assert.Equal(20, result.Items.Count);
         Assert.Equal(1, result.PageIndex);
         Assert.Equal(20, result.PageSize);
+    }
+
+    [Theory]
+    [InlineData("newest")]
+    [InlineData("cookTime")]
+    public async Task SearchRecipesAsync_ShouldCombineFacetsAndKeepPageOrder(string sortBy)
+    {
+        await using var context = CreateDbContext();
+        var repository = new RecipeRepository(context);
+        var published = await context.Recipes.AsNoTracking()
+            .Where(recipe => recipe.Status == RecipeStatus.Published && !recipe.IsDeleted)
+            .ToListAsync();
+        var sample = published.First(recipe => recipe.CategoryId.HasValue);
+        var expected = published.Where(recipe => recipe.CategoryId == sample.CategoryId
+            && recipe.Difficulty == sample.Difficulty
+            && recipe.CookTimeMinutes >= 0 && recipe.CookTimeMinutes <= sample.CookTimeMinutes
+            && recipe.Servings >= 1 && recipe.Servings <= sample.Servings);
+        var ordered = sortBy == "newest"
+            ? expected.OrderByDescending(recipe => recipe.CreatedAt).ThenBy(recipe => recipe.Id)
+            : expected.OrderBy(recipe => recipe.CookTimeMinutes).ThenByDescending(recipe => recipe.CreatedAt).ThenBy(recipe => recipe.Id);
+        var expectedIds = ordered.Select(recipe => recipe.Id).ToArray();
+        Assert.NotEmpty(expectedIds);
+
+        for (var page = 1; page <= Math.Min(expectedIds.Length + 1, 3); page++)
+        {
+            var result = await repository.SearchRecipesAsync(null, sample.CategoryId,
+                sample.Difficulty.ToString(), 0, sample.CookTimeMinutes, 1, sample.Servings,
+                sortBy, page, 1, CancellationToken.None);
+            Assert.Equal(expectedIds.Length, result.TotalCount);
+            Assert.Equal(expectedIds.Skip(page - 1).Take(1), result.Items.Select(recipe => recipe.Id));
+        }
+    }
+
+    [Fact]
+    public async Task GetDetailBySlugAsync_ShouldLoadAllPublicRecipeSections()
+    {
+        await using var context = CreateDbContext();
+        var sample = await context.Recipes.AsNoTracking()
+            .Include(recipe => recipe.Steps).Include(recipe => recipe.Ingredients)
+            .Include(recipe => recipe.Images).Include(recipe => recipe.Category)
+            .FirstAsync(recipe => recipe.Status == RecipeStatus.Published && !recipe.IsDeleted
+                && recipe.Steps.Any() && recipe.Ingredients.Any() && recipe.Images.Any());
+        var result = await new RecipeRepository(context).GetDetailBySlugAsync(sample.Slug, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(sample.Steps.Where(step => !step.IsDeleted).OrderBy(step => step.StepNumber)
+            .Select(step => step.Description), result.Steps.Select(step => step.Description));
+        Assert.Equal(sample.Ingredients.Where(item => !item.IsDeleted).OrderBy(item => item.OrderIndex)
+            .Select(item => item.Name), result.Ingredients.Select(item => item.Name));
+        Assert.Equal(sample.Images.Count(item => !item.IsDeleted), result.Images.Count);
+        Assert.Equal(sample.Nutrition.Calories, result.Nutrition.Calories);
+        Assert.Equal(sample.Category?.Name, result.Category?.Name);
     }
 
     private static ApplicationDbContext CreateDbContext()

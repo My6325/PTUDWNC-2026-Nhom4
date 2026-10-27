@@ -1,5 +1,6 @@
 "use client";
 
+import { hasNutritionValues } from "@/utils/recipeNutrition";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -187,12 +188,13 @@ export default function RecipeDetailPage() {
     if (!slug) return;
 
     let isMounted = true;
+    const controller = new AbortController();
     const fetchRecipe = async () => {
       setIsLoading(true);
       setError(null);
       setIsNotFound(false);
       try {
-        const data = await recipeService.getRecipeBySlug(slug);
+        const data = await recipeService.getRecipeBySlug(slug, controller.signal);
         if (isMounted) {
           setRecipe(data);
         }
@@ -215,6 +217,7 @@ export default function RecipeDetailPage() {
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [slug]);
 
@@ -356,7 +359,7 @@ export default function RecipeDetailPage() {
     );
   }
 
-  const jsonLd = recipe ? toRecipeJsonLd(recipe as any) : null;
+  const jsonLd = recipe ? toRecipeJsonLd(recipe) : null;
 
   return (
     <div className="min-h-screen bg-surface-warm dark:bg-stone-950/40 pb-20">
@@ -706,7 +709,7 @@ export default function RecipeDetailPage() {
                         </div>
 
                         {/* Đồng hồ hẹn giờ đếm ngược cho bước nếu có TimerMinutes */}
-                        {step.timerMinutes && step.timerMinutes > 0 ? (
+                        {step.timerMinutes != null && step.timerMinutes > 0 && (
                           <StepTimer timerMinutes={step.timerMinutes} stepNumber={step.stepNumber} />
                         )}
 
@@ -733,13 +736,7 @@ export default function RecipeDetailPage() {
             </div>
 
             {/* 3. THÔNG TIN DINH DƯỠNG (NUTRITION) NẾU CÓ DỮ LIỆU */}
-            {recipe.nutrition &&
-              (recipe.nutrition.calories ||
-                recipe.nutrition.protein ||
-                recipe.nutrition.carbohydrates ||
-                recipe.nutrition.fat ||
-                recipe.nutrition.fiber ||
-                recipe.nutrition.sodium) && (
+            {hasNutritionValues(recipe.nutrition) && (
                 <div className="pt-6 border-t border-stone-200 dark:border-stone-800">
                   <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2 mb-4">
                     <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />

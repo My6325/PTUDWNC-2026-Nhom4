@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:recipes": "node --test tests/recipeQuery.test.mjs"
+    "test:recipes": "node --test tests/recipeQuery.test.mjs tests/recipeDetail.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

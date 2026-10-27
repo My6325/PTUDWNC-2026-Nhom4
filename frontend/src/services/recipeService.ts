@@ -38,8 +38,8 @@ export async function getRecipes(
 /**
  * Lấy chi tiết công thức ẩm thực theo Slug URL.
  */
-export async function getRecipeBySlug(slug: string): Promise<RecipeDetailDto> {
-  const response = await apiClient.get<RecipeDetailDto>(`/recipes/${encodeURIComponent(slug)}`);
+export async function getRecipeBySlug(slug: string, signal?: AbortSignal): Promise<RecipeDetailDto> {
+  const response = await apiClient.get<RecipeDetailDto>(`/recipes/${encodeURIComponent(slug)}`, { signal });
   return response.data;
 }
 

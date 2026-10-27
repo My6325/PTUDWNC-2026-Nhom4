@@ -33,7 +33,7 @@ const toDuration = (minutes: number) => `PT${minutes}M`;
 
 export function toRecipeJsonLd(recipe: RecipeDetail): RecipeJsonLd {
   const primaryImage = recipe.images.find((image) => image.isPrimary) ?? recipe.images[0];
-  const nutrition = recipe.nutrition;
+  const nutrition = recipe.nutrition ?? {};
 
   return {
     "@context": "https://schema.org",
@@ -50,7 +50,7 @@ export function toRecipeJsonLd(recipe: RecipeDetail): RecipeJsonLd {
     totalTime: toDuration(recipe.totalTimeMinutes),
     recipeIngredient: recipe.ingredients.map((ingredient) =>
       [ingredient.quantity, ingredient.unit, ingredient.name, ingredient.notes]
-        .filter((part) => part !== null && part !== undefined && part !== "")
+        .filter((part) => part != null && part !== undefined && part !== "")
         .join(" "),
     ),
     recipeInstructions: recipe.steps.map((step) => ({
@@ -59,14 +59,14 @@ export function toRecipeJsonLd(recipe: RecipeDetail): RecipeJsonLd {
       name: step.title,
       text: step.description,
     })),
-    ...(nutrition.calories !== null || nutrition.protein !== null || nutrition.carbohydrates !== null || nutrition.fat !== null
+    ...(nutrition.calories != null || nutrition.protein != null || nutrition.carbohydrates != null || nutrition.fat != null
       ? {
           nutrition: {
             "@type": "NutritionInformation" as const,
-            ...(nutrition.calories !== null ? { calories: `${nutrition.calories} calories` } : {}),
-            ...(nutrition.protein !== null ? { proteinContent: `${nutrition.protein} g` } : {}),
-            ...(nutrition.carbohydrates !== null ? { carbohydrateContent: `${nutrition.carbohydrates} g` } : {}),
-            ...(nutrition.fat !== null ? { fatContent: `${nutrition.fat} g` } : {}),
+            ...(nutrition.calories != null ? { calories: `${nutrition.calories} calories` } : {}),
+            ...(nutrition.protein != null ? { proteinContent: `${nutrition.protein} g` } : {}),
+            ...(nutrition.carbohydrates != null ? { carbohydrateContent: `${nutrition.carbohydrates} g` } : {}),
+            ...(nutrition.fat != null ? { fatContent: `${nutrition.fat} g` } : {}),
           },
         }
       : {}),

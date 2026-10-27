@@ -10,8 +10,8 @@ export const categoryService = {
    * Lấy danh sách toàn bộ các danh mục ẩm thực đã sắp xếp theo thứ tự (FR-CAT-001).
    * Backend có In-Memory Cache TTL 60 phút.
    */
-  async getCategories(): Promise<CategoryDto[]> {
-    const response = await apiClient.get<CategoryDto[]>("/categories");
+  async getCategories(signal?: AbortSignal): Promise<CategoryDto[]> {
+    const response = await apiClient.get<CategoryDto[]>("/categories", { signal });
     return response.data;
   },
 

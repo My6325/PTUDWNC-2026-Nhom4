@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Filter,
@@ -20,15 +20,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
 import { recipeService } from "@/services/recipeService";
-import { categoryService } from "@/services/categoryService";
+import { useRecipeCategories } from "@/hooks/useRecipeCategories";
 import { RecipeListDto, GetRecipesParams } from "@/types/recipe";
-import { CategoryDto } from "@/types/category";
 import { PaginatedResult } from "@/types/common";
 import { getErrorMessage } from "@/utils/apiError";
 import { normalizeRecipePagination } from "@/utils/recipeQuery";
 
 function RecipesContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Đọc params từ URL
@@ -47,7 +45,7 @@ function RecipesContent() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Data states
-  const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const { categories, isLoading: categoriesLoading, error: categoriesError, retry: retryCategories } = useRecipeCategories();
   const [paginatedData, setPaginatedData] = useState<PaginatedResult<RecipeListDto>>({
     items: [],
     totalCount: 0,
@@ -59,17 +57,11 @@ function RecipesContent() {
   const [error, setError] = useState<string | null>(null);
   const activeRequest = useRef<AbortController | null>(null);
 
-  // Nạp danh mục
-  useEffect(() => {
-    categoryService.getCategories()
-      .then((data) => setCategories(data || []))
-      .catch((err) => console.error("Lỗi tải danh mục:", err));
-  }, []);
-
   // Cập nhật URL search params
   const updateFilters = useCallback(
     (newParams: Record<string, string | number | undefined | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      // Read the latest URL so rapid filter changes do not overwrite each other.
+      const params = new URLSearchParams(window.location.search);
 
       Object.entries(newParams).forEach(([key, value]) => {
         if (value === undefined || value === null || value === "") {
@@ -84,9 +76,9 @@ function RecipesContent() {
         params.delete("PageIndex");
       }
 
-      router.push(`/recipes?${params.toString()}`);
+      window.history.pushState(null, "", `/recipes?${params.toString()}`);
     },
-    [router, searchParams]
+    []
   );
 
   // Đồng bộ searchInput khi URL thay đổi
@@ -150,7 +142,7 @@ function RecipesContent() {
 
   const handleResetFilters = () => {
     setSearchInput("");
-    router.push("/recipes");
+    window.history.pushState(null, "", "/recipes");
   };
 
   const hasActiveFilters = Boolean(
@@ -289,17 +281,24 @@ function RecipesContent() {
             </label>
             <select
               id="cat-select"
+              disabled={categoriesLoading || !!categoriesError}
               value={currentCategoryId}
               onChange={(e) => updateFilters({ CategoryId: e.target.value })}
               className="w-full p-2.5 text-sm bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl focus:border-brand-500 focus:outline-none text-stone-900 dark:text-stone-100"
             >
-              <option value="">Tất cả danh mục</option>
+              <option value="">{categoriesLoading ? "Đang tải danh mục..." : categoriesError ? "Không tải được danh mục" : "Tất cả danh mục"}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+            {categoriesError && (
+              <div role="alert" className="space-y-2 text-sm text-red-700 dark:text-red-300">
+                <p>{categoriesError}</p>
+                <Button variant="outline" size="sm" onClick={retryCategories}>Thử lại danh mục</Button>
+              </div>
+            )}
           </div>
 
           {/* Độ khó (Difficulty) */}

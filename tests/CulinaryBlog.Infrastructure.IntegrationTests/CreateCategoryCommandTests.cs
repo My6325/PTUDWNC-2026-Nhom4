@@ -87,6 +87,10 @@ public sealed class CreateCategoryCommandTests
         public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Categories.FirstOrDefault(c => c.Id == id));
         public Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) => Task.FromResult(Categories.Count);
+        public Task<Category?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Categories.FirstOrDefault(category => category.Id == id && category.IsDeleted));
+        public Task<List<Category>> GetDeletedCategoriesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(Categories.Where(category => category.IsDeleted).ToList());
     }
 
     private sealed class FakeUnitOfWork(ICategoryRepository categories) : IUnitOfWork

@@ -1,26 +1,21 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChefHat,
   Search,
   Sparkles,
   ArrowRight,
-  BookOpen,
   CookingPot,
   RefreshCw,
-  UtensilsCrossed,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { RecipeCategorySidebar } from "@/components/recipes/RecipeCategorySidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
-import { categoryService } from "@/services/categoryService";
 import { recipeService } from "@/services/recipeService";
-import { CategoryDto } from "@/types/category";
 import { RecipeListDto } from "@/types/recipe";
 import { getErrorMessage } from "@/utils/apiError";
 
@@ -28,27 +23,17 @@ export default function HomePage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [categories, setCategories] = useState<CategoryDto[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-
   const [recipes, setRecipes] = useState<RecipeListDto[]>([]);
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(true);
 
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const request = useRef<AbortController | null>(null);
+  const fetchData = useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     setApiError(null);
-
-    // 1. Nạp danh sách danh mục (FR-CAT-001)
-    setIsLoadingCategories(true);
-    try {
-      const catData = await categoryService.getCategories();
-      setCategories(catData || []);
-    } catch (err) {
-      console.error("Lỗi khi tải danh mục:", err);
-    } finally {
-      setIsLoadingCategories(false);
-    }
 
     // 2. Nạp công thức mới nhất (FR-RCP-001)
     setIsLoadingRecipes(true);
@@ -57,19 +42,21 @@ export default function HomePage() {
         sortBy: "newest",
         pageIndex: 1,
         pageSize: 8,
-      });
-      setRecipes(recipeData?.items || []);
+      }, controller.signal);
+      if (!controller.signal.aborted) setRecipes(recipeData?.items || []);
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error("Lỗi khi tải công thức:", err);
       setApiError(getErrorMessage(err, "Không thể tải danh sách công thức. Vui lòng kiểm tra kết nối API."));
     } finally {
-      setIsLoadingRecipes(false);
+      if (!controller.signal.aborted) setIsLoadingRecipes(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    void fetchData();
+    return () => request.current?.abort();
+  }, [fetchData]);
 
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,92 +125,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Thông báo lỗi nếu không kết nối được Backend */}
-      {apiError && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Alert
-            variant="warning"
-            title="Thông báo kết nối API"
-            icon={<CookingPot className="w-5 h-5 text-amber-600" />}
-          >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <span>{apiError}</span>
-              <Button size="sm" variant="outline" onClick={fetchData} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
-                Thử lại
-              </Button>
-            </div>
-          </Alert>
-        </div>
-      )}
-
-      {/* 2. Danh mục Ẩm thực (Categories) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 font-semibold text-xs tracking-wider uppercase">
-              <BookOpen className="w-4 h-4" />
-              <span>Chủ đề ẩm thực</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight mt-1">
-              Danh mục món ăn
-            </h2>
-          </div>
-          <Link
-            href="/categories"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 hover:underline"
-          >
-            Xem tất cả danh mục <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {/* Danh sách thẻ danh mục */}
-        {isLoadingCategories ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 space-y-2">
-                <Skeleton className="w-10 h-10 rounded-xl" />
-                <Skeleton className="h-4 w-3/4 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="text-center py-8 text-stone-500 text-sm">
-            Chưa có danh mục món ăn nào được tạo.
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {categories.slice(0, 12).map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/recipes?CategoryId=${cat.id}`}
-                className="group flex flex-col items-center justify-center text-center p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm hover:border-brand-400 hover:shadow-md hover:-translate-y-1 transition-all"
-              >
-                <div className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-3 group-hover:bg-brand-600 group-hover:text-white transition-colors shadow-inner">
-                  <UtensilsCrossed className="w-6 h-6" />
-                </div>
-                <span className="font-bold text-sm text-stone-900 dark:text-stone-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-1">
-                  {cat.name}
-                </span>
-                {cat.description && (
-                  <span className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-1 mt-0.5">
-                    {cat.description}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 px-4 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8">
+        <RecipeCategorySidebar />
       {/* 3. Công thức Mới nhất (Newest Recipes) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <section aria-labelledby="newest-recipes-title" className="min-w-0 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-4">
           <div>
             <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 font-semibold text-xs tracking-wider uppercase">
               <ChefHat className="w-4 h-4" />
               <span>Cập nhật hàng ngày</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight mt-1">
+            <h2 id="newest-recipes-title" className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight mt-1">
               Công thức nấu ăn mới nhất
             </h2>
           </div>
@@ -232,8 +144,16 @@ export default function HomePage() {
           </Button>
         </div>
 
-        {/* Lưới công thức tái sử dụng RecipeGrid */}
+        {apiError && (
+          <Alert variant="error" title="Không thể tải công thức mới nhất">
+            <p>{apiError}</p>
+            <Button className="mt-3" size="sm" variant="outline" onClick={fetchData} leftIcon={<RefreshCw className="h-4 w-4" />}>Thử lại công thức</Button>
+          </Alert>
+        )}
+        {!apiError && (
+
         <RecipeGrid
+          className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
           recipes={recipes}
           isLoading={isLoadingRecipes}
           skeletonCount={8}
@@ -249,7 +169,9 @@ export default function HomePage() {
             </div>
           }
         />
+        )}
       </section>
+      </div>
     </div>
   );
 }
