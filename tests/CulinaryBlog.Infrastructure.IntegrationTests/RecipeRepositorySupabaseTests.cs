@@ -94,6 +94,36 @@ public sealed class RecipeRepositorySupabaseTests
         Assert.Equal(sample.Category?.Name, result.Category?.Name);
     }
 
+    [Fact]
+    public async Task AddImageToTrackedRecipe_ShouldPersistSuccessfullyWithoutConcurrencyException()
+    {
+        await using var context = CreateDbContext();
+
+        var recipe = await context.Recipes
+            .Include(r => r.Images)
+            .FirstOrDefaultAsync(r => !r.IsDeleted);
+
+        Assert.NotNull(recipe);
+
+        var newImage = new Domain.Entities.RecipeImage
+        {
+            RecipeId = recipe.Id,
+            OriginalUrl = $"https://test.local/{Guid.NewGuid()}.png",
+            IsPrimary = false,
+            OrderIndex = recipe.Images.Count + 1
+        };
+
+        recipe.AddImage(newImage);
+
+        // Lưu thay đổi - không được văng DbUpdateConcurrencyException
+        var affected = await context.SaveChangesAsync();
+        Assert.True(affected > 0);
+
+        // Dọn dẹp test data
+        context.RecipeImages.Remove(newImage);
+        await context.SaveChangesAsync();
+    }
+
     private static ApplicationDbContext CreateDbContext()
     {
         var configuration = BuildConfiguration();

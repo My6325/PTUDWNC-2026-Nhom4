@@ -158,6 +158,7 @@ export interface RecipeDetailDto {
   ingredients: RecipeIngredientDto[];
   images: RecipeImageDto[];
   nutrition: RecipeNutritionDto;
+  rowVersion?: string;
 }
 
 export type RecipeDetail = RecipeDetailDto;

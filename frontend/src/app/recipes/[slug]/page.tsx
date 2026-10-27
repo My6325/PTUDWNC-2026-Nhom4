@@ -24,6 +24,9 @@ import {
   Flame,
   Activity,
   Heart,
+  Pencil,
+  Trash2,
+  Sparkles,
 } from "lucide-react";
 import { recipeService } from "@/services/recipeService";
 import { RecipeDetailDto, RecipeStepDto } from "@/types/recipe";
@@ -34,6 +37,7 @@ import { Alert } from "@/components/ui/Alert";
 import { extractApiErrorMessage } from "@/utils/apiError";
 import { cn } from "@/utils/cn";
 import { toRecipeJsonLd } from "@/utils/recipeSeo";
+import { useAuthStore } from "@/stores/auth-store";
 
 /**
  * Component Đồng hồ bấm giờ đếm ngược cho từng bước nấu ăn
@@ -165,6 +169,7 @@ const StepTimer: React.FC<{ timerMinutes: number; stepNumber: number }> = ({
           <CheckCircle2 className="h-3.5 w-3.5" /> Đã hoàn thành!
         </span>
       )}
+
     </div>
   );
 };
@@ -183,6 +188,51 @@ export default function RecipeDetailPage() {
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
   // Trạng thái copy link chia sẻ
   const [copied, setCopied] = useState<boolean>(false);
+
+  const { user, isAuthenticated } = useAuthStore();
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [publishMessage, setPublishMessage] = useState<string | null>(null);
+
+  const isOwnerOrAdmin = Boolean(
+    isAuthenticated &&
+      user &&
+      recipe &&
+      (user.id === recipe.authorId ||
+        user.roles?.includes("Admin") ||
+        user.roles?.includes("ADMIN") ||
+        user.roles?.includes("admin"))
+  );
+
+  const handlePublishRecipe = async () => {
+    if (!recipe) return;
+    setIsPublishing(true);
+    setPublishMessage(null);
+    try {
+      await recipeService.publishRecipe(recipe.id);
+      setRecipe({ ...recipe, status: 2 });
+      setPublishMessage("Đã xuất bản công thức thành công! Món ăn hiện đã xuất hiện trên trang Khám phá cho mọi người xem.");
+    } catch (err: unknown) {
+      alert(extractApiErrorMessage(err, "Không thể xuất bản công thức. Vui lòng thử lại."));
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleDeleteRecipe = async () => {
+    if (!recipe) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await recipeService.deleteRecipe(recipe.id);
+      router.push("/recipes");
+    } catch (err: unknown) {
+      setDeleteError(extractApiErrorMessage(err, "Không thể xóa công thức này."));
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -408,6 +458,11 @@ export default function RecipeDetailPage() {
       </div>
 
       <div className="container-custom max-w-4xl mx-auto px-4 pt-8">
+        {publishMessage && (
+          <Alert variant="success" title="Thao tác thành công" className="mb-6">
+            {publishMessage}
+          </Alert>
+        )}
         {/* Tiêu đề & Danh mục */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -423,6 +478,11 @@ export default function RecipeDetailPage() {
               </Badge>
             )}
             <Badge difficulty={recipe.difficulty} size="md" />
+            {(recipe.status === 1 || recipe.status === "Draft") && (
+              <Badge variant="outline" size="md" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 font-semibold">
+                Bản nháp (Chưa xuất bản)
+              </Badge>
+            )}
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-stone-900 dark:text-stone-50 tracking-tight leading-tight">
@@ -463,8 +523,46 @@ export default function RecipeDetailPage() {
               </div>
             </div>
 
-            {/* Nút In & Chia sẻ */}
-            <div className="flex items-center gap-2">
+            {/* Nút In, Chia sẻ & Quản lý */}
+            <div className="flex flex-wrap items-center gap-2">
+              {isOwnerOrAdmin && (
+                <>
+                  {(recipe.status === 1 || recipe.status === "Draft") && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handlePublishRecipe}
+                      isLoading={isPublishing}
+                      leftIcon={<Sparkles className="h-4 w-4" />}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                    >
+                      Xuất bản công thức
+                    </Button>
+                  )}
+                  <Link href={`/recipes/${recipe.slug || recipe.id}/edit`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<Pencil className="h-4 w-4 text-brand-600" />}
+                      className="border-brand-200 hover:bg-brand-50 text-brand-700 dark:border-brand-800 dark:text-brand-300"
+                    >
+                      Sửa
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setShowDeleteModal(true);
+                    }}
+                    leftIcon={<Trash2 className="h-4 w-4 text-red-500" />}
+                    className="border-red-200 hover:bg-red-50 text-red-600 dark:border-red-900/40 dark:text-red-400"
+                  >
+                    Xóa
+                  </Button>
+                </>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -711,7 +809,7 @@ export default function RecipeDetailPage() {
                         {/* Đồng hồ hẹn giờ đếm ngược cho bước nếu có TimerMinutes */}
                         {step.timerMinutes != null && step.timerMinutes > 0 && (
                           <StepTimer timerMinutes={step.timerMinutes} stepNumber={step.stepNumber} />
-                        )}
+                        ) : null}
 
                         {/* Ảnh minh họa của bước nếu có */}
                         {step.imageUrl && (
@@ -810,6 +908,48 @@ export default function RecipeDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Modal xác nhận xóa công thức */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 dark:border-stone-800 space-y-4">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-950/50">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                Xác nhận xóa công thức
+              </h3>
+            </div>
+            <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+              Bạn có chắc chắn muốn xóa công thức <strong className="text-stone-800 dark:text-stone-200">{recipe?.title}</strong>? Công thức sẽ bị xóa mềm và không còn hiển thị công khai.
+            </p>
+            {deleteError && (
+              <Alert variant="error" title="Không thể xóa">
+                {deleteError}
+              </Alert>
+            )}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                isLoading={isDeleting}
+                onClick={handleDeleteRecipe}
+              >
+                Xác nhận xóa
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

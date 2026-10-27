@@ -179,6 +179,12 @@ public sealed class RecipeCommandHandlerTests
 
         public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) =>
             Task.FromResult(1);
+
+        public Task<Category?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult<Category?>(null);
+
+        public Task<List<Category>> GetDeletedCategoriesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new List<Category>());
     }
 
     private sealed class FakeUnitOfWork(

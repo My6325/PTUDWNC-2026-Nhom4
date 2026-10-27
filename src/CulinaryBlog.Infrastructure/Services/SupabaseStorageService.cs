@@ -76,8 +76,9 @@ public class SupabaseStorageService : ISupabaseStorageService
             if (response.IsSuccessStatusCode || (allowNotFound && response.StatusCode == HttpStatusCode.NotFound))
                 return;
 
-            _logger.LogWarning("Supabase Storage {Method} failed with status {StatusCode}", request.Method, response.StatusCode);
-            throw new StorageUnavailableException("Không thể hoàn tất thao tác trên Supabase Storage.");
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("Supabase Storage {Method} failed with status {StatusCode}: {ErrorBody}", request.Method, response.StatusCode, errorBody);
+            throw new StorageUnavailableException($"Không thể hoàn tất thao tác trên Supabase Storage. {(string.IsNullOrWhiteSpace(errorBody) ? string.Empty : $"Chi tiết: {errorBody}")}".Trim());
         }
         catch (HttpRequestException exception)
         {
