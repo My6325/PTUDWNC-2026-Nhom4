@@ -239,7 +239,7 @@ export default function EditRecipePage() {
   };
 
   // Submit cập nhật công thức kèm RowVersion OCC Token
-  const handleUpdateRecipe = async (e: React.FormEvent) => {
+  const handleUpdateRecipe = async (e: React.FormEvent, shouldPublish: boolean = false) => {
     e.preventDefault();
     if (!recipe) return;
 
@@ -316,7 +316,21 @@ export default function EditRecipePage() {
         }
       }
 
-      setSuccessMessage(`Đã cập nhật công thức thành công!${imageWarning ? imageWarning : " Đang chuyển hướng..."}`);
+      // 3. Nếu người dùng chọn Xuất bản ngay
+      if (shouldPublish) {
+        try {
+          await recipeService.publishRecipe(recipe.id);
+        } catch (pubErr) {
+          console.warn("Lỗi khi xuất bản công thức:", pubErr);
+        }
+      }
+
+      setSuccessMessage(
+        (shouldPublish
+          ? "Đã cập nhật và xuất bản công thức thành công!"
+          : "Đã cập nhật công thức thành công!") +
+        (imageWarning ? imageWarning : " Đang chuyển hướng...")
+      );
       setRowVersion(updated.rowVersion);
 
       setTimeout(() => {
@@ -778,15 +792,30 @@ export default function EditRecipePage() {
                 <Button href={`/recipes/${recipe.slug}`} variant="ghost" size="md">
                   Hủy bỏ
                 </Button>
-                <Button
-                  type="submit"
-                  variant="default"
-                  size="md"
-                  isLoading={isSubmitting}
-                  leftIcon={<Save className="w-4 h-4" />}
-                >
-                  Lưu thay đổi công thức
-                </Button>
+                <div className="flex items-center gap-3">
+                  {(recipe.status === 1 || recipe.status === "Draft") && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="md"
+                      isLoading={isSubmitting}
+                      onClick={(e) => handleUpdateRecipe(e, true)}
+                      leftIcon={<Sparkles className="w-4 h-4 text-emerald-600" />}
+                      className="border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-semibold"
+                    >
+                      Lưu & Xuất bản ngay
+                    </Button>
+                  )}
+                  <Button
+                    type="submit"
+                    variant="default"
+                    size="md"
+                    isLoading={isSubmitting}
+                    leftIcon={<Save className="w-4 h-4" />}
+                  >
+                    Lưu thay đổi công thức
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           </form>

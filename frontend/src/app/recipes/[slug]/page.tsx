@@ -25,6 +25,7 @@ import {
   Heart,
   Pencil,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 import { recipeService } from "@/services/recipeService";
 import { RecipeDetailDto, RecipeStepDto } from "@/types/recipe";
@@ -191,6 +192,8 @@ export default function RecipeDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [publishMessage, setPublishMessage] = useState<string | null>(null);
 
   const isOwnerOrAdmin = Boolean(
     isAuthenticated &&
@@ -201,6 +204,21 @@ export default function RecipeDetailPage() {
         user.roles?.includes("ADMIN") ||
         user.roles?.includes("admin"))
   );
+
+  const handlePublishRecipe = async () => {
+    if (!recipe) return;
+    setIsPublishing(true);
+    setPublishMessage(null);
+    try {
+      await recipeService.publishRecipe(recipe.id);
+      setRecipe({ ...recipe, status: 2 });
+      setPublishMessage("Đã xuất bản công thức thành công! Món ăn hiện đã xuất hiện trên trang Khám phá cho mọi người xem.");
+    } catch (err: unknown) {
+      alert(extractApiErrorMessage(err, "Không thể xuất bản công thức. Vui lòng thử lại."));
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   const handleDeleteRecipe = async () => {
     if (!recipe) return;
@@ -437,6 +455,11 @@ export default function RecipeDetailPage() {
       </div>
 
       <div className="container-custom max-w-4xl mx-auto px-4 pt-8">
+        {publishMessage && (
+          <Alert variant="success" title="Thao tác thành công" className="mb-6">
+            {publishMessage}
+          </Alert>
+        )}
         {/* Tiêu đề & Danh mục */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -452,6 +475,11 @@ export default function RecipeDetailPage() {
               </Badge>
             )}
             <Badge difficulty={recipe.difficulty} size="md" />
+            {(recipe.status === 1 || recipe.status === "Draft") && (
+              <Badge variant="outline" size="md" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 font-semibold">
+                Bản nháp (Chưa xuất bản)
+              </Badge>
+            )}
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-stone-900 dark:text-stone-50 tracking-tight leading-tight">
@@ -496,7 +524,19 @@ export default function RecipeDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               {isOwnerOrAdmin && (
                 <>
-                  <Link href={`/recipes/${recipe.id}/edit`}>
+                  {(recipe.status === 1 || recipe.status === "Draft") && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handlePublishRecipe}
+                      isLoading={isPublishing}
+                      leftIcon={<Sparkles className="h-4 w-4" />}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                    >
+                      Xuất bản công thức
+                    </Button>
+                  )}
+                  <Link href={`/recipes/${recipe.slug || recipe.id}/edit`}>
                     <Button
                       variant="outline"
                       size="sm"
