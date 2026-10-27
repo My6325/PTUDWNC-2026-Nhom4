@@ -2,6 +2,7 @@ using CulinaryBlog.API.Authorization;
 using CulinaryBlog.API.Caching;
 using CulinaryBlog.API.Endpoints;
 using CulinaryBlog.API.ExceptionHandling;
+using CulinaryBlog.API.Middlewares;
 using CulinaryBlog.API.OpenApi;
 using CulinaryBlog.Application;
 using CulinaryBlog.Application.Contracts;
@@ -22,6 +23,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using CulinaryBlog.Infrastructure.Jobs;
 using CulinaryBlog.API.BackgroundJobs;
+using Serilog;
 
 // 1. Tự động tìm và nạp biến môi trường từ file .env ở thư mục gốc dự án
 var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -51,6 +53,13 @@ if (currentDir != null)
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 1.1. Cấu hình Structured Logging với Serilog và CorrelationId (FR-OBS-002)
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}"));
 
 // 2. Đăng ký các dịch vụ tầng Application (MediatR, FluentValidation, Mapster)
 builder.Services.AddApplication();
@@ -94,6 +103,7 @@ builder.Services.AddCors(options =>
             policy.WithOrigins(allowedOrigins)
                   .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                   .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Correlation-ID", "traceparent")
+                  .WithExposedHeaders("X-Correlation-ID")
                   .AllowCredentials();
         }
         else
@@ -211,6 +221,7 @@ if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
 }
 
 // 10. Cấu hình Middleware pipeline theo thứ tự chuẩn
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 app.UseCors("FrontendPolicy");
 app.UseRateLimiter();

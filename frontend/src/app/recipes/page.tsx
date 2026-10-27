@@ -452,6 +452,64 @@ function RecipesContent() {
             )}
           </div>
 
+          {/* Huy hiệu bộ lọc đang áp dụng (Active Filter Badges) */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+              {currentCategoryId && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 border border-brand-200 dark:border-brand-800 shadow-sm">
+                  🏷️ Danh mục: {categories.find((c) => c.id === currentCategoryId)?.name || "Đang lọc"}
+                  <button
+                    type="button"
+                    onClick={() => updateFilters({ CategoryId: "" })}
+                    className="hover:text-brand-900 dark:hover:text-white transition-colors"
+                    title="Bỏ lọc danh mục"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {currentDifficulty && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700 shadow-sm">
+                  Độ khó: {currentDifficulty === "Easy" ? "Dễ" : currentDifficulty === "Medium" ? "Trung bình" : "Khó"}
+                  <button
+                    type="button"
+                    onClick={() => updateFilters({ Difficulty: "" })}
+                    className="hover:text-stone-900 dark:hover:text-white transition-colors"
+                    title="Bỏ lọc độ khó"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {(currentMinCookTime || currentMaxCookTime) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700 shadow-sm">
+                  Thời gian: {currentMinCookTime ? `${currentMinCookTime}p - ` : "< "}{currentMaxCookTime ? `${currentMaxCookTime}p` : "> 60p"}
+                  <button
+                    type="button"
+                    onClick={() => updateFilters({ MinCookTimeMinutes: "", MaxCookTimeMinutes: "" })}
+                    className="hover:text-stone-900 dark:hover:text-white transition-colors"
+                    title="Bỏ lọc thời gian"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {(currentMinServings || currentMaxServings) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700 shadow-sm">
+                  Khẩu phần: {currentMinServings && currentMaxServings ? `${currentMinServings} - ${currentMaxServings} người` : currentMinServings ? `> 4 người` : ""}
+                  <button
+                    type="button"
+                    onClick={() => updateFilters({ MinServings: "", MaxServings: "" })}
+                    className="hover:text-stone-900 dark:hover:text-white transition-colors"
+                    title="Bỏ lọc khẩu phần"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Báo lỗi nếu có */}
           {error && (
             <Alert variant="error" title="Không thể tải danh sách công thức">

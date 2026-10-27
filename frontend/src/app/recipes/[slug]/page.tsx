@@ -807,7 +807,7 @@ export default function RecipeDetailPage() {
                         </div>
 
                         {/* Đồng hồ hẹn giờ đếm ngược cho bước nếu có TimerMinutes */}
-                        {step.timerMinutes != null && step.timerMinutes > 0 && (
+                        {step.timerMinutes != null && step.timerMinutes > 0 ? (
                           <StepTimer timerMinutes={step.timerMinutes} stepNumber={step.stepNumber} />
                         ) : null}
 
