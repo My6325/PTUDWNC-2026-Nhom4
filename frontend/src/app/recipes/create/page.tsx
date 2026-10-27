@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,8 @@ import {
   AlertCircle,
   HelpCircle,
   Flame,
+  Image as ImageIcon,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,8 +27,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { categoryService } from "@/services/categoryService";
+import { recipeService } from "@/services/recipeService";
 import { CategoryDto } from "@/types/category";
+import { CreateRecipeDraftRequest, RecipeDifficulty } from "@/types/recipe";
 import { useAuthStore } from "@/stores/auth-store";
+import { extractApiErrorMessage } from "@/utils/apiError";
 import { cn } from "@/lib/utils";
 
 interface IngredientFormItem {
@@ -44,13 +49,20 @@ interface StepFormItem {
   timerMinutes: string;
 }
 
+const difficultyMap: Record<string, RecipeDifficulty> = {
+  Easy: RecipeDifficulty.Easy,
+  Medium: RecipeDifficulty.Medium,
+  Hard: RecipeDifficulty.Hard,
+};
+
 /**
  * Trang Soạn thảo & Tạo Công thức Món ăn Mới (/recipes/create)
  * Chuẩn Budget Bytes: Bố cục 2 cột chuyên nghiệp, Danh sách Nguyên liệu động,
- * Các bước nấu động kèm Hẹn giờ, Khung tải ảnh kéo thả & Live Preview thẻ món ăn.
+ * Các bước nấu động kèm Hẹn giờ, Tải ảnh trực tiếp lên Supabase Storage & Live Preview thẻ món ăn.
  */
 export default function CreateRecipePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuthStore();
 
   // Dữ liệu danh mục
@@ -66,6 +78,10 @@ export default function CreateRecipePage() {
   const [cookTimeMinutes, setCookTimeMinutes] = useState<string>("30");
   const [servings, setServings] = useState<string>("4");
   const [imageUrl, setImageUrl] = useState<string>("");
+
+  // Tệp ảnh tải lên từ thiết bị
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
 
   // Nguyên liệu động
   const [ingredients, setIngredients] = useState<IngredientFormItem[]>([
@@ -113,6 +129,20 @@ export default function CreateRecipePage() {
     loadCategories();
   }, []);
 
+  // Xử lý chọn tệp ảnh
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMessage("Kích thước hình ảnh không được vượt quá 5MB.");
+        return;
+      }
+      setSelectedFile(file);
+      const objUrl = URL.createObjectURL(file);
+      setFilePreviewUrl(objUrl);
+    }
+  };
+
   // Xử lý thêm/xóa nguyên liệu
   const handleAddIngredient = () => {
     const newItem: IngredientFormItem = {
@@ -158,31 +188,117 @@ export default function CreateRecipePage() {
     );
   };
 
-  // Submit tạo bản nháp
-  const handleSaveDraft = (e: React.FormEvent) => {
+  // Submit tạo công thức (bản nháp hoặc xuất bản ngay)
+  const handleSubmitRecipe = async (e: React.FormEvent, shouldPublish: boolean = false) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!title.trim()) {
+    if (!isAuthenticated) {
+      setErrorMessage("Vui lòng đăng nhập để lưu công thức món ăn.");
+      router.push("/login?redirect=/recipes/create");
+      return;
+    }
+
+    if (!title.trim() || title.trim().length < 5) {
       setErrorMessage("Vui lòng nhập tiêu đề cho món ăn (từ 5 đến 200 ký tự).");
       return;
     }
 
+    const prep = parseInt(prepTimeMinutes, 10);
+    const cook = parseInt(cookTimeMinutes, 10);
+    const serv = parseInt(servings, 10);
+
+    if (isNaN(prep) || prep <= 0) {
+      setErrorMessage("Thời gian chuẩn bị phải lớn hơn 0 phút.");
+      return;
+    }
+    if (isNaN(cook) || cook <= 0) {
+      setErrorMessage("Thời gian nấu nướng phải lớn hơn 0 phút.");
+      return;
+    }
+    if (isNaN(serv) || serv <= 0) {
+      setErrorMessage("Khẩu phần ăn phải lớn hơn 0 người.");
+      return;
+    }
+
+    const validSteps = steps
+      .filter((s) => s.description.trim())
+      .map((s, idx) => ({
+        title: s.title.trim() || `Bước ${idx + 1}`,
+        description: s.description.trim(),
+        timerMinutes: s.timerMinutes && parseInt(s.timerMinutes, 10) > 0 ? parseInt(s.timerMinutes, 10) : undefined,
+      }));
+
+    const validIngredients = ingredients
+      .filter((i) => i.name.trim())
+      .map((i) => ({
+        name: i.name.trim(),
+        quantity: i.quantity && parseFloat(i.quantity) > 0 ? parseFloat(i.quantity) : undefined,
+        unit: i.unit.trim() || undefined,
+        notes: i.notes.trim() || undefined,
+      }));
+
+    const payload: CreateRecipeDraftRequest = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      categoryId: categoryId || undefined,
+      prepTimeMinutes: prep,
+      cookTimeMinutes: cook,
+      servings: serv,
+      difficulty: difficultyMap[difficulty] ?? RecipeDifficulty.Easy,
+      steps: validSteps.length > 0 ? validSteps : undefined,
+      ingredients: validIngredients.length > 0 ? validIngredients : undefined,
+    };
+
     setIsSubmitting(true);
 
-    // Giả lập lưu bản nháp theo hợp đồng API FR-RCP-003
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSuccessMessage("Đã lưu bản nháp công thức thành công vào sổ tay ẩm thực của bạn!");
+    try {
+      // 1. Gọi API tạo bản nháp (FR-RCP-003)
+      const created = await recipeService.createDraft(payload);
+
+      // 2. Nếu có tệp ảnh tải lên, gửi lên Supabase Storage (FR-FILE-001)
+      if (selectedFile) {
+        try {
+          await recipeService.uploadRecipeImage(created.id, selectedFile);
+        } catch (uploadErr) {
+          console.warn("Không thể tải ảnh lên Supabase:", uploadErr);
+        }
+      }
+
+      // 3. Nếu người dùng chọn Xuất bản ngay (FR-RCP-007)
+      if (shouldPublish) {
+        try {
+          await recipeService.publishRecipe(created.id);
+        } catch (pubErr) {
+          console.warn("Lỗi khi xuất bản công thức:", pubErr);
+        }
+      }
+
+      setSuccessMessage(
+        shouldPublish
+          ? "Đã xuất bản công thức món ăn thành công! Đang chuyển hướng..."
+          : "Đã lưu bản nháp công thức thành công vào sổ tay ẩm thực của bạn!"
+      );
+
       setTimeout(() => {
-        router.push("/recipes");
-      }, 2000);
-    }, 1000);
+        router.push(created.slug ? `/recipes/${created.slug}` : "/recipes");
+      }, 1500);
+    } catch (err: unknown) {
+      setErrorMessage(
+        extractApiErrorMessage(
+          err,
+          "Không thể lưu công thức món ăn. Vui lòng kiểm tra lại thông tin và kết nối mạng."
+        )
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const totalCookingMinutes = (parseInt(prepTimeMinutes, 10) || 0) + (parseInt(cookTimeMinutes, 10) || 0);
+  const displayPreviewImage = filePreviewUrl || imageUrl;
 
   return (
     <div className="min-h-screen bg-surface-warm py-8 sm:py-12">
@@ -193,10 +309,9 @@ export default function CreateRecipePage() {
             href="/recipes"
             className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 hover:text-brand-600 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Quay lại danh sách công thức</span>
+            <ArrowLeft className="w-4 h-4" /> Quay lại danh sách công thức
           </Link>
-          <div className="flex items-center gap-2 text-xs font-semibold text-stone-500 uppercase tracking-wider bg-white px-3 py-1.5 rounded-full border border-surface-border">
+          <div className="flex items-center gap-2 text-xs font-medium text-stone-500 bg-white px-3 py-1.5 rounded-full border border-surface-border">
             <ChefHat className="w-4 h-4 text-brand-600" />
             <span>Studio Soạn Thảo Món Ăn</span>
           </div>
@@ -211,6 +326,23 @@ export default function CreateRecipePage() {
             Chia sẻ bí quyết nấu nướng gia truyền hoặc món ăn thường ngày thơm ngon, chuẩn vị với cộng đồng ẩm thực Bếp Việt.
           </p>
         </div>
+
+        {/* Cảnh báo chưa đăng nhập */}
+        {!isAuthLoading && !isAuthenticated && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+              <p className="text-sm font-medium">
+                Bạn chưa đăng nhập. Hãy đăng nhập tài khoản để có thể lưu công thức vào hồ sơ cá nhân.
+              </p>
+            </div>
+            <Link href="/login?redirect=/recipes/create">
+              <Button size="sm" variant="default" leftIcon={<LogIn className="w-4 h-4" />}>
+                Đăng nhập ngay
+              </Button>
+            </Link>
+          </div>
+        )}
 
         {/* Báo lỗi / Thành công */}
         {errorMessage && (
@@ -227,7 +359,7 @@ export default function CreateRecipePage() {
         {/* Bố cục 2 cột chuẩn Budget Bytes */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* CỘT TRÁI: FORM SOẠN THẢO CHI TIẾT (8 Cột) */}
-          <form onSubmit={handleSaveDraft} className="lg:col-span-7 xl:col-span-8 space-y-8">
+          <form onSubmit={(e) => handleSubmitRecipe(e, false)} className="lg:col-span-7 xl:col-span-8 space-y-8">
             {/* Khối 1: Thông tin cơ bản */}
             <Card>
               <CardHeader>
@@ -316,7 +448,7 @@ export default function CreateRecipePage() {
                     </label>
                     <Input
                       type="number"
-                      min="0"
+                      min="1"
                       value={prepTimeMinutes}
                       onChange={(e) => setPrepTimeMinutes(e.target.value)}
                       leftIcon={<Clock className="w-4 h-4 text-stone-400" />}
@@ -328,7 +460,7 @@ export default function CreateRecipePage() {
                     </label>
                     <Input
                       type="number"
-                      min="0"
+                      min="1"
                       value={cookTimeMinutes}
                       onChange={(e) => setCookTimeMinutes(e.target.value)}
                       leftIcon={<Flame className="w-4 h-4 text-stone-400" />}
@@ -348,18 +480,48 @@ export default function CreateRecipePage() {
                   </div>
                 </div>
 
-                {/* Đường dẫn ảnh món ăn */}
-                <div className="pt-2">
-                  <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-                    Ảnh đại diện món ăn (URL)
+                {/* Tải ảnh món ăn: Tệp trực tiếp hoặc URL */}
+                <div className="pt-2 space-y-3">
+                  <label className="block text-sm font-semibold text-stone-800">
+                    Ảnh món ăn chính
                   </label>
-                  <Input
-                    placeholder="https://images.unsplash.com/photo-... (hoặc dán liên kết ảnh món ăn)"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    leftIcon={<UploadCloud className="w-4 h-4 text-stone-400" />}
-                    helperText="Mẹo: Nên sử dụng ảnh chụp ngang tỉ lệ 4:3 có ánh sáng tự nhiên ấm áp."
-                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Cách 1: Tải ảnh từ thiết bị lên Supabase */}
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-stone-300 hover:border-brand-500 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-stone-50/50 hover:bg-brand-50/20"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                      <ImageIcon className="w-8 h-8 text-stone-400 mb-2" />
+                      <p className="text-xs font-bold text-stone-700">
+                        {selectedFile ? selectedFile.name : "Tải ảnh từ máy tính"}
+                      </p>
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        Hỗ trợ JPG, PNG, WebP (Tối đa 5MB)
+                      </p>
+                    </div>
+
+                    {/* Cách 2: Dán đường dẫn URL */}
+                    <div className="flex flex-col justify-center">
+                      <Input
+                        placeholder="Hoặc dán URL: https://images.unsplash..."
+                        value={imageUrl}
+                        onChange={(e) => {
+                          setImageUrl(e.target.value);
+                          if (filePreviewUrl) setFilePreviewUrl(null);
+                        }}
+                        leftIcon={<UploadCloud className="w-4 h-4 text-stone-400" />}
+                        helperText="Liên kết ảnh trực tiếp từ Unsplash hoặc dịch vụ ảnh công khai."
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -368,11 +530,12 @@ export default function CreateRecipePage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-base sm:text-lg">
-                    2. Danh sách nguyên liệu cần chuẩn bị
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-brand-600" />
+                    <span>2. Danh sách nguyên liệu</span>
                   </CardTitle>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    Định lượng chuẩn giúp người nấu nêm nếm vừa miệng nhất.
+                  <p className="text-xs text-stone-500">
+                    Ghi rõ định lượng và mẹo chọn thực phẩm tươi ngon.
                   </p>
                 </div>
                 <Button
@@ -386,60 +549,69 @@ export default function CreateRecipePage() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-3">
-                {ingredients.map((item, index) => (
+                {ingredients.map((ing, idx) => (
                   <div
-                    key={item.id}
-                    className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-xl border border-stone-200/60 bg-stone-50/60"
+                    key={ing.id}
+                    className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200/60"
                   >
-                    <span className="text-xs font-bold text-stone-400 w-6 shrink-0 text-center">
-                      #{index + 1}
+                    <span className="w-6 text-xs font-bold text-stone-400 text-center shrink-0">
+                      #{idx + 1}
                     </span>
-                    <input
-                      type="text"
-                      placeholder="Tên nguyên liệu (VD: Thịt ba chỉ, Nước mắm...)"
-                      value={item.name}
-                      onChange={(e) => handleIngredientChange(item.id, "name", e.target.value)}
-                      className="flex-1 rounded-lg border border-surface-border bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-500"
-                    />
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Số lượng"
-                        value={item.quantity}
-                        onChange={(e) => handleIngredientChange(item.id, "quantity", e.target.value)}
-                        className="w-20 rounded-lg border border-surface-border bg-white px-2 py-2 text-sm text-center focus:outline-none focus:border-brand-500"
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Tên nguyên liệu (VD: Thịt nạc vai, Nước dừa...)"
+                        value={ing.name}
+                        onChange={(e) => handleIngredientChange(ing.id, "name", e.target.value)}
+                        required
                       />
-                      <input
-                        type="text"
-                        placeholder="Đơn vị (gam, thìa...)"
-                        value={item.unit}
-                        onChange={(e) => handleIngredientChange(item.id, "unit", e.target.value)}
-                        className="w-24 rounded-lg border border-surface-border bg-white px-2 py-2 text-sm text-center focus:outline-none focus:border-brand-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveIngredient(item.id)}
-                        disabled={ingredients.length <= 1}
-                        className="p-2 text-stone-400 hover:text-red-600 disabled:opacity-30 rounded-lg transition-colors"
-                        title="Xóa nguyên liệu này"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
+                    <div className="w-full sm:w-24">
+                      <Input
+                        placeholder="Số lượng"
+                        type="number"
+                        value={ing.quantity}
+                        onChange={(e) => handleIngredientChange(ing.id, "quantity", e.target.value)}
+                      />
+                    </div>
+                    <div className="w-full sm:w-28">
+                      <Input
+                        placeholder="Đơn vị (gam, ml)"
+                        value={ing.unit}
+                        onChange={(e) => handleIngredientChange(ing.id, "unit", e.target.value)}
+                      />
+                    </div>
+                    <div className="w-full sm:w-44">
+                      <Input
+                        placeholder="Ghi chú (băm nhỏ...)"
+                        value={ing.notes}
+                        onChange={(e) => handleIngredientChange(ing.id, "notes", e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveIngredient(ing.id)}
+                      disabled={ingredients.length <= 1}
+                      className="text-stone-400 hover:text-red-500 p-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            {/* Khối 3: Quản lý Các Bước Nấu Động */}
+            {/* Khối 3: Các bước thực hiện & Hẹn giờ */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-base sm:text-lg">
-                    3. Các bước thực hiện món ăn
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-brand-600" />
+                    <span>3. Quy trình từng bước chế biến</span>
                   </CardTitle>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    Hướng dẫn rõ ràng từng công đoạn kèm số phút hẹn giờ nếu cần.
+                  <p className="text-xs text-stone-500">
+                    Phân tách rõ từng công đoạn giúp người nấu dễ dàng theo dõi theo thời gian thực.
                   </p>
                 </div>
                 <Button
@@ -456,68 +628,75 @@ export default function CreateRecipePage() {
                 {steps.map((st, idx) => (
                   <div
                     key={st.id}
-                    className="p-4 rounded-xl border border-surface-border bg-white space-y-3 relative shadow-sm"
+                    className="p-4 rounded-xl bg-stone-50 border border-stone-200/60 space-y-3"
                   >
-                    <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-700 font-bold text-xs flex items-center justify-center border border-brand-200">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="w-7 h-7 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                           {idx + 1}
                         </span>
-                        <input
-                          type="text"
-                          placeholder={`Tiêu đề bước ${idx + 1}...`}
+                        <Input
+                          placeholder={`Tiêu đề bước (VD: Sơ chế, Ninh nước dùng...)`}
                           value={st.title}
                           onChange={(e) => handleStepChange(st.id, "title", e.target.value)}
-                          className="font-bold text-sm text-stone-800 bg-transparent border-none p-0 focus:outline-none focus:ring-0"
                         />
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-xs text-stone-500">
-                          <Clock className="w-3.5 h-3.5 text-brand-600" />
-                          <span>Hẹn giờ:</span>
-                          <input
+                      <div className="flex items-center gap-2">
+                        <div className="w-32">
+                          <Input
                             type="number"
                             min="0"
+                            placeholder="Phút đếm"
                             value={st.timerMinutes}
                             onChange={(e) => handleStepChange(st.id, "timerMinutes", e.target.value)}
-                            className="w-12 text-center rounded border border-surface-border px-1 py-0.5 text-xs"
+                            leftIcon={<Clock className="w-3.5 h-3.5 text-stone-400" />}
                           />
-                          <span>phút</span>
                         </div>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleRemoveStep(st.id)}
                           disabled={steps.length <= 1}
-                          className="text-stone-400 hover:text-red-600 disabled:opacity-30"
-                          title="Xóa bước này"
+                          className="text-stone-400 hover:text-red-500 p-2"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     <textarea
-                      rows={2}
+                      rows={3}
                       placeholder="Mô tả cụ thể cách thao tác: độ lửa, dấu hiệu món ăn chín, mẹo nhỏ tránh bị khét..."
                       value={st.description}
                       onChange={(e) => handleStepChange(st.id, "description", e.target.value)}
-                      className="block w-full rounded-lg border border-stone-200 bg-stone-50/50 p-3 text-sm text-stone-800 focus:outline-none focus:border-brand-500 focus:bg-white transition-colors"
+                      className="block w-full rounded-lg border border-stone-200 bg-white p-3 text-sm text-stone-800 focus:outline-none focus:border-brand-500 transition-colors"
                     />
                   </div>
                 ))}
               </CardContent>
-              <CardFooter className="flex items-center justify-between pt-4">
+              <CardFooter className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-stone-100">
                 <Button href="/recipes" variant="ghost" size="md">
                   Hủy bỏ
                 </Button>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <Button
                     type="submit"
-                    variant="default"
+                    variant="outline"
                     size="md"
                     isLoading={isSubmitting}
                     leftIcon={<Save className="w-4 h-4" />}
                   >
-                    Lưu bản nháp công thức
+                    Lưu bản nháp
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="md"
+                    isLoading={isSubmitting}
+                    onClick={(e) => handleSubmitRecipe(e, true)}
+                    leftIcon={<Sparkles className="w-4 h-4" />}
+                  >
+                    Xuất bản ngay
                   </Button>
                 </div>
               </CardFooter>
@@ -543,10 +722,10 @@ export default function CreateRecipePage() {
               <div className="rounded-2xl border border-surface-border overflow-hidden bg-white shadow-md hover:shadow-lg transition-all">
                 {/* Ảnh món ăn preview */}
                 <div className="relative aspect-[4/3] bg-stone-100 flex items-center justify-center overflow-hidden">
-                  {imageUrl ? (
+                  {displayPreviewImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={imageUrl}
+                      src={displayPreviewImage}
                       alt={title || "Xem trước công thức"}
                       className="w-full h-full object-cover"
                       onError={(e) => {

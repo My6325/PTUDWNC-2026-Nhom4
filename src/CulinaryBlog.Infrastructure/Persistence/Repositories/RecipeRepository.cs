@@ -1,6 +1,7 @@
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.Features.Recipes.Queries;
 using CulinaryBlog.Application.Features.Recipes.GetBySlug;
+using CulinaryBlog.Application.Features.Recipes.Common;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Entities;
 using CulinaryBlog.Domain.Enums;
@@ -43,6 +44,7 @@ public sealed class RecipeRepository : IRecipeRepository
 
     public async Task<RecipeDetailDto?> GetDetailBySlugAsync(string slug, CancellationToken cancellationToken)
     {
+        var isGuid = Guid.TryParse(slug, out var recipeId);
         var result = await _dbContext.Recipes
             .AsNoTracking()
             .AsSplitQuery()
@@ -50,7 +52,7 @@ public sealed class RecipeRepository : IRecipeRepository
             .Include(recipe => recipe.Ingredients)
             .Include(recipe => recipe.Images)
             .Include(recipe => recipe.Category)
-            .Where(recipe => recipe.Slug == slug && !recipe.IsDeleted)
+            .Where(recipe => !recipe.IsDeleted && (recipe.Slug == slug || (isGuid && recipe.Id == recipeId)))
             .Select(recipe => new
             {
                 Recipe = recipe,
@@ -87,7 +89,8 @@ public sealed class RecipeRepository : IRecipeRepository
             recipe.Images.Where(image => !image.IsDeleted).OrderByDescending(image => image.IsPrimary).ThenBy(image => image.OrderIndex).Select(image => new RecipeImageDto(
                 image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl, image.IsPrimary, image.OrderIndex)).ToArray(),
             new RecipeNutritionDto(recipe.Nutrition.Calories, recipe.Nutrition.Protein, recipe.Nutrition.Carbohydrates,
-                recipe.Nutrition.Fat, recipe.Nutrition.Fiber, recipe.Nutrition.Sodium));
+                recipe.Nutrition.Fat, recipe.Nutrition.Fiber, recipe.Nutrition.Sodium),
+            RecipeMappings.ToBytes(recipe.RowVersion));
     }
 
     public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)

@@ -21,7 +21,8 @@ public sealed record RecipeDetailDto(
     IReadOnlyList<RecipeStepDto> Steps,
     IReadOnlyList<RecipeIngredientDto> Ingredients,
     IReadOnlyList<RecipeImageDto> Images,
-    RecipeNutritionDto Nutrition);
+    RecipeNutritionDto Nutrition,
+    byte[]? RowVersion = null);
 
 public sealed record RecipeAuthorDto(string Name, string? AvatarUrl);
 public sealed record RecipeCategoryDto(Guid Id, string Name, string Slug);
