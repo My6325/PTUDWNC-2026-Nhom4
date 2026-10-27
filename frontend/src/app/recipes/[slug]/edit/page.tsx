@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -108,7 +108,7 @@ export default function EditRecipePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Tải dữ liệu công thức & danh mục
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!slug) return;
     setIsLoading(true);
     setLoadError(null);
@@ -170,11 +170,11 @@ export default function EditRecipePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [slug]);
 
   useEffect(() => {
     loadData();
-  }, [slug]);
+  }, [loadData]);
 
   // Kiểm tra quyền sở hữu hoặc Quản trị viên
   const isOwnerOrAdmin = Boolean(
