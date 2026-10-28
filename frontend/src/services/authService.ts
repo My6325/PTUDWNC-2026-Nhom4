@@ -5,6 +5,10 @@ import {
   AuthResponseDto,
   UserDto,
   UpdateProfileRequest,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  ResetPasswordRequest,
 } from "@/types/auth";
 
 export const AUTH_CHANGED_EVENT = "culinary_blog_auth_changed";
@@ -123,6 +127,30 @@ export const authService = {
     }
 
     return data;
+  },
+
+  /**
+   * Đổi mật khẩu cho người dùng hiện tại (POST /api/v1/auth/change-password)
+   */
+  async changePassword(request: ChangePasswordRequest): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>("/auth/change-password", request);
+    return response.data;
+  },
+
+  /**
+   * Gửi yêu cầu đặt lại mật khẩu qua email (POST /api/v1/auth/forgot-password)
+   */
+  async forgotPassword(request: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
+    const response = await apiClient.post<ForgotPasswordResponse>("/auth/forgot-password", request);
+    return response.data;
+  },
+
+  /**
+   * Đặt lại mật khẩu mới bằng token xác thực (POST /api/v1/auth/reset-password)
+   */
+  async resetPassword(request: ResetPasswordRequest): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>("/auth/reset-password", request);
+    return response.data;
   },
 
   /**
