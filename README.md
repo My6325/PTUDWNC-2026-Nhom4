@@ -184,3 +184,16 @@ Ghi rõ loại thay đổi ở đầu thông điệp commit:
 - `refactor:` Tối ưu / dọn dẹp mã nguồn
 - `docs:` Cập nhật tài liệu
 - `test:` Bổ sung kiểm thử
+
+### 4.4. Quy chuẩn tải và tạo nhánh
+1. **Lấy code mới nhất từ main:** 
+git checkout main
+git pull 
+
+2. **Tạo và chuyển sang nhánh mới:**
+git checkout -b <tên_nhánh>
+
+3. **Push code lên nhánh đang làm:**
+git push -u origin <tên-nhánh>
+
+4. **Tạo pull request vào nhánh main**
