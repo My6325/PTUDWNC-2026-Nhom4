@@ -105,7 +105,7 @@ var corsAllowedOrigins = builder.Configuration["FRONTEND_ORIGINS"]
 var allowedOrigins = !string.IsNullOrWhiteSpace(corsAllowedOrigins)
     ? corsAllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     : builder.Environment.IsDevelopment()
-        ? ["http://localhost:3000", "https://localhost:3000"]
+        ? ["http://localhost:3000", "https://localhost:3000", "http://localhost:3001", "https://localhost:3001"]
         : Array.Empty<string>();
 
 builder.Services.AddCors(options =>
