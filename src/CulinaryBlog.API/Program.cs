@@ -295,6 +295,7 @@ var apiVersionSet = app.NewApiVersionSet()
 app.MapCategoryEndpoints(apiVersionSet);
 app.MapRecipeEndpoints(apiVersionSet);
 app.MapAuthEndpoints(apiVersionSet);
+app.MapUserEndpoints(apiVersionSet);
 
 // 15. Tuyến sitemap public phục vụ tìm kiếm SEO
 app.MapGet("/sitemap.xml", async (IConfiguration configuration, SitemapGenerationJob sitemapJob, CancellationToken ct) =>

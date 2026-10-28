@@ -67,8 +67,8 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             throw new UnprocessableEntityException("IDENTITY_CREATE_FAILED", $"Lỗi tạo tài khoản: {errors}");
         }
 
-        // 4. Thêm role Author (role mặc định)
-        var roleResult = await _userManager.AddToRoleAsync(user, "Author");
+        // 4. Thêm role User (role mặc định cho tài khoản đăng ký mới)
+        var roleResult = await _userManager.AddToRoleAsync(user, "User");
         if (!roleResult.Succeeded)
         {
             var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
@@ -76,7 +76,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         }
 
         // 5. Sinh accessToken
-        var roles = new List<string> { "Author" };
+        var roles = new List<string> { "User" };
         var accessToken = _jwtService.GenerateAccessToken(user, roles);
 
         // 6. Sinh refreshToken và lưu hash vào DB

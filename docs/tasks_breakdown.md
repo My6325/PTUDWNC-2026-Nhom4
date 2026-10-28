@@ -226,7 +226,7 @@ Mỗi thành viên trong nhóm đều trực tiếp đảm nhận đầy đủ 3
   - `public record LoginRequest(string Email, string Password);`
 - [x] **CQRS Commands, Validators & Handlers:**
   - Tạo `RegisterCommand` & `RegisterValidator` (Email regex chuẩn, mật khẩu tối thiểu 8 ký tự đủ hoa, thường, số, ký tự đặc biệt).
-  - Tạo `RegisterCommandHandler`: Gọi `UserManager.CreateAsync()` (mật khẩu băm PBKDF2), gán role mặc định `"Author"`, sinh cặp token, lưu RefreshToken băm SHA-256 vào Supabase DB, trả về `AuthResponseDto` và tự động enqueue `WelcomeEmailJob`.
+  - Tạo `RegisterCommandHandler`: Gọi `UserManager.CreateAsync()` (mật khẩu băm PBKDF2), gán role mặc định `"User"` (Độc giả - chuẩn RBAC), sinh cặp token, lưu RefreshToken băm SHA-256 vào Supabase DB, trả về `AuthResponseDto` và tự động enqueue `WelcomeEmailJob`.
   - Tạo `LoginCommand` & `LoginValidator`.
   - Tạo `LoginCommandHandler`: Gọi `UserManager.FindByEmailAsync()`, kiểm tra mật khẩu. Cài đặt cơ chế **Account Lockout**: nếu nhập sai 5 lần liên tiếp (`AccessFailedCount >= 5`), tạm khóa tài khoản trong 15 phút và trả về `HTTP 423 Locked`.
 - [x] **API Endpoints trong `AuthEndpoints.cs`:**
