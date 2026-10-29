@@ -1,4 +1,4 @@
-using Bogus;
+﻿using Bogus;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Entities;
 using CulinaryBlog.Domain.Enums;
@@ -18,171 +18,173 @@ public static class RecipeSeeder
     // NormalizedName của vai trò Author trong ASP.NET Core Identity.
     private const string AuthorRoleName = "AUTHOR";
 
+    private const string SupabaseStorageBaseUrl = "https://ckhzgvwmaldvbxgoimjo.supabase.co/storage/v1/object/public/culinary-blog/recipes/covers/";
+
     private sealed record DishTemplate(string Title, string ImageUrl);
 
     private static readonly DishTemplate[] DefaultTemplates =
     [
-        new("Món ngon gia đình thanh đạm", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c")
+        new("Món ngon gia đình thanh đạm", SupabaseStorageBaseUrl + "com-chien.jpg")
     ];
 
     /// <summary>
     /// Ma trận phân loại món ăn chuẩn ngữ nghĩa (Semantic Category Mapping).
-    /// Ánh xạ chính xác Slug danh mục ẩm thực sang các món ăn thực tế và ảnh tương ứng.
+    /// Ánh xạ chính xác Slug danh mục ẩm thực sang các món ăn thực tế và ảnh tương ứng trên Supabase Storage CDN.
     /// </summary>
     private static readonly Dictionary<string, DishTemplate[]> CategoryDishMap = new()
     {
         ["mon-khai-vi"] =
         [
-            new("Gỏi cuốn tôm thịt thanh đạm", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb"),
-            new("Nem rán giòn truyền thống", "https://images.unsplash.com/photo-1541544741938-0af808871cc0"),
-            new("Salad ức gà xé phay", "https://images.unsplash.com/photo-1540420773420-3366772f4999")
+            new("Gỏi cuốn tôm thịt thanh đạm", SupabaseStorageBaseUrl + "goi-cuon.jpg"),
+            new("Nem rán giòn truyền thống", SupabaseStorageBaseUrl + "cha-gio.jpg"),
+            new("Salad ức gà xé phay", SupabaseStorageBaseUrl + "goi-ga.jpg")
         ],
         ["mon-canh-sup"] =
         [
-            new("Canh chua cá lóc Nam Bộ", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
-            new("Cháo gà nấm hương nóng hổi", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
-            new("Canh sườn hầm rau củ", "https://images.unsplash.com/photo-1547592166-23ac45744acd")
+            new("Canh chua cá lóc Nam Bộ", SupabaseStorageBaseUrl + "canh-chua-ca-loc.jpg"),
+            new("Cháo gà nấm hương nóng hổi", SupabaseStorageBaseUrl + "chao-ga.jpg"),
+            new("Canh sườn hầm rau củ", SupabaseStorageBaseUrl + "canh-chua-ca-loc.jpg")
         ],
         ["mon-kho-rim"] =
         [
-            new("Cá kho tộ nước dừa", "https://images.unsplash.com/photo-1544025162-d76694265947"),
-            new("Thịt kho trứng kiểu miền Nam", "https://images.unsplash.com/photo-1544025162-d76694265947"),
-            new("Tôm rim mặn ngọt đưa cơm", "https://images.unsplash.com/photo-1534939561126-855b8675edd7")
+            new("Cá kho tộ nước dừa", SupabaseStorageBaseUrl + "ca-kho-to.jpg"),
+            new("Thịt kho trứng kiểu miền Nam", SupabaseStorageBaseUrl + "thit-kho-trung.jpg"),
+            new("Tôm rim mặn ngọt đưa cơm", SupabaseStorageBaseUrl + "tom-rim.jpg")
         ],
         ["mon-xao-ap-chao"] =
         [
-            new("Bò lúc lắc sốt tiêu đen", "https://images.unsplash.com/photo-1558030006-450675393462"),
-            new("Mực xào sa tế giòn ngọt", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
-            new("Cá hồi áp chảo sốt bơ tỏi", "https://images.unsplash.com/photo-1467003909585-2f8a72700288"),
-            new("Rau muống xào tỏi xanh mướt", "https://images.unsplash.com/photo-1540420773420-3366772f4999")
+            new("Bò lúc lắc sốt tiêu đen", SupabaseStorageBaseUrl + "bo-luc-lac.jpg"),
+            new("Mực xào sa tế giòn ngọt", SupabaseStorageBaseUrl + "muc-xao.jpg"),
+            new("Cá hồi áp chảo sốt bơ tỏi", SupabaseStorageBaseUrl + "tom-rim.jpg"),
+            new("Rau muống xào tỏi xanh mướt", SupabaseStorageBaseUrl + "rau-muong-xao-toi.jpg")
         ],
         ["mon-chien-ran"] =
         [
-            new("Nem rán giòn Hà Nội", "https://images.unsplash.com/photo-1541544741938-0af808871cc0"),
-            new("Bánh xèo miền Tây giòn rụm", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8"),
-            new("Cánh gà chiên nước mắm", "https://images.unsplash.com/photo-1562967914-608f82629710")
+            new("Nem rán giòn Hà Nội", SupabaseStorageBaseUrl + "cha-gio.jpg"),
+            new("Bánh xèo miền Tây giòn rụm", SupabaseStorageBaseUrl + "banh-xeo.jpg"),
+            new("Cánh gà chiên nước mắm", SupabaseStorageBaseUrl + "ga-nuong.jpg")
         ],
         ["mon-nuong-bbq"] =
         [
-            new("Gà nướng mật ong sả ớt", "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b"),
-            new("Bún thịt nướng than hoa", "https://images.unsplash.com/photo-1559847844-5315695dadae"),
-            new("Sườn heo nướng mật ong", "https://images.unsplash.com/photo-1544025162-d76694265947")
+            new("Gà nướng mật ong sả ớt", SupabaseStorageBaseUrl + "ga-nuong.jpg"),
+            new("Bún thịt nướng than hoa", SupabaseStorageBaseUrl + "bun-thit-nuong.jpg"),
+            new("Sườn heo nướng mật ong", SupabaseStorageBaseUrl + "suon-xao-chua-ngot.jpg")
         ],
         ["mon-hap-luoc"] =
         [
-            new("Gà ta hấp lá chanh", "https://images.unsplash.com/photo-1587593810167-a84920ea0781"),
-            new("Tôm sú hấp nước dừa", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
-            new("Thịt ba chỉ luộc chấm mắm tỏi", "https://images.unsplash.com/photo-1544025162-d76694265947")
+            new("Gà ta hấp lá chanh", SupabaseStorageBaseUrl + "ga-luoc-la-chanh.jpg"),
+            new("Tôm sú hấp nước dừa", SupabaseStorageBaseUrl + "tom-rim.jpg"),
+            new("Thịt ba chỉ luộc chấm mắm tỏi", SupabaseStorageBaseUrl + "thit-kho-trung.jpg")
         ],
         ["bun-mi-pho"] =
         [
-            new("Phở bò tái nạm Hà Nội", "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43"),
-            new("Bún bò Huế sa tế đậm đà", "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec"),
-            new("Mì Quảng gà ta chính gốc", "https://images.unsplash.com/photo-1569718212165-3a8278d5f624"),
-            new("Bún thịt nướng chả giò", "https://images.unsplash.com/photo-1559847844-5315695dadae")
+            new("Phở bò tái nạm Hà Nội", SupabaseStorageBaseUrl + "pho-bo.jpg"),
+            new("Bún bò Huế sa tế đậm đà", SupabaseStorageBaseUrl + "bun-bo-hue.jpg"),
+            new("Mì Quảng gà ta chính gốc", SupabaseStorageBaseUrl + "mi-quang.jpg"),
+            new("Bún thịt nướng chả giò", SupabaseStorageBaseUrl + "bun-thit-nuong.jpg")
         ],
         ["com-xoi"] =
         [
-            new("Cơm tấm sườn bì chả Sài Gòn", "https://images.unsplash.com/photo-1504674900247-0877df9cc836"),
-            new("Xôi gấc đậu xanh dẻo thơm", "https://images.unsplash.com/photo-1509722747041-616f39b57569"),
-            new("Cơm chiên hải sản hoàng kim", "https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6")
+            new("Cơm tấm sườn bì chả Sài Gòn", SupabaseStorageBaseUrl + "com-tam.jpg"),
+            new("Xôi gấc đậu xanh dẻo thơm", SupabaseStorageBaseUrl + "xoi-gac.jpg"),
+            new("Cơm chiên hải sản hoàng kim", SupabaseStorageBaseUrl + "com-chien.jpg")
         ],
         ["mon-cuon-goi"] =
         [
-            new("Gỏi cuốn tôm thịt chấm tương đen", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb"),
-            new("Gỏi gà bắp cải hành tây", "https://images.unsplash.com/photo-1540420773420-3366772f4999"),
-            new("Gỏi ngó sen tôm thịt chua ngọt", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb")
+            new("Gỏi cuốn tôm thịt chấm tương đen", SupabaseStorageBaseUrl + "goi-cuon.jpg"),
+            new("Gỏi gà bắp cải hành tây", SupabaseStorageBaseUrl + "goi-ga.jpg"),
+            new("Gỏi ngó sen tôm thịt chua ngọt", SupabaseStorageBaseUrl + "goi-cuon.jpg")
         ],
         ["mon-lau-nong-hoi"] =
         [
-            new("Lẩu thái hải sản chua cay", "https://images.unsplash.com/photo-1547496502-affa22d38842"),
-            new("Lẩu gà nấm thanh ngọt", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
-            new("Lẩu riêu cua bắp bò", "https://images.unsplash.com/photo-1569718212165-3a8278d5f624")
+            new("Lẩu thái hải sản chua cay", SupabaseStorageBaseUrl + "lau-hai-san.jpg"),
+            new("Lẩu gà nấm thanh ngọt", SupabaseStorageBaseUrl + "chao-ga.jpg"),
+            new("Lẩu riêu cua bắp bò", SupabaseStorageBaseUrl + "lau-hai-san.jpg")
         ],
         ["hai-san-bien"] =
         [
-            new("Mực xào sa tế cay nồng", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
-            new("Cá hồi áp chảo sốt chanh leo", "https://images.unsplash.com/photo-1467003909585-2f8a72700288"),
-            new("Tôm rim mặn ngọt miền Trung", "https://images.unsplash.com/photo-1534939561126-855b8675edd7"),
-            new("Chả cá thì là Hà Thành", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb")
+            new("Mực xào sa tế cay nồng", SupabaseStorageBaseUrl + "muc-xao.jpg"),
+            new("Cá hồi áp chảo sốt chanh leo", SupabaseStorageBaseUrl + "tom-rim.jpg"),
+            new("Tôm rim mặn ngọt miền Trung", SupabaseStorageBaseUrl + "tom-rim.jpg"),
+            new("Chả cá thì là Hà Thành", SupabaseStorageBaseUrl + "cha-ca-la-vong.jpg")
         ],
         ["mon-bo-dam-vi"] =
         [
-            new("Bò lúc lắc sốt tiêu đen mềm ngon", "https://images.unsplash.com/photo-1558030006-450675393462"),
-            new("Bò sốt vang bánh mì", "https://images.unsplash.com/photo-1558030006-450675393462"),
-            new("Phở bò tái lăn áp chảo", "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43")
+            new("Bò lúc lắc sốt tiêu đen mềm ngon", SupabaseStorageBaseUrl + "bo-luc-lac.jpg"),
+            new("Bò sốt vang bánh mì", SupabaseStorageBaseUrl + "bo-luc-lac.jpg"),
+            new("Phở bò tái lăn áp chảo", SupabaseStorageBaseUrl + "pho-bo.jpg")
         ],
         ["mon-heo-gia-dinh"] =
         [
-            new("Thịt kho trứng cút kiểu miền Nam", "https://images.unsplash.com/photo-1544025162-d76694265947"),
-            new("Sườn xào chua ngọt chuẩn vị", "https://images.unsplash.com/photo-1544025162-d76694265947"),
-            new("Thịt ba chỉ luộc mắm nêm", "https://images.unsplash.com/photo-1544025162-d76694265947")
+            new("Thịt kho trứng cút kiểu miền Nam", SupabaseStorageBaseUrl + "thit-kho-trung.jpg"),
+            new("Sườn xào chua ngọt chuẩn vị", SupabaseStorageBaseUrl + "suon-xao-chua-ngot.jpg"),
+            new("Thịt ba chỉ luộc mắm nêm", SupabaseStorageBaseUrl + "thit-kho-trung.jpg")
         ],
         ["mon-ga-vit"] =
         [
-            new("Gà nướng mật ong sả ớt thơm lừng", "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b"),
-            new("Vịt om sấu chua thanh Hà Nội", "https://images.unsplash.com/photo-1587593810167-a84920ea0781"),
-            new("Gỏi gà bắp cải hoa chuối", "https://images.unsplash.com/photo-1540420773420-3366772f4999")
+            new("Gà nướng mật ong sả ớt thơm lừng", SupabaseStorageBaseUrl + "ga-nuong.jpg"),
+            new("Vịt om sấu chua thanh Hà Nội", SupabaseStorageBaseUrl + "ga-luoc-la-chanh.jpg"),
+            new("Gỏi gà bắp cải hoa chuối", SupabaseStorageBaseUrl + "goi-ga.jpg")
         ],
         ["mon-chay-thanh-tinh"] =
         [
-            new("Đậu hũ sốt cà chua nấm đông cô", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"),
-            new("Rau muống xào tỏi chay thanh nhẹ", "https://images.unsplash.com/photo-1540420773420-3366772f4999"),
-            new("Nấm kho tiêu chay đưa cơm", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c")
+            new("Đậu hũ sốt cà chua nấm đông cô", SupabaseStorageBaseUrl + "dau-hu-sot-ca.jpg"),
+            new("Rau muống xào tỏi chay thanh nhẹ", SupabaseStorageBaseUrl + "rau-muong-xao-toi.jpg"),
+            new("Nấm kho tiêu chay đưa cơm", SupabaseStorageBaseUrl + "dau-hu-sot-ca.jpg")
         ],
         ["an-vat-duong-pho"] =
         [
-            new("Bánh xèo giòn rụm đường phố", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8"),
-            new("Bánh mì que pate giòn tan", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb"),
-            new("Nem chua rán giòn rụm", "https://images.unsplash.com/photo-1541544741938-0af808871cc0")
+            new("Bánh xèo giòn rụm đường phố", SupabaseStorageBaseUrl + "banh-xeo.jpg"),
+            new("Bánh mì que pate giòn tan", SupabaseStorageBaseUrl + "banh-mi.jpg"),
+            new("Nem chua rán giòn rụm", SupabaseStorageBaseUrl + "cha-gio.jpg")
         ],
         ["banh-mi-sandwich"] =
         [
-            new("Bánh mì pate trứng ốp la", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb"),
-            new("Bánh mì xíu mại sốt cà chua", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb"),
-            new("Bánh mì kẹp thịt nướng giòn bì", "https://images.unsplash.com/photo-1626804475297-41608ea09aeb")
+            new("Bánh mì pate trứng ốp la", SupabaseStorageBaseUrl + "banh-mi.jpg"),
+            new("Bánh mì xíu mại sốt cà chua", SupabaseStorageBaseUrl + "banh-mi.jpg"),
+            new("Bánh mì kẹp thịt nướng giòn bì", SupabaseStorageBaseUrl + "banh-mi.jpg")
         ],
         ["banh-ngot-banh-nuong"] =
         [
-            new("Bánh flan cà phê caramel mềm mịn", "https://images.unsplash.com/photo-1578985545062-69928b1d9587"),
-            new("Bánh bông lan trứng muối chà bông", "https://images.unsplash.com/photo-1578985545062-69928b1d9587"),
-            new("Bánh chuối nướng nước cốt dừa", "https://images.unsplash.com/photo-1578985545062-69928b1d9587")
+            new("Bánh flan cà phê caramel mềm mịn", SupabaseStorageBaseUrl + "banh-flan.jpg"),
+            new("Bánh bông lan trứng muối chà bông", SupabaseStorageBaseUrl + "banh-flan.jpg"),
+            new("Bánh chuối nướng nước cốt dừa", SupabaseStorageBaseUrl + "banh-flan.jpg")
         ],
         ["che-trang-mieng"] =
         [
-            new("Chè đậu xanh nha đam thanh nhiệt", "https://images.unsplash.com/photo-1551024709-8f23befc6f87"),
-            new("Bánh flan caramen cà phê", "https://images.unsplash.com/photo-1578985545062-69928b1d9587"),
-            new("Chè bưởi nước cốt dừa An Giang", "https://images.unsplash.com/photo-1551024709-8f23befc6f87")
+            new("Chè đậu xanh nha đam thanh nhiệt", SupabaseStorageBaseUrl + "che-dau-xanh.jpg"),
+            new("Bánh flan caramen cà phê", SupabaseStorageBaseUrl + "banh-flan.jpg"),
+            new("Chè bưởi nước cốt dừa An Giang", SupabaseStorageBaseUrl + "che-dau-xanh.jpg")
         ],
         ["do-uong-sinh-to"] =
         [
-            new("Sinh tố bơ sữa đặc béo ngậy", "https://images.unsplash.com/photo-1553530666-ba11a7da3888"),
-            new("Sinh tố xoài sữa chua mát lạnh", "https://images.unsplash.com/photo-1553530666-ba11a7da3888"),
-            new("Nước ép dưa hấu bạc hà", "https://images.unsplash.com/photo-1553530666-ba11a7da3888")
+            new("Sinh tố bơ sữa đặc béo ngậy", SupabaseStorageBaseUrl + "sinh-to-bo.jpg"),
+            new("Sinh tố xoài sữa chua mát lạnh", SupabaseStorageBaseUrl + "sinh-to-bo.jpg"),
+            new("Nước ép dưa hấu bạc hà", SupabaseStorageBaseUrl + "sinh-to-bo.jpg")
         ],
         ["tra-ca-phe"] =
         [
-            new("Cà phê sữa đá pha phin đậm đà", "https://images.unsplash.com/photo-1509042239860-f550ce710b93"),
-            new("Cà phê đen đá nguyên chất", "https://images.unsplash.com/photo-1509042239860-f550ce710b93"),
-            new("Trà sen vàng hạt sen nhãn nhục", "https://images.unsplash.com/photo-1509042239860-f550ce710b93")
+            new("Cà phê sữa đá pha phin đậm đà", SupabaseStorageBaseUrl + "ca-phe-sua-da.jpg"),
+            new("Cà phê đen đá nguyên chất", SupabaseStorageBaseUrl + "ca-phe-sua-da.jpg"),
+            new("Trà sen vàng hạt sen nhãn nhục", SupabaseStorageBaseUrl + "ca-phe-sua-da.jpg")
         ],
         ["nuoc-cham-gia-vi"] =
         [
-            new("Nước mắm tỏi ớt chua ngọt chuẩn vị", "https://images.unsplash.com/photo-1544025162-d76694265947"),
-            new("Muối ớt xanh chấm hải sản nha trang", "https://images.unsplash.com/photo-1544025162-d76694265947"),
-            new("Sốt me chấm bánh tráng chua cay", "https://images.unsplash.com/photo-1544025162-d76694265947")
+            new("Nước mắm tỏi ớt chua ngọt chuẩn vị", SupabaseStorageBaseUrl + "cha-gio.jpg"),
+            new("Muối ớt xanh chấm hải sản nha trang", SupabaseStorageBaseUrl + "muc-xao.jpg"),
+            new("Sốt me chấm bánh tráng chua cay", SupabaseStorageBaseUrl + "goi-cuon.jpg")
         ],
         ["am-thuc-mien-bac"] =
         [
-            new("Phở bò tái chín phố cổ Hà Nội", "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43"),
-            new("Vịt om sấu chua thanh xứ Bắc", "https://images.unsplash.com/photo-1587593810167-a84920ea0781"),
-            new("Chả cá Lã Vọng thì là hành hoa", "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb")
+            new("Phở bò tái chín phố cổ Hà Nội", SupabaseStorageBaseUrl + "pho-bo.jpg"),
+            new("Vịt om sấu chua thanh xứ Bắc", SupabaseStorageBaseUrl + "ga-luoc-la-chanh.jpg"),
+            new("Chả cá Lã Vọng thì là hành hoa", SupabaseStorageBaseUrl + "cha-ca-la-vong.jpg")
         ],
         ["am-thuc-mien-nam"] =
         [
-            new("Cơm tấm sườn bì chả Sài Thành", "https://images.unsplash.com/photo-1504674900247-0877df9cc836"),
-            new("Canh chua cá lóc bông điên điển", "https://images.unsplash.com/photo-1547592166-23ac45744acd"),
-            new("Bánh xèo tôm nhảy miền Tây", "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8")
+            new("Cơm tấm sườn bì chả Sài Thành", SupabaseStorageBaseUrl + "com-tam.jpg"),
+            new("Canh chua cá lóc bông điên điển", SupabaseStorageBaseUrl + "canh-chua-ca-loc.jpg"),
+            new("Bánh xèo tôm nhảy miền Tây", SupabaseStorageBaseUrl + "banh-xeo.jpg")
         ]
     };
 
@@ -407,9 +409,7 @@ public static class RecipeSeeder
                 Title = StepTitles[Math.Min(stepNumber - 1, StepTitles.Length - 1)],
                 Description = faker.Lorem.Paragraph(),
                 TimerMinutes = faker.Random.Bool(0.7f) ? faker.Random.Int(3, 25) : null,
-                ImageUrl = faker.Random.Bool(0.4f)
-                    ? $"{StepImageUrls[(stepNumber - 1) % StepImageUrls.Length]}?w=900&auto=format&fit=crop&q=80"
-                    : null
+                ImageUrl = null
             });
         }
     }
