@@ -48,5 +48,7 @@ public interface IRecipeRepository
         bool onlyDeleted,
         int pageIndex,
         int pageSize,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken) =>
+        Task.FromResult(new CulinaryBlog.Domain.Common.PaginatedResult<CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes.AdminRecipeListDto>(
+            new List<CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes.AdminRecipeListDto>(), 0, pageIndex, pageSize));
 }
