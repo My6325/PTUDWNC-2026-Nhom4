@@ -16,6 +16,8 @@ import type {
   UpdateIngredientRequest,
   UpdateRecipeRequest,
   UpdateRecipeStepRequest,
+  AdminRecipeListDto,
+  GetAdminRecipesParams,
 } from "@/types/recipe";
 
 const recipePath = (id: string) => `/recipes/${encodeURIComponent(id)}`;
@@ -82,6 +84,23 @@ export const recipeService = {
 
   async unarchiveRecipe(id: string): Promise<void> {
     await apiClient.post<void>(`${recipePath(id)}/unarchive`);
+  },
+
+  async restoreRecipe(id: string): Promise<void> {
+    await apiClient.post<void>(`${recipePath(id)}/restore`);
+  },
+
+  async getAdminRecipes(params: GetAdminRecipesParams): Promise<PaginatedResult<AdminRecipeListDto>> {
+    const response = await apiClient.get<PaginatedResult<AdminRecipeListDto>>("/recipes/admin/all", {
+      params: {
+        SearchTerm: params.searchTerm || params.SearchTerm,
+        Status: params.status !== undefined ? params.status : params.Status,
+        OnlyDeleted: params.onlyDeleted !== undefined ? params.onlyDeleted : params.OnlyDeleted,
+        PageIndex: params.pageIndex || params.PageIndex || 1,
+        PageSize: params.pageSize || params.PageSize || 15,
+      },
+    });
+    return response.data;
   },
 
   // Steps

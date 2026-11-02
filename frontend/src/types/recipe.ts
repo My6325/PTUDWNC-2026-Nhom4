@@ -247,3 +247,32 @@ export interface RecipeImageResponseDto {
   isPrimary: boolean;
   orderIndex: number;
 }
+
+
+export interface AdminRecipeListDto {
+  id: string;
+  title: string;
+  slug: string;
+  coverImageUrl?: string | null;
+  categoryName?: string | null;
+  authorName: string;
+  difficulty: RecipeDifficulty | RecipeDifficultyValue;
+  status: RecipeStatus | RecipeStatusValue;
+  isDeleted: boolean;
+  createdAt: string;
+  deletedAt?: string | null;
+  publishedAt?: string | null;
+}
+
+export interface GetAdminRecipesParams {
+  searchTerm?: string;
+  SearchTerm?: string;
+  status?: number | string;
+  Status?: number | string;
+  onlyDeleted?: boolean;
+  OnlyDeleted?: boolean;
+  pageIndex?: number;
+  PageIndex?: number;
+  pageSize?: number;
+  PageSize?: number;
+}

@@ -24,6 +24,12 @@ public sealed class RecipeRepository : IRecipeRepository
             .FirstOrDefaultAsync(recipe => recipe.Id == id && !recipe.IsDeleted, cancellationToken);
     }
 
+    public Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return _dbContext.Recipes
+            .FirstOrDefaultAsync(recipe => recipe.Id == id && recipe.IsDeleted, cancellationToken);
+    }
+
     public Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken)
     {
         return _dbContext.Recipes
@@ -223,4 +229,81 @@ public sealed class RecipeRepository : IRecipeRepository
         return new PaginatedResult<RecipeListDto>(items, totalCount, pageIndex, pageSize);
     }
 
+    public async Task<PaginatedResult<CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes.AdminRecipeListDto>> GetAdminRecipesAsync(
+        string? searchTerm,
+        RecipeStatus? status,
+        bool onlyDeleted,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var offset = ((long)pageIndex - 1) * pageSize;
+        if (offset > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageIndex), "Pagination offset exceeds the supported range.");
+        }
+
+        var query = _dbContext.Recipes
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (onlyDeleted)
+        {
+            query = query.Where(r => r.IsDeleted);
+        }
+        else
+        {
+            query = query.Where(r => !r.IsDeleted);
+            if (status.HasValue)
+            {
+                query = query.Where(r => r.Status == status.Value);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToLower();
+            query = query.Where(r => r.Title.ToLower().Contains(term));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await (
+            from recipe in query.OrderByDescending(r => r.CreatedAt)
+            join author in _dbContext.Users.AsNoTracking()
+                on recipe.AuthorId equals author.Id into authors
+            from author in authors.DefaultIfEmpty()
+            select new CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes.AdminRecipeListDto
+            {
+                Id = recipe.Id,
+                Title = recipe.Title,
+                Slug = recipe.Slug,
+                CoverImageUrl = recipe.Images
+                    .Where(image => image.IsPrimary && !image.IsDeleted)
+                    .OrderBy(image => image.OrderIndex)
+                    .ThenBy(image => image.Id)
+                    .Select(image => image.MediumUrl ?? image.OriginalUrl)
+                    .FirstOrDefault()
+                    ?? recipe.Images
+                    .Where(image => !image.IsDeleted)
+                    .OrderBy(image => image.OrderIndex)
+                    .ThenBy(image => image.Id)
+                    .Select(image => image.MediumUrl ?? image.OriginalUrl)
+                    .FirstOrDefault(),
+                CategoryName = recipe.Category == null ? null : recipe.Category.Name,
+                AuthorName = author == null ? string.Empty : author.DisplayName,
+                Difficulty = recipe.Difficulty,
+                Status = recipe.Status,
+                IsDeleted = recipe.IsDeleted,
+                CreatedAt = recipe.CreatedAt,
+                DeletedAt = recipe.DeletedAt,
+                PublishedAt = recipe.PublishedAt
+            })
+            .Skip((int)offset)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PaginatedResult<CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes.AdminRecipeListDto>(
+            items, totalCount, pageIndex, pageSize);
+    }
 }
