@@ -37,7 +37,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { extractApiErrorMessage } from "@/utils/apiError";
 import { cn } from "@/utils/cn";
 
-type StatusTab = "all" | "published" | "draft" | "archived" | "trash";
+type StatusTab = "all" | "published" | "draft" | "trash";
 
 export default function AdminRecipesPage() {
   const router = useRouter();
@@ -86,7 +86,6 @@ export default function AdminRecipesPage() {
 
       if (activeTab === "published") statusParam = 2;
       else if (activeTab === "draft") statusParam = 1;
-      else if (activeTab === "archived") statusParam = 3;
       else if (activeTab === "trash") onlyDeletedParam = true;
 
       const data = await recipeService.getAdminRecipes({
@@ -386,15 +385,6 @@ export default function AdminRecipesPage() {
                 )}
               >
                 Bản nháp
-              </button>
-              <button
-                onClick={() => { setActiveTab("archived"); setPageIndex(1); }}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-semibold rounded-md transition-colors",
-                  activeTab === "archived" ? "bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 shadow-xs" : "text-stone-600 dark:text-stone-400 hover:text-stone-900"
-                )}
-              >
-                Đã lưu trữ
               </button>
               <button
                 onClick={() => { setActiveTab("trash"); setPageIndex(1); }}
