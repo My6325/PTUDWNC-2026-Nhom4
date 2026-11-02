@@ -328,7 +328,7 @@ export default function AdminRecipesPage() {
                 Quản lý Danh mục
               </Button>
             </Link>
-            <Link href="/recipes/new">
+            <Link href="/recipes/create">
               <Button variant="default" size="sm" leftIcon={<Plus className="w-4 h-4" />} className="bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-xs">
                 Tạo công thức mới
               </Button>
