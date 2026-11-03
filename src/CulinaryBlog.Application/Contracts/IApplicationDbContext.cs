@@ -15,6 +15,7 @@ public interface IApplicationDbContext
     DbSet<RecipeIngredient> RecipeIngredients { get; }
     DbSet<RecipeImage> RecipeImages { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<SlugRedirect> SlugRedirects { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

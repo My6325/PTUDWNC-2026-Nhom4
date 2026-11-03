@@ -104,6 +104,7 @@ const CategoryRecipeCard: React.FC<{ recipe: CategoryRecipeSummaryDto }> = ({
 };
 
 export default function CategoryDetailPage() {
+  const router = useRouter();
   const params = useParams();
   const slug = typeof params?.slug === "string" ? params.slug : "";
 
@@ -124,6 +125,10 @@ export default function CategoryDetailPage() {
         const data = await categoryService.getCategoryBySlug(slug);
         if (isMounted) {
           setCategory(data);
+          // Điều hướng cập nhật URL nếu danh mục trả về có Slug mới (HTTP 301 SlugRedirect)
+          if (data.slug && data.slug.toLowerCase() !== slug.toLowerCase()) {
+            router.replace(`/categories/${data.slug}`);
+          }
         }
       } catch (err: unknown) {
         if (!isMounted) return;

@@ -55,6 +55,12 @@ if (currentDir != null)
     }
 }
 
+// Xác định đường dẫn thư mục logs tại gốc dự án để luôn dễ dàng quan sát
+var projectRoot = currentDir?.FullName ?? Directory.GetCurrentDirectory();
+var logsDirectory = Path.Combine(projectRoot, "logs");
+Directory.CreateDirectory(logsDirectory);
+var logFilePath = Path.Combine(logsDirectory, "culinary-blog-.log");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // 1.1. Cấu hình Structured Logging với Serilog và CorrelationId (FR-OBS-002)
@@ -62,7 +68,13 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}"));
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: logFilePath,
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        flushToDiskInterval: TimeSpan.FromSeconds(1),
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}"));
 
 // 1.2. Cấu hình Distributed Tracing với OpenTelemetry (FR-OBS-003)
 builder.Services.AddOpenTelemetry()
@@ -92,6 +104,7 @@ if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
 }
 builder.Services.AddScoped<SitemapGenerationJob>();
 builder.Services.AddScoped<GoogleSearchConsoleSitemapSubmitter>();
+builder.Services.AddScoped<PermanentCategoryCleanupJob>();
 builder.Services.AddHttpClient();
 
 // 5. Đăng ký Exception Handling & Problem Details
@@ -232,6 +245,8 @@ if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
     GlobalConfiguration.Configuration.UseActivator(new ScopedHangfireJobActivator(app.Services.GetRequiredService<IServiceScopeFactory>()));
     RecurringJob.AddOrUpdate<SitemapGenerationJob>("sitemap-job", job => job.ExecuteAsync(CancellationToken.None), "0 2 * * *",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+    RecurringJob.AddOrUpdate<PermanentCategoryCleanupJob>("category-cleanup-job", job => job.ExecuteAsync(CancellationToken.None), "0 3 * * *",
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 }
 
 // 10. Cấu hình Middleware pipeline theo thứ tự chuẩn
@@ -262,6 +277,31 @@ if (app.Environment.IsDevelopment())
                .WithTheme(ScalarTheme.Purple)
                .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
+}
+
+// 11.1 Đảm bảo bảng SlugRedirects luôn tồn tại trên CSDL Supabase PostgreSQL
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "SlugRedirects" (
+                "Id" uuid NOT NULL PRIMARY KEY,
+                "EntityId" uuid NOT NULL,
+                "EntityType" character varying(50) NOT NULL,
+                "OldSlug" character varying(200) NOT NULL,
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
+            );
+            CREATE INDEX IF NOT EXISTS "IX_SlugRedirects_OldSlug" ON "SlugRedirects" ("OldSlug");
+            CREATE INDEX IF NOT EXISTS "IX_SlugRedirects_EntityId_EntityType" ON "SlugRedirects" ("EntityId", "EntityType");
+        """);
+        app.Logger.LogInformation("Database table SlugRedirects is verified and ready.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not auto-create SlugRedirects table on startup: {Message}", ex.Message);
+    }
 }
 
 // 12. Migration/seed chỉ chạy khi được bật rõ ràng; WBS yêu cầu điều phối migration tập trung.
