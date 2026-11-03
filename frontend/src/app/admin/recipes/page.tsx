@@ -58,6 +58,7 @@ export default function AdminRecipesPage() {
 
   // Modal Xóa
   const [deletingRecipe, setDeletingRecipe] = useState<AdminRecipeListDto | null>(null);
+  const [hardDeletingRecipe, setHardDeletingRecipe] = useState<AdminRecipeListDto | null>(null);
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
 
   // Debounce search input
@@ -170,6 +171,22 @@ export default function AdminRecipesPage() {
       await fetchRecipes();
     } catch (err: unknown) {
       setError(extractApiErrorMessage(err, "Không thể bỏ lưu trữ công thức."));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  // Hành động Xóa vĩnh viễn (Hard Delete)
+  const handleHardDeleteConfirm = async () => {
+    if (!hardDeletingRecipe) return;
+    setIsActionLoading(true);
+    try {
+      await recipeService.hardDeleteRecipe(hardDeletingRecipe.id);
+      setSuccessMessage(`Đã xóa vĩnh viễn công thức "${hardDeletingRecipe.title}" khỏi hệ thống.`);
+      setHardDeletingRecipe(null);
+      await fetchRecipes();
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, "Không thể xóa vĩnh viễn công thức này."));
     } finally {
       setIsActionLoading(false);
     }
@@ -555,18 +572,30 @@ export default function AdminRecipesPage() {
                         {/* Thao tác */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Nếu trong thùng rác: nút khôi phục */}
+                            {/* Nếu trong thùng rác: nút khôi phục và nút xóa luôn */}
                             {recipe.isDeleted ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRestore(recipe)}
-                                disabled={isActionLoading}
-                                leftIcon={<RotateCcw className="w-3.5 h-3.5 text-emerald-600" />}
-                                className="text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800"
-                              >
-                                Khôi phục
-                              </Button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRestore(recipe)}
+                                  disabled={isActionLoading}
+                                  leftIcon={<RotateCcw className="w-3.5 h-3.5 text-emerald-600" />}
+                                  className="text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800"
+                                >
+                                  Khôi phục
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setHardDeletingRecipe(recipe)}
+                                  disabled={isActionLoading}
+                                  leftIcon={<Trash2 className="w-3.5 h-3.5 text-red-600" />}
+                                  className="text-xs text-red-700 border-red-300 hover:bg-red-50 dark:border-red-900/50"
+                                >
+                                  Xóa luôn
+                                </Button>
+                              </div>
                             ) : (
                               <>
                                 {/* Nút Xuất bản (nếu là Draft hoặc Archived) */}
@@ -684,6 +713,51 @@ export default function AdminRecipesPage() {
             )}
           </div>
         </div>
+
+        {/* Modal Xác nhận Xóa vĩnh viễn (Hard Delete) */}
+        {hardDeletingRecipe && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-md w-full p-6 shadow-xl border border-red-200 dark:border-red-900/50 space-y-4">
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="p-2.5 rounded-full bg-red-100 dark:bg-red-950/60">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                  Xóa vĩnh viễn công thức?
+                </h3>
+              </div>
+              <p className="text-sm text-stone-600 dark:text-stone-400">
+                Bạn có chắc chắn muốn xóa vĩnh viễn công thức{" "}
+                <strong className="text-stone-900 dark:text-stone-100">
+                  "{hardDeletingRecipe.title}"
+                </strong>?
+              </p>
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-100 dark:border-red-900/40 text-xs text-red-800 dark:text-red-300 space-y-1">
+                <p className="font-semibold">⚠️ Cảnh báo nguy hiểm:</p>
+                <p>Hành động này sẽ xóa sạch dữ liệu khỏi CSDL Supabase và dọn sạch các tệp ảnh liên quan. <strong>Không thể khôi phục lại sau khi xóa!</strong></p>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHardDeletingRecipe(null)}
+                  disabled={isActionLoading}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleHardDeleteConfirm}
+                  isLoading={isActionLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Xác nhận xóa luôn
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal Xác nhận Xóa mềm công thức */}
         {deletingRecipe && (

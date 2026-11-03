@@ -33,6 +33,12 @@ public sealed class RecipeRepository : IRecipeRepository
             .FirstOrDefaultAsync(recipe => recipe.Id == id && recipe.IsDeleted, cancellationToken);
     }
 
+    public Task DeletePermanentAsync(Recipe recipe, CancellationToken cancellationToken)
+    {
+        _dbContext.Recipes.Remove(recipe);
+        return Task.CompletedTask;
+    }
+
     public Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken)
     {
         return _dbContext.Recipes

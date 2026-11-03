@@ -11,6 +11,8 @@ public interface IRecipeRepository
 
     Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult<Recipe?>(null);
 
+    Task DeletePermanentAsync(Recipe recipe, CancellationToken cancellationToken) => Task.CompletedTask;
+
     Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken) => GetByIdAsync(id, cancellationToken);
 
     Task<Recipe?> GetByIdForPublishingAsync(Guid id, CancellationToken cancellationToken);

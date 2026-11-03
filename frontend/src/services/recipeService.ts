@@ -90,6 +90,10 @@ export const recipeService = {
     await apiClient.post<void>(`${recipePath(id)}/restore`);
   },
 
+  async hardDeleteRecipe(id: string): Promise<void> {
+    await apiClient.delete<void>(`${recipePath(id)}/permanent`);
+  },
+
   async getAdminRecipes(params: GetAdminRecipesParams): Promise<PaginatedResult<AdminRecipeListDto>> {
     const response = await apiClient.get<PaginatedResult<AdminRecipeListDto>>("/recipes/admin/all", {
       params: {

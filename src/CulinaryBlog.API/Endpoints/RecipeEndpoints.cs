@@ -80,6 +80,19 @@ public static class RecipeEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapDelete("/{id:guid}/permanent", async (Guid id, ISender sender, CancellationToken ct) =>
+            {
+                await sender.Send(new HardDeleteRecipeCommand(id), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(policy => policy.RequireRole("Admin"))
+            .WithName("HardDeleteRecipe")
+            .WithSummary("Xóa vĩnh viễn công thức khỏi CSDL và Supabase Storage (Admin only)")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         group.MapGet("/", async (
                 [AsParameters] GetRecipesQuery query,
                 ISender sender,
