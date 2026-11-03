@@ -15,9 +15,10 @@ export enum RecipeStatus {
   Draft = 1,
   Published = 2,
   Archived = 3,
+  PendingApproval = 4,
 }
 
-export type RecipeStatusValue = "Draft" | "Published" | "Archived" | 1 | 2 | 3;
+export type RecipeStatusValue = "Draft" | "Published" | "Archived" | "PendingApproval" | 1 | 2 | 3 | 4;
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -250,6 +251,7 @@ export interface RecipeImageResponseDto {
 
 
 export interface AdminRecipeListDto {
+  rowVersion: string;
   id: string;
   title: string;
   slug: string;

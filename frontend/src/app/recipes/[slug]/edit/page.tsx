@@ -27,6 +27,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { categoryService } from "@/services/categoryService";
+import { recipeManagementService as management } from "@/services/recipeManagementService";
 import { recipeService } from "@/services/recipeService";
 import { CategoryDto } from "@/types/category";
 import { RecipeDetailDto, RecipeDifficulty, UpdateRecipeRequest } from "@/types/recipe";
@@ -317,10 +318,11 @@ export default function EditRecipePage() {
       }
 
       let publishWarning = "";
-      // 3. Nếu người dùng chọn Xuất bản ngay
+      // 3. Nếu người dùng chọn Gửi phê duyệt
       if (shouldPublish) {
         try {
-          await recipeService.publishRecipe(recipe.id);
+          const current = await management.get(recipe.id);
+          await management.act(current.recipe, "submit");
         } catch (pubErr) {
           console.warn("Lỗi khi xuất bản công thức:", pubErr);
           publishWarning = ` (Lưu ý: Chưa thể xuất bản: ${extractApiErrorMessage(pubErr, "Cần có ảnh đại diện chính, nguyên liệu và các bước")})`;
@@ -329,7 +331,7 @@ export default function EditRecipePage() {
 
       setSuccessMessage(
         (shouldPublish && !publishWarning
-          ? "Đã cập nhật và xuất bản công thức thành công!"
+          ? "Đã cập nhật và gửi công thức chờ Admin phê duyệt!"
           : "Đã cập nhật công thức thành công!") +
         (imageWarning ? imageWarning : "") +
         (publishWarning ? publishWarning : " Đang chuyển hướng...")
@@ -806,7 +808,7 @@ export default function EditRecipePage() {
                       leftIcon={<Sparkles className="w-4 h-4 text-emerald-600" />}
                       className="border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-semibold"
                     >
-                      Lưu & Xuất bản ngay
+                      Lưu & Gửi phê duyệt
                     </Button>
                   )}
                   <Button

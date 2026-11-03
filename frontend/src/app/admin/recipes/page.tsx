@@ -26,6 +26,7 @@ import {
   Layers,
   FolderHeart,
 } from "lucide-react";
+import { recipeManagementService as management } from "@/services/recipeManagementService";
 import { recipeService } from "@/services/recipeService";
 import { AdminRecipeListDto } from "@/types/recipe";
 import { useAuthStore } from "@/stores/auth-store";
@@ -58,7 +59,6 @@ export default function AdminRecipesPage() {
 
   // Modal Xóa
   const [deletingRecipe, setDeletingRecipe] = useState<AdminRecipeListDto | null>(null);
-  const [hardDeletingRecipe, setHardDeletingRecipe] = useState<AdminRecipeListDto | null>(null);
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
 
   // Debounce search input
@@ -118,7 +118,7 @@ export default function AdminRecipesPage() {
     setSuccessMessage(null);
     setError(null);
     try {
-      await recipeService.publishRecipe(recipe.id);
+      await management.act(recipe, "publish");
       setSuccessMessage(`Đã xuất bản công thức "${recipe.title}" thành công!`);
       await fetchRecipes();
     } catch (err: unknown) {
@@ -134,7 +134,7 @@ export default function AdminRecipesPage() {
     setSuccessMessage(null);
     setError(null);
     try {
-      await recipeService.unpublishRecipe(recipe.id);
+      await management.act(recipe, "unpublish");
       setSuccessMessage(`Đã thu hồi công thức "${recipe.title}" về bản nháp.`);
       await fetchRecipes();
     } catch (err: unknown) {
@@ -150,7 +150,7 @@ export default function AdminRecipesPage() {
     setSuccessMessage(null);
     setError(null);
     try {
-      await recipeService.archiveRecipe(recipe.id);
+      await management.act(recipe, "archive");
       setSuccessMessage(`Đã đưa công thức "${recipe.title}" vào lưu trữ.`);
       await fetchRecipes();
     } catch (err: unknown) {
@@ -166,8 +166,8 @@ export default function AdminRecipesPage() {
     setSuccessMessage(null);
     setError(null);
     try {
-      await recipeService.unarchiveRecipe(recipe.id);
-      setSuccessMessage(`Đã khôi phục xuất bản cho công thức "${recipe.title}".`);
+      await management.act(recipe, "unarchive");
+      setSuccessMessage(`Đã chuyển về bản nháp cho công thức "${recipe.title}".`);
       await fetchRecipes();
     } catch (err: unknown) {
       setError(extractApiErrorMessage(err, "Không thể bỏ lưu trữ công thức."));
@@ -176,28 +176,13 @@ export default function AdminRecipesPage() {
     }
   };
 
-  // Hành động Xóa vĩnh viễn (Hard Delete)
-  const handleHardDeleteConfirm = async () => {
-    if (!hardDeletingRecipe) return;
-    setIsActionLoading(true);
-    try {
-      await recipeService.hardDeleteRecipe(hardDeletingRecipe.id);
-      setSuccessMessage(`Đã xóa vĩnh viễn công thức "${hardDeletingRecipe.title}" khỏi hệ thống.`);
-      setHardDeletingRecipe(null);
-      await fetchRecipes();
-    } catch (err: unknown) {
-      setError(extractApiErrorMessage(err, "Không thể xóa vĩnh viễn công thức này."));
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
 
   // Hành động Xóa mềm
   const handleDeleteConfirm = async () => {
     if (!deletingRecipe) return;
     setIsActionLoading(true);
     try {
-      await recipeService.deleteRecipe(deletingRecipe.id);
+      await management.act(deletingRecipe, "delete");
       setSuccessMessage(`Đã chuyển công thức "${deletingRecipe.title}" vào thùng rác.`);
       setDeletingRecipe(null);
       await fetchRecipes();
@@ -214,7 +199,7 @@ export default function AdminRecipesPage() {
     setSuccessMessage(null);
     setError(null);
     try {
-      await recipeService.restoreRecipe(recipe.id);
+      await management.act(recipe, "restore");
       setSuccessMessage(`Đã khôi phục công thức "${recipe.title}" từ thùng rác.`);
       await fetchRecipes();
     } catch (err: unknown) {
@@ -255,6 +240,7 @@ export default function AdminRecipesPage() {
         </Badge>
       );
     }
+    if (statusVal === 4 || recipe.status === "PendingApproval") return <Badge variant="outline">Chờ duyệt</Badge>;
     if (statusVal === 3 || recipe.status === "Archived") {
       return (
         <Badge variant="default" className="font-medium">
@@ -330,6 +316,7 @@ export default function AdminRecipesPage() {
               <ChevronRight className="w-3 h-3" />
               <span className="text-stone-700 dark:text-stone-300 font-medium">Bảng điều khiển Quản trị</span>
             </div>
+            <Button href="/admin/recipes/review" variant="outline">Duyệt bài chờ và ghi lý do từ chối</Button>
             <h1 className="text-2xl md:text-3xl font-extrabold text-stone-900 dark:text-stone-100 flex items-center gap-2.5">
               <ChefHat className="w-7 h-7 text-brand-600" />
               Quản trị Công thức Nấu ăn
@@ -585,21 +572,12 @@ export default function AdminRecipesPage() {
                                 >
                                   Khôi phục
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setHardDeletingRecipe(recipe)}
-                                  disabled={isActionLoading}
-                                  leftIcon={<Trash2 className="w-3.5 h-3.5 text-red-600" />}
-                                  className="text-xs text-red-700 border-red-300 hover:bg-red-50 dark:border-red-900/50"
-                                >
-                                  Xóa luôn
-                                </Button>
+
                               </div>
                             ) : (
                               <>
-                                {/* Nút Xuất bản (nếu là Draft hoặc Archived) */}
-                                {(Number(recipe.status) === 1 || Number(recipe.status) === 3 || recipe.status === "Draft" || recipe.status === "Archived") && (
+                                {/* Duyệt xuất bản bài đang chờ */}
+                                {(Number(recipe.status) === 4 || recipe.status === "PendingApproval") && (
                                   <button
                                     onClick={() => handlePublish(recipe)}
                                     disabled={isActionLoading}
@@ -624,7 +602,7 @@ export default function AdminRecipesPage() {
 
                                 {/* Nút Sửa */}
                                 <Link
-                                  href={`/recipes/${recipe.slug || recipe.id}/edit`}
+                                  href={`/dashboard/recipes/${recipe.id}/edit`}
                                   className="p-1.5 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 rounded-md transition-colors"
                                   title="Chỉnh sửa công thức"
                                 >
@@ -714,50 +692,7 @@ export default function AdminRecipesPage() {
           </div>
         </div>
 
-        {/* Modal Xác nhận Xóa vĩnh viễn (Hard Delete) */}
-        {hardDeletingRecipe && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-md w-full p-6 shadow-xl border border-red-200 dark:border-red-900/50 space-y-4">
-              <div className="flex items-center gap-3 text-red-600">
-                <div className="p-2.5 rounded-full bg-red-100 dark:bg-red-950/60">
-                  <Trash2 className="w-5 h-5 text-red-600" />
-                </div>
-                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-                  Xóa vĩnh viễn công thức?
-                </h3>
-              </div>
-              <p className="text-sm text-stone-600 dark:text-stone-400">
-                Bạn có chắc chắn muốn xóa vĩnh viễn công thức{" "}
-                <strong className="text-stone-900 dark:text-stone-100">
-                  "{hardDeletingRecipe.title}"
-                </strong>?
-              </p>
-              <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-100 dark:border-red-900/40 text-xs text-red-800 dark:text-red-300 space-y-1">
-                <p className="font-semibold">⚠️ Cảnh báo nguy hiểm:</p>
-                <p>Hành động này sẽ xóa sạch dữ liệu khỏi CSDL Supabase và dọn sạch các tệp ảnh liên quan. <strong>Không thể khôi phục lại sau khi xóa!</strong></p>
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setHardDeletingRecipe(null)}
-                  disabled={isActionLoading}
-                >
-                  Hủy bỏ
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleHardDeleteConfirm}
-                  isLoading={isActionLoading}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Xác nhận xóa luôn
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Modal Xác nhận Xóa mềm công thức */}
         {deletingRecipe && (
@@ -774,7 +709,7 @@ export default function AdminRecipesPage() {
               <p className="text-sm text-stone-600 dark:text-stone-400">
                 Bạn có chắc chắn muốn chuyển công thức{" "}
                 <strong className="text-stone-900 dark:text-stone-100">
-                  "{deletingRecipe.title}"
+                  &quot;{deletingRecipe.title}&quot;
                 </strong>{" "}
                 vào Thùng rác? Món ăn sẽ tạm thời bị ẩn khỏi cộng đồng và có thể khôi phục lại bất kỳ lúc nào.
               </p>

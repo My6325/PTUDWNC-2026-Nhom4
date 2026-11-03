@@ -27,6 +27,7 @@ public sealed class UploadRecipeImageCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         // 1. Đọc stream vào bộ nhớ đệm để kiểm tra Magic Bytes (tối thiểu 12 bytes)
         using var memoryStream = new MemoryStream();
