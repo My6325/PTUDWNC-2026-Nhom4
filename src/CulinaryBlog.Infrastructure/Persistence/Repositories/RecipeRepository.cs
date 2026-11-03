@@ -27,6 +27,9 @@ public sealed class RecipeRepository : IRecipeRepository
     public Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return _dbContext.Recipes
+            .Include(recipe => recipe.Steps)
+            .Include(recipe => recipe.Ingredients)
+            .Include(recipe => recipe.Images)
             .FirstOrDefaultAsync(recipe => recipe.Id == id && recipe.IsDeleted, cancellationToken);
     }
 
@@ -279,14 +282,9 @@ public sealed class RecipeRepository : IRecipeRepository
                 Title = recipe.Title,
                 Slug = recipe.Slug,
                 CoverImageUrl = recipe.Images
-                    .Where(image => image.IsPrimary && !image.IsDeleted)
-                    .OrderBy(image => image.OrderIndex)
-                    .ThenBy(image => image.Id)
-                    .Select(image => image.MediumUrl ?? image.OriginalUrl)
-                    .FirstOrDefault()
-                    ?? recipe.Images
-                    .Where(image => !image.IsDeleted)
-                    .OrderBy(image => image.OrderIndex)
+                    .Where(image => onlyDeleted || !image.IsDeleted)
+                    .OrderByDescending(image => image.IsPrimary)
+                    .ThenBy(image => image.OrderIndex)
                     .ThenBy(image => image.Id)
                     .Select(image => image.MediumUrl ?? image.OriginalUrl)
                     .FirstOrDefault(),

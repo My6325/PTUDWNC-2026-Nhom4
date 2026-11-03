@@ -51,8 +51,7 @@ public sealed class RestoreRecipeCommandHandler(IUnitOfWork unitOfWork, IRecipeC
     {
         var recipe = await unitOfWork.Recipes.GetDeletedByIdAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException("Không tìm thấy công thức trong thùng rác.");
-        recipe.IsDeleted = false;
-        recipe.DeletedAt = null;
+        recipe.Restore();
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await cache.InvalidateListAsync(cancellationToken);
         await cache.InvalidateDetailAsync(recipe.Slug, cancellationToken);
