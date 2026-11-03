@@ -245,6 +245,30 @@ public class Recipe : BaseEntity
         }
     }
 
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
+
+        foreach (var step in Steps)
+        {
+            step.IsDeleted = false;
+            step.DeletedAt = null;
+        }
+
+        foreach (var ingredient in Ingredients)
+        {
+            ingredient.IsDeleted = false;
+            ingredient.DeletedAt = null;
+        }
+
+        foreach (var image in Images)
+        {
+            image.IsDeleted = false;
+            image.DeletedAt = null;
+        }
+    }
+
     public void Publish()
     {
         if (!Steps.Any(step => !step.IsDeleted)

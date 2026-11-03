@@ -11,6 +11,7 @@ using CulinaryBlog.Application.Features.Recipes.Ingredients.DeleteIngredient;
 using CulinaryBlog.Application.Features.Recipes.Ingredients.UpdateIngredient;
 using CulinaryBlog.Application.Features.Recipes.PublishRecipe;
 using CulinaryBlog.Application.Features.Recipes.Queries;
+using CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes;
 using CulinaryBlog.Application.Features.Recipes.Steps.AddStep;
 using CulinaryBlog.Application.Features.Recipes.Steps.DeleteStep;
 using CulinaryBlog.Application.Features.Recipes.Steps.UpdateStep;
@@ -48,6 +49,47 @@ public static class RecipeEndpoints
             .WithDescription("Nạp Steps, Ingredients, Nutrition và Images; công thức chưa xuất bản chỉ dành cho tác giả hoặc Admin.")
             .CacheOutput("RecipeDetail")
             .Produces<RecipeDetailDto>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("/admin/all", async (
+                [AsParameters] GetAdminRecipesQuery query,
+                ISender sender,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(query, cancellationToken);
+                return Results.Ok(result);
+            })
+            .RequireAuthorization(policy => policy.RequireRole("Admin"))
+            .WithName("GetAdminRecipes")
+            .WithSummary("Lấy danh sách tất cả công thức cho Admin (hỗ trợ lọc trạng thái, thùng rác, tìm kiếm)")
+            .Produces<PaginatedResult<AdminRecipeListDto>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        group.MapPost("/{id:guid}/restore", async (Guid id, ISender sender, CancellationToken ct) =>
+            {
+                await sender.Send(new RestoreRecipeCommand(id), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(policy => policy.RequireRole("Admin"))
+            .WithName("RestoreRecipe")
+            .WithSummary("Khôi phục công thức từ thùng rác")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapDelete("/{id:guid}/permanent", async (Guid id, ISender sender, CancellationToken ct) =>
+            {
+                await sender.Send(new HardDeleteRecipeCommand(id), ct);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(policy => policy.RequireRole("Admin"))
+            .WithName("HardDeleteRecipe")
+            .WithSummary("Xóa vĩnh viễn công thức khỏi CSDL và Supabase Storage (Admin only)")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 

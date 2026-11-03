@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   FolderHeart,
+  ChefHat,
   Plus,
   Pencil,
   Trash2,
@@ -361,6 +362,11 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div className="flex items-center gap-2.5 shrink-0">
+              <Link href="/admin/recipes">
+                <Button variant="outline" size="md" leftIcon={<ChefHat className="w-4 h-4 text-stone-500" />}>
+                  Quản lý Công thức
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 size="md"
