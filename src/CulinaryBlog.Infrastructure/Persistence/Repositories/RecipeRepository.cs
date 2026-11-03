@@ -287,6 +287,7 @@ public sealed class RecipeRepository : IRecipeRepository
                 Id = recipe.Id,
                 Title = recipe.Title,
                 Slug = recipe.Slug,
+                RowVersion = BitConverter.GetBytes(recipe.RowVersion),
                 CoverImageUrl = recipe.Images
                     .Where(image => onlyDeleted || !image.IsDeleted)
                     .OrderByDescending(image => image.IsPrimary)

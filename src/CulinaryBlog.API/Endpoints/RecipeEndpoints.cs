@@ -37,6 +37,11 @@ public static class RecipeEndpoints
         group.MapGet("/{slug}", async (string slug, ISender sender, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
                 var detail = await sender.Send(new GetRecipeBySlugQuery(slug), cancellationToken);
+                if (detail.Status != CulinaryBlog.Domain.Enums.RecipeStatus.Published)
+                {
+                    httpContext.Response.Headers.CacheControl = "private, no-store";
+                    httpContext.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+                }
                 if (httpContext.Features.Get<Microsoft.AspNetCore.OutputCaching.IOutputCacheFeature>() is { } cacheFeature)
                 {
                     cacheFeature.Context.Tags.Add("recipes");
@@ -66,32 +71,6 @@ public static class RecipeEndpoints
             .Produces<PaginatedResult<AdminRecipeListDto>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
-
-        group.MapPost("/{id:guid}/restore", async (Guid id, ISender sender, CancellationToken ct) =>
-            {
-                await sender.Send(new RestoreRecipeCommand(id), ct);
-                return Results.NoContent();
-            })
-            .RequireAuthorization(policy => policy.RequireRole("Admin"))
-            .WithName("RestoreRecipe")
-            .WithSummary("Khôi phục công thức từ thùng rác")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound);
-
-        group.MapDelete("/{id:guid}/permanent", async (Guid id, ISender sender, CancellationToken ct) =>
-            {
-                await sender.Send(new HardDeleteRecipeCommand(id), ct);
-                return Results.NoContent();
-            })
-            .RequireAuthorization(policy => policy.RequireRole("Admin"))
-            .WithName("HardDeleteRecipe")
-            .WithSummary("Xóa vĩnh viễn công thức khỏi CSDL và Supabase Storage (Admin only)")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("/", async (
                 [AsParameters] GetRecipesQuery query,
@@ -142,61 +121,7 @@ public static class RecipeEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
-        group.MapPut("/{id:guid}/publish", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
-            {
-                await sender.Send(new PublishRecipeCommand(id), cancellationToken);
-                return Results.NoContent();
-            })
-            .RequireAuthorization()
-            .WithName("PublishRecipe")
-            .WithSummary("Xuất bản công thức nấu ăn")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
-
-        group.MapPost("/{id:guid}/archive", async (Guid id, ISender sender, CancellationToken ct) =>
-            { await sender.Send(new ArchiveRecipeCommand(id), ct); return Results.NoContent(); })
-            .RequireAuthorization().WithName("ArchiveRecipe")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
-
-        group.MapPost("/{id:guid}/unarchive", async (Guid id, ISender sender, CancellationToken ct) =>
-            { await sender.Send(new UnarchiveRecipeCommand(id), ct); return Results.NoContent(); })
-            .RequireAuthorization().WithName("UnarchiveRecipe")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
-
-        group.MapPost("/{id:guid}/unpublish", async (Guid id, ISender sender, CancellationToken ct) =>
-            { await sender.Send(new UnpublishRecipeCommand(id), ct); return Results.NoContent(); })
-            .RequireAuthorization().WithName("UnpublishRecipe")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
-        // 1. DELETE /api/v1/recipes/{id:guid} (FR-RCP-007: Xóa công thức - Soft Delete)
-        group.MapDelete("/{id:guid}", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
-            {
-                await sender.Send(new DeleteRecipeCommand(id), cancellationToken);
-                return Results.NoContent();
-            })
-            .RequireAuthorization()
-            .WithName("DeleteRecipe")
-            .WithSummary("Xóa công thức nấu ăn (Soft Delete)")
-            .WithDescription("Xóa mềm công thức và các thực thể liên quan (bước nấu, nguyên liệu, hình ảnh), tự động vô hiệu hóa cache.")
-            .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapRecipeManagement();
 
         // 2. POST /api/v1/recipes/{id:guid}/images (FR-RCP-008 & FR-FILE-001: Tải ảnh công thức lên Supabase Storage)
         group.MapPost("/{id:guid}/images", async (Guid id, IFormFile file, ISender sender, CancellationToken cancellationToken) =>

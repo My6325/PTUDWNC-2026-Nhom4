@@ -10,7 +10,8 @@ public sealed record PublishRecipeCommand(Guid Id) : IRequest;
 public sealed class PublishRecipeCommandHandler(
     IUnitOfWork unitOfWork,
     IRecipeAuthorizationService authorizationService,
-    IRecipeCacheInvalidator cacheInvalidator)
+    IRecipeCacheInvalidator cacheInvalidator,
+    ICurrentUserService currentUser)
     : IRequestHandler<PublishRecipeCommand>
 {
     public async Task Handle(PublishRecipeCommand request, CancellationToken cancellationToken)
@@ -18,11 +19,13 @@ public sealed class PublishRecipeCommandHandler(
         var recipe = await unitOfWork.Recipes.GetByIdForPublishingAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException("Không tìm thấy công thức.");
 
+        if (!currentUser.IsAuthenticated || !currentUser.IsInRole("Admin"))
+            throw new ForbiddenException("Chỉ Admin được duyệt xuất bản công thức.");
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
 
-        if (recipe.Status != RecipeStatus.Draft)
+        if (recipe.Status != RecipeStatus.PendingApproval)
         {
-            throw new ConflictException("RECIPE_STATUS_TRANSITION_INVALID", "Chỉ công thức Draft mới có thể được xuất bản.");
+            throw new ConflictException("RECIPE_STATUS_TRANSITION_INVALID", "Chỉ công thức đang chờ duyệt mới có thể được xuất bản.");
         }
 
         recipe.Publish();

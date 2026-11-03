@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { categoryService } from "@/services/categoryService";
+import { recipeManagementService as management } from "@/services/recipeManagementService";
 import { recipeService } from "@/services/recipeService";
 import { CategoryDto } from "@/types/category";
 import { CreateRecipeDraftRequest, RecipeDifficulty } from "@/types/recipe";
@@ -193,7 +194,7 @@ export default function CreateRecipePage() {
     );
   };
 
-  // Submit tạo công thức (bản nháp hoặc xuất bản ngay)
+  // Submit tạo công thức (bản nháp hoặc gửi phê duyệt)
   const handleSubmitRecipe = async (e: React.FormEvent, shouldPublish: boolean = false) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -294,26 +295,27 @@ export default function CreateRecipePage() {
       }
 
       let publishWarning = "";
-      // 3. Nếu người dùng chọn Xuất bản ngay (FR-RCP-007)
+      // 3. Nếu người dùng chọn Gửi phê duyệt (FR-RCP-007)
       if (shouldPublish) {
         try {
-          await recipeService.publishRecipe(created.id);
+          const current = await management.get(created.id);
+          await management.act(current.recipe, "submit");
         } catch (pubErr) {
           console.warn("Lỗi khi xuất bản công thức:", pubErr);
-          publishWarning = ` (Lưu ý: Công thức tạm thời lưu ở dạng bản nháp vì chưa đủ điều kiện xuất bản: ${extractApiErrorMessage(pubErr, "Cần có ảnh đại diện, nguyên liệu và các bước nấu")})`;
+          publishWarning = ` (Lưu ý: Công thức tạm thời lưu ở dạng bản nháp vì chưa gửi duyệt được: ${extractApiErrorMessage(pubErr, "Cần có ảnh đại diện, nguyên liệu và các bước nấu")})`;
         }
       }
 
       setSuccessMessage(
         (shouldPublish && !publishWarning
-          ? "Đã xuất bản công thức món ăn thành công!"
+          ? "Đã gửi công thức chờ Admin phê duyệt!"
           : "Đã lưu bản nháp công thức thành công vào sổ tay ẩm thực của bạn!") +
         (imageWarning ? imageWarning : "") +
         (publishWarning ? publishWarning : " Đang chuyển hướng...")
       );
 
       setTimeout(() => {
-        router.push(created.slug ? `/recipes/${created.slug}` : "/recipes");
+        router.push(shouldPublish && !publishWarning ? "/dashboard/recipes?status=PendingApproval" : `/dashboard/recipes/${created.id}/edit`);
       }, 1500);
     } catch (err: unknown) {
       setErrorMessage(
@@ -386,7 +388,7 @@ export default function CreateRecipePage() {
             </h2>
             <p className="text-stone-600 dark:text-stone-300 text-sm sm:text-base leading-relaxed mb-8">
               Tài khoản của bạn hiện đang ở vai trò <strong className="text-stone-900 dark:text-stone-100">Độc giả (User)</strong>.
-              Quyền soạn thảo và xuất bản công thức món ăn mới chỉ dành cho các tài khoản <strong className="text-brand-600 dark:text-brand-400">Đầu bếp (Author)</strong> hoặc <strong className="text-stone-900 dark:text-stone-100">Quản trị viên (Admin)</strong>.
+              Quyền soạn thảo và gửi duyệt công thức món ăn mới chỉ dành cho các tài khoản <strong className="text-brand-600 dark:text-brand-400">Đầu bếp (Author)</strong> hoặc <strong className="text-stone-900 dark:text-stone-100">Quản trị viên (Admin)</strong>.
               <br className="hidden sm:inline" /> Hãy khám phá hàng trăm công thức tuyệt hảo, lưu lại món yêu thích và để lại cảm nhận nấu nướng của bạn!
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -756,7 +758,7 @@ export default function CreateRecipePage() {
                     onClick={(e) => handleSubmitRecipe(e, true)}
                     leftIcon={<Sparkles className="w-4 h-4" />}
                   >
-                    Xuất bản ngay
+                    Gửi phê duyệt
                   </Button>
                 </div>
               </CardFooter>

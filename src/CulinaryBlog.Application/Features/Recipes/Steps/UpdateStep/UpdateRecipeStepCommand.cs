@@ -20,6 +20,7 @@ public sealed class UpdateRecipeStepCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var step = recipe.Steps.FirstOrDefault(s => s.Id == command.StepId && !s.IsDeleted)
             ?? throw new NotFoundException($"Không tìm thấy bước làm với Id '{command.StepId}'.");

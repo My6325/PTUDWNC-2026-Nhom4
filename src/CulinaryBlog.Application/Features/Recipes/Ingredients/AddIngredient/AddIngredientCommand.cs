@@ -21,6 +21,7 @@ public sealed class AddIngredientCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var request = command.Request;
         var nextOrderIndex = recipe.Ingredients.Count(i => !i.IsDeleted) + 1;

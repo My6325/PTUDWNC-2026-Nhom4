@@ -7,6 +7,8 @@ namespace CulinaryBlog.Application.Features.Recipes.Queries.GetAdminRecipes;
 /// </summary>
 public sealed class AdminRecipeListDto
 {
+    public byte[] RowVersion { get; init; } = [];
+
     public Guid Id { get; init; }
 
     public string Title { get; init; } = string.Empty;

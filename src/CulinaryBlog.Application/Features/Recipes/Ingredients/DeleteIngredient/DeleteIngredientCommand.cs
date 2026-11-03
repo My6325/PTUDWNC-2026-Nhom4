@@ -19,6 +19,7 @@ public sealed class DeleteIngredientCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var ingredientExists = recipe.Ingredients.Any(i => i.Id == command.IngredientId && !i.IsDeleted);
         if (!ingredientExists)

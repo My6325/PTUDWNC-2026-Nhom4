@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -198,19 +199,23 @@ namespace CulinaryBlog.Infrastructure.Migrations
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<uint>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
 
-                    b.Property<int>("Servings")
-                        .HasColumnType("integer");
-
-                    b.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
+                    b.Property<NpgsqlTsVector>("SearchVector")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
                         .HasComputedColumnSql("setweight(to_tsvector('simple', public.recipe_unaccent(coalesce(\"Title\", ''))), 'A') || setweight(to_tsvector('simple', public.recipe_unaccent(coalesce(\"Description\", ''))), 'B')", true);
+
+                    b.Property<int>("Servings")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -232,12 +237,13 @@ namespace CulinaryBlog.Infrastructure.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("IX_Recipes_SearchVector_GIN");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
                     b.HasIndex("Slug")
                         .IsUnique();
-
-                    b.HasIndex("SearchVector")
-                        .HasDatabaseName("IX_Recipes_SearchVector_GIN")
-                        .HasMethod("GIN");
 
                     b.ToTable("Recipes", (string)null);
                 });

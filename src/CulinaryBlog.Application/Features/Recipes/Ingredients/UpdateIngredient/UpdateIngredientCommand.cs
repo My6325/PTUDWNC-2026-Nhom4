@@ -20,6 +20,7 @@ public sealed class UpdateIngredientCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var ingredient = recipe.Ingredients.FirstOrDefault(i => i.Id == command.IngredientId && !i.IsDeleted)
             ?? throw new NotFoundException($"Không tìm thấy nguyên liệu với Id '{command.IngredientId}'.");

@@ -44,6 +44,8 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(r => r.PublishedAt)
             .HasColumnType("timestamp with time zone");
 
+        builder.Property(r => r.ReviewNote).HasMaxLength(1000);
+
         builder.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
             .HasColumnType("tsvector")
             .HasComputedColumnSql("setweight(to_tsvector('simple', public.recipe_unaccent(coalesce(\"Title\", ''))), 'A') || setweight(to_tsvector('simple', public.recipe_unaccent(coalesce(\"Description\", ''))), 'B')", stored: true);

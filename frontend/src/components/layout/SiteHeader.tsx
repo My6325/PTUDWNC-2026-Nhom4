@@ -51,6 +51,8 @@ export const SiteHeader: React.FC = () => {
   const isAdmin = user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
   const isAuthor = user?.roles?.some((r) => r.toLowerCase() === "author") ?? false;
   const canCreateRecipe = isAdmin || isAuthor;
+  if (isAuthenticated && canCreateRecipe) navLinks.push({ label: "Món ăn của tôi", href: "/dashboard/recipes" });
+  if (isAuthenticated && isAdmin) navLinks.push({ label: "Duyệt bài", href: "/admin/recipes/review" });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-white/95 dark:bg-stone-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-stone-900/80 transition-colors">
@@ -75,7 +77,7 @@ export const SiteHeader: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2" aria-label="Điều hướng chính">
+          <nav className="hidden xl:flex items-center gap-1 lg:gap-2" aria-label="Điều hướng chính">
             {navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href));
               return (
@@ -83,7 +85,7 @@ export const SiteHeader: React.FC = () => {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+                    "px-2 py-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
                     isActive
                       ? "text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50"
                       : "text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-800"
@@ -96,7 +98,7 @@ export const SiteHeader: React.FC = () => {
           </nav>
 
           {/* Desktop Search Bar */}
-          <div className="hidden lg:flex flex-1 max-w-xs xl:max-w-sm mx-4">
+          <div className="hidden 2xl:flex flex-1 max-w-xs xl:max-w-sm mx-4">
             <form onSubmit={handleSearchSubmit} className="relative w-full" role="search">
               <input
                 type="search"
@@ -111,7 +113,7 @@ export const SiteHeader: React.FC = () => {
           </div>
 
           {/* User Account & Actions - Phân rõ 4 trạng thái: Guest, Admin, Author, User */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-2">
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 {/* 1. Nút Quản trị - CHỈ DÀNH RIÊNG CHO ADMIN */}
@@ -200,7 +202,7 @@ export const SiteHeader: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex xl:hidden items-center gap-2">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -215,7 +217,7 @@ export const SiteHeader: React.FC = () => {
 
         {/* Mobile Dropdown Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-surface-border space-y-4 animate-in slide-in-from-top duration-200">
+          <div className="xl:hidden py-4 border-t border-surface-border space-y-4 animate-in slide-in-from-top duration-200">
             {/* Search trên mobile */}
             <form onSubmit={handleSearchSubmit} className="relative w-full" role="search">
               <input

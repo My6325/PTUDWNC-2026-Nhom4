@@ -37,7 +37,7 @@ public sealed class UnarchiveRecipeCommandHandler(IUnitOfWork unitOfWork, IRecip
         var recipe = await unitOfWork.Recipes.GetByIdAsync(request.Id, cancellationToken) ?? throw new NotFoundException("Không tìm thấy công thức.");
         await authorization.EnsureCanUpdateAsync(recipe, cancellationToken);
         if (recipe.Status != RecipeStatus.Archived) throw new ConflictException("RECIPE_STATUS_TRANSITION_INVALID", "Chỉ công thức đã lưu trữ mới có thể khôi phục.");
-        recipe.ChangeStatus(RecipeStatus.Published);
+        recipe.ChangeStatus(RecipeStatus.Draft);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await cache.InvalidateListAsync(cancellationToken);
         await cache.InvalidateDetailAsync(recipe.Slug, cancellationToken);
