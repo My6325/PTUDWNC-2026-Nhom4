@@ -17,7 +17,8 @@ public sealed class UploadRecipeImageCommandHandler(
     IUnitOfWork unitOfWork,
     IRecipeAuthorizationService authorizationService,
     ISupabaseStorageService storageService,
-    IRecipeCacheInvalidator cacheInvalidator)
+    IRecipeCacheInvalidator cacheInvalidator,
+    IBackgroundJobService? backgroundJobService = null)
     : IRequestHandler<UploadRecipeImageCommand, RecipeImageResponseDto>
 {
     public async Task<RecipeImageResponseDto> Handle(UploadRecipeImageCommand command, CancellationToken cancellationToken)
@@ -74,6 +75,9 @@ public sealed class UploadRecipeImageCommandHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await cacheInvalidator.InvalidateListAsync(cancellationToken);
         await cacheInvalidator.InvalidateDetailAsync(recipe.Slug, cancellationToken);
+
+        // Kích hoạt Background Job tự động nén & sinh ảnh đa kích thước 800x600 và 300x300 (FR-JOB-002)
+        backgroundJobService?.EnqueueImageResize(recipeImage.Id);
 
         return new RecipeImageResponseDto(
             recipeImage.Id,

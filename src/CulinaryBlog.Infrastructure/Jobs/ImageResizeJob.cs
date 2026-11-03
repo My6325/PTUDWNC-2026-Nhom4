@@ -1,12 +1,15 @@
 using CulinaryBlog.Application.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 namespace CulinaryBlog.Infrastructure.Jobs;
 
 /// <summary>
 /// Background Job tự động nén và sinh các phiên bản ảnh tối ưu (Medium 800x600, Thumbnail 300x300) (FR-JOB-002).
-/// Thực thi phi đồng bộ thông qua Hangfire để giải phóng tài nguyên cho luồng HTTP chính.
+/// Thực thi phi đồng bộ thông qua Hangfire hoặc Fallback Runner để giải phóng tài nguyên cho luồng HTTP chính.
 /// </summary>
 public sealed class ImageResizeJob(
     IApplicationDbContext dbContext,
@@ -51,38 +54,50 @@ public sealed class ImageResizeJob(
                 return;
             }
 
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-
             // 2. Phân tích đường dẫn tệp để sinh tên đối tượng theo chuẩn cấu trúc Storage
             var uri = new Uri(image.OriginalUrl);
             var originalFileName = Path.GetFileName(uri.AbsolutePath);
             var fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
-            var extension = Path.GetExtension(originalFileName);
-            if (string.IsNullOrWhiteSpace(extension))
+
+            var mediumPath = $"recipes/{image.RecipeId}/{fileNameWithoutExt}-medium.webp";
+            var thumbPath = $"recipes/{image.RecipeId}/{fileNameWithoutExt}-thumb.webp";
+
+            // 3. Sử dụng SixLabors.ImageSharp để nén và resize chuẩn xác
+            using var loadedImage = Image.Load(imageBytes);
+
+            // 3.1 Phiên bản Medium: Max 800x600 (giữ nguyên tỷ lệ, nén WebP chất lượng 80%)
+            using var mediumImg = loadedImage.Clone(ctx => ctx.Resize(new ResizeOptions
             {
-                extension = ".jpg";
-            }
+                Mode = ResizeMode.Max,
+                Size = new Size(800, 600)
+            }));
+            using var mediumStream = new MemoryStream();
+            await mediumImg.SaveAsWebpAsync(mediumStream, new WebpEncoder { Quality = 80 }, cancellationToken);
+            mediumStream.Position = 0;
 
-            var mediumPath = $"recipes/{image.RecipeId}/{fileNameWithoutExt}-medium{extension}";
-            var thumbPath = $"recipes/{image.RecipeId}/{fileNameWithoutExt}-thumb{extension}";
-
-            // 3. Tải lên phiên bản Medium lên Supabase Storage
-            using var mediumStream = new MemoryStream(imageBytes);
             var mediumUrl = await storageService.UploadFileAsync(
                 mediumStream,
                 mediumPath,
-                contentType,
+                "image/webp",
                 cancellationToken);
 
-            // 4. Tải lên phiên bản Thumbnail lên Supabase Storage
-            using var thumbStream = new MemoryStream(imageBytes);
+            // 3.2 Phiên bản Thumbnail: Vuông 300x300 (Crop trung tâm làm thumbnail)
+            using var thumbImg = loadedImage.Clone(ctx => ctx.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Crop,
+                Size = new Size(300, 300)
+            }));
+            using var thumbStream = new MemoryStream();
+            await thumbImg.SaveAsWebpAsync(thumbStream, new WebpEncoder { Quality = 80 }, cancellationToken);
+            thumbStream.Position = 0;
+
             var thumbnailUrl = await storageService.UploadFileAsync(
                 thumbStream,
                 thumbPath,
-                contentType,
+                "image/webp",
                 cancellationToken);
 
-            // 5. Cập nhật các URL vào thực thể RecipeImage trong CSDL
+            // 4. Cập nhật các URL vào thực thể RecipeImage trong CSDL
             image.MediumUrl = mediumUrl;
             image.ThumbnailUrl = thumbnailUrl;
             image.UpdatedAt = DateTime.UtcNow;
@@ -90,7 +105,7 @@ public sealed class ImageResizeJob(
             await dbContext.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation(
-                "Đã hoàn thành sinh ảnh cho RecipeImage '{RecipeImageId}'. MediumUrl: {MediumUrl}, ThumbnailUrl: {ThumbnailUrl}",
+                "Đã hoàn thành sinh ảnh nén WebP cho RecipeImage '{RecipeImageId}'. MediumUrl: {MediumUrl}, ThumbnailUrl: {ThumbnailUrl}",
                 recipeImageId,
                 mediumUrl,
                 thumbnailUrl);
