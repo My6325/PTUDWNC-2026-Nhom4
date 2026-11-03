@@ -14,9 +14,9 @@ public sealed class GetAdminRecipesQueryHandler(IRecipeRepository recipeReposito
         return recipeRepository.GetAdminRecipesAsync(
             request.SearchTerm,
             request.Status,
-            request.OnlyDeleted,
-            request.PageIndex,
-            request.PageSize,
+            request.OnlyDeleted ?? false,
+            request.PageIndex ?? 1,
+            request.PageSize ?? 15,
             cancellationToken);
     }
 }

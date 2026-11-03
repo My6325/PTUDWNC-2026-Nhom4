@@ -14,9 +14,9 @@ public sealed class GetAdminRecipesQuery : IRequest<PaginatedResult<AdminRecipeL
 
     public RecipeStatus? Status { get; init; }
 
-    public bool OnlyDeleted { get; init; } = false;
+    public bool? OnlyDeleted { get; init; } = false;
 
-    public int PageIndex { get; init; } = 1;
+    public int? PageIndex { get; init; } = 1;
 
-    public int PageSize { get; init; } = 15;
+    public int? PageSize { get; init; } = 15;
 }
