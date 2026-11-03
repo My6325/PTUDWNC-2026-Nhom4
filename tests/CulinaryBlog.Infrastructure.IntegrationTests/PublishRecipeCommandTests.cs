@@ -15,10 +15,11 @@ public sealed class PublishRecipeCommandTests
     public async Task PublishRecipe_ShouldPublishAndInvalidateCaches()
     {
         var recipe = CreateEligibleRecipe();
+        recipe.Status = RecipeStatus.PendingApproval;
         var repository = new FakeRecipeRepository(recipe);
         var unitOfWork = new FakeUnitOfWork(repository);
         var invalidator = new FakeCacheInvalidator();
-        var handler = new PublishRecipeCommandHandler(unitOfWork, new AllowRecipeAuthorization(), invalidator);
+        var handler = new PublishRecipeCommandHandler(unitOfWork, new AllowRecipeAuthorization(), invalidator, new FakeAdminCurrentUserService());
 
         await handler.Handle(new PublishRecipeCommand(recipe.Id), CancellationToken.None);
 
@@ -32,14 +33,15 @@ public sealed class PublishRecipeCommandTests
     public async Task PublishRecipe_ShouldRejectRecipeWithoutStepsOrIngredients()
     {
         var recipe = Recipe.Create("Soup", "soup", null, null, null, "author", 5, 10, 2, RecipeDifficulty.Easy);
+        recipe.Status = RecipeStatus.PendingApproval;
         var unitOfWork = new FakeUnitOfWork(new FakeRecipeRepository(recipe));
         var invalidator = new FakeCacheInvalidator();
-        var handler = new PublishRecipeCommandHandler(unitOfWork, new AllowRecipeAuthorization(), invalidator);
+        var handler = new PublishRecipeCommandHandler(unitOfWork, new AllowRecipeAuthorization(), invalidator, new FakeAdminCurrentUserService());
 
         await Assert.ThrowsAsync<RecipeNotEligibleForPublishException>(() =>
             handler.Handle(new PublishRecipeCommand(recipe.Id), CancellationToken.None));
 
-        Assert.Equal(RecipeStatus.Draft, recipe.Status);
+        Assert.Equal(RecipeStatus.PendingApproval, recipe.Status);
         Assert.Equal(0, unitOfWork.SaveCount);
         Assert.Equal(0, invalidator.ListInvalidationCount);
     }
@@ -50,7 +52,7 @@ public sealed class PublishRecipeCommandTests
         var recipe = CreateEligibleRecipe();
         recipe.Status = RecipeStatus.Published;
         var unitOfWork = new FakeUnitOfWork(new FakeRecipeRepository(recipe));
-        var handler = new PublishRecipeCommandHandler(unitOfWork, new AllowRecipeAuthorization(), new FakeCacheInvalidator());
+        var handler = new PublishRecipeCommandHandler(unitOfWork, new AllowRecipeAuthorization(), new FakeCacheInvalidator(), new FakeAdminCurrentUserService());
 
         await Assert.ThrowsAsync<ConflictException>(() =>
             handler.Handle(new PublishRecipeCommand(recipe.Id), CancellationToken.None));
@@ -114,5 +116,13 @@ public sealed class PublishRecipeCommandTests
             InvalidatedSlugs.Add(slug);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeAdminCurrentUserService : ICurrentUserService
+    {
+        public string? UserId => "admin-user-id";
+        public string? Email => "admin@culinary.local";
+        public bool IsAuthenticated => true;
+        public bool IsInRole(string role) => role == "Admin";
     }
 }
