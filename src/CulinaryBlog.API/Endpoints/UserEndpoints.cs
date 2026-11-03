@@ -3,6 +3,8 @@ using Asp.Versioning;
 using Asp.Versioning.Builder;
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Domain.Entities;
+using CulinaryBlog.Domain.Enums;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +28,16 @@ public record AdminUserItemDto(
     IList<string> Roles,
     string? AuthorRequestStatus,
     string? AuthorRequestNote
+);
+
+public record AuthorItemDto(
+    string Id,
+    string UserName,
+    string DisplayName,
+    string? AvatarUrl,
+    string? Bio,
+    int RecipeCount,
+    DateTime CreatedAt
 );
 
 /// <summary>
@@ -90,6 +102,9 @@ public static class UserEndpoints
             }
 
             await userManager.AddClaimsAsync(user, newClaims);
+
+            var logger = userManager.Logger;
+            logger.LogInformation("Người dùng {UserId} ({Email}) đã gửi yêu cầu nâng cấp vai trò lên Đầu bếp.", user.Id, user.Email);
 
             return Results.Ok(new { message = "Yêu cầu trở thành Đầu bếp đã được gửi thành công. Vui lòng chờ Ban quản trị xét duyệt!" });
         })
@@ -191,6 +206,7 @@ public static class UserEndpoints
                 await userManager.AddClaimAsync(targetUser, new Claim("AuthorRequest", "Approved"));
 
                 var updatedRoles = await userManager.GetRolesAsync(targetUser);
+                userManager.Logger.LogInformation("AUDIT: Admin {AdminId} đã cấp vai trò Đầu bếp cho tài khoản {TargetUserId} ({Email}).", currentUserService.UserId, targetUser.Id, targetUser.Email);
                 return Results.Ok(new
                 {
                     message = $"Đã cấp vai trò Đầu bếp (Author) cho tài khoản {targetUser.DisplayName} thành công.",
@@ -216,6 +232,7 @@ public static class UserEndpoints
                 }
 
                 var updatedRoles = await userManager.GetRolesAsync(targetUser);
+                userManager.Logger.LogInformation("AUDIT: Admin {AdminId} đã chuyển tài khoản {TargetUserId} ({Email}) về vai trò Độc giả.", currentUserService.UserId, targetUser.Id, targetUser.Email);
                 return Results.Ok(new
                 {
                     message = $"Đã chuyển tài khoản {targetUser.DisplayName} về vai trò Độc giả (User) thành công.",
@@ -236,6 +253,91 @@ public static class UserEndpoints
         .ProducesProblem(401)
         .ProducesProblem(403)
         .ProducesProblem(404);
+
+        // 4. Endpoint công khai lấy danh sách Tác giả / Đầu bếp ẩm thực (FR-AUTH & User View)
+        group.MapGet("/authors", async (
+            UserManager<ApplicationUser> userManager,
+            IApplicationDbContext dbContext) =>
+        {
+            var authorUsers = await userManager.GetUsersInRoleAsync("Author");
+            var adminUsers = await userManager.GetUsersInRoleAsync("Admin");
+
+            var allAuthors = authorUsers
+                .UnionBy(adminUsers, u => u.Id)
+                .Where(u => u.IsActive)
+                .ToList();
+
+            var authorIds = allAuthors.Select(u => u.Id).ToList();
+
+            var recipeCounts = await dbContext.Recipes
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && r.Status == RecipeStatus.Published && authorIds.Contains(r.AuthorId))
+                .GroupBy(r => r.AuthorId)
+                .Select(g => new { AuthorId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.AuthorId, x => x.Count);
+
+            var authorDtos = allAuthors.Select(u => new AuthorItemDto(
+                Id: u.Id,
+                UserName: u.UserName ?? string.Empty,
+                DisplayName: u.DisplayName,
+                AvatarUrl: u.AvatarUrl,
+                Bio: u.Bio,
+                RecipeCount: recipeCounts.GetValueOrDefault(u.Id, 0),
+                CreatedAt: u.CreatedAt
+            ))
+            .OrderByDescending(a => a.RecipeCount)
+            .ThenBy(a => a.DisplayName)
+            .ToList();
+
+            return Results.Ok(authorDtos);
+        })
+        .WithName("GetAuthors")
+        .WithSummary("Lấy danh sách các Tác giả và Đầu bếp ẩm thực nổi bật")
+        .AllowAnonymous()
+        .WithTags("Authors")
+        .Produces<List<AuthorItemDto>>(200);
+
+        group.MapGet("/users/authors", async (
+            UserManager<ApplicationUser> userManager,
+            IApplicationDbContext dbContext) =>
+        {
+            var authorUsers = await userManager.GetUsersInRoleAsync("Author");
+            var adminUsers = await userManager.GetUsersInRoleAsync("Admin");
+
+            var allAuthors = authorUsers
+                .UnionBy(adminUsers, u => u.Id)
+                .Where(u => u.IsActive)
+                .ToList();
+
+            var authorIds = allAuthors.Select(u => u.Id).ToList();
+
+            var recipeCounts = await dbContext.Recipes
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && r.Status == RecipeStatus.Published && authorIds.Contains(r.AuthorId))
+                .GroupBy(r => r.AuthorId)
+                .Select(g => new { AuthorId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.AuthorId, x => x.Count);
+
+            var authorDtos = allAuthors.Select(u => new AuthorItemDto(
+                Id: u.Id,
+                UserName: u.UserName ?? string.Empty,
+                DisplayName: u.DisplayName,
+                AvatarUrl: u.AvatarUrl,
+                Bio: u.Bio,
+                RecipeCount: recipeCounts.GetValueOrDefault(u.Id, 0),
+                CreatedAt: u.CreatedAt
+            ))
+            .OrderByDescending(a => a.RecipeCount)
+            .ThenBy(a => a.DisplayName)
+            .ToList();
+
+            return Results.Ok(authorDtos);
+        })
+        .WithName("GetUsersAuthors")
+        .WithSummary("Lấy danh sách các Tác giả và Đầu bếp ẩm thực nổi bật (alias)")
+        .AllowAnonymous()
+        .WithTags("Authors")
+        .Produces<List<AuthorItemDto>>(200);
 
         return app;
     }

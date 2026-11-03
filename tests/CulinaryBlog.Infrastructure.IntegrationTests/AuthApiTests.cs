@@ -337,6 +337,80 @@ public sealed class AuthApiTests
         Assert.NotNull(welcomeEmailJob);
     }
 
+    [Fact]
+    public async Task UploadAvatar_ShouldRejectInvalidFormat_AndAcceptValidJpeg()
+    {
+        await using var backend = await TemporaryAuthBackend.StartAsync();
+
+        // 1. Đăng ký & Đăng nhập để lấy token
+        var registerRequest = new RegisterRequest("avatar_test@example.com", "Password123!", "Avatar User", "avataruser");
+        var registerResponse = await backend.Client.PostAsJsonAsync("/api/v1/auth/register", registerRequest);
+        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+
+        var loginRequest = new LoginRequest("avatar_test@example.com", "Password123!");
+        var loginResponse = await backend.Client.PostAsJsonAsync("/api/v1/auth/login", loginRequest);
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
+        Assert.NotNull(authResponse?.AccessToken);
+
+        // 2. Upload file rỗng -> 422
+        using var emptyContent = new MultipartFormDataContent();
+        emptyContent.Add(new ByteArrayContent([]), "file", "empty.jpg");
+        using var reqEmpty = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/profile/avatar") { Content = emptyContent };
+        reqEmpty.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
+        var emptyRes = await backend.Client.SendAsync(reqEmpty);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, emptyRes.StatusCode);
+
+        // 3. Upload file sai Magic Bytes (ví dụ file text giả dạng .jpg) -> 422
+        using var fakeContent = new MultipartFormDataContent();
+        fakeContent.Add(new ByteArrayContent([0x48, 0x65, 0x6C, 0x6C, 0x6F]), "file", "fake.jpg");
+        using var reqFake = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/profile/avatar") { Content = fakeContent };
+        reqFake.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
+        var fakeRes = await backend.Client.SendAsync(reqFake);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, fakeRes.StatusCode);
+
+        // 4. Upload file chuẩn Magic Bytes JPEG (FF D8 FF) -> 200 OK
+        using var validJpegContent = new MultipartFormDataContent();
+        validJpegContent.Add(new ByteArrayContent([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46]), "file", "avatar.jpg");
+        using var reqValid = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/profile/avatar") { Content = validJpegContent };
+        reqValid.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
+        var validRes = await backend.Client.SendAsync(reqValid);
+        Assert.Equal(HttpStatusCode.OK, validRes.StatusCode);
+
+        var validBody = await validRes.Content.ReadAsStringAsync();
+        Assert.Contains("avatarUrl", validBody);
+        Assert.Contains("Cập nhật ảnh đại diện thành công", validBody);
+    }
+
+    [Fact]
+    public async Task GetAuthors_ShouldReturnAuthorList()
+    {
+        await using var backend = await TemporaryAuthBackend.StartAsync();
+
+        // 1. Tạo tác giả mẫu
+        using (var scope = backend.Services.CreateScope())
+        {
+            var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var author = new ApplicationUser
+            {
+                UserName = "masterchef",
+                Email = "chef@example.com",
+                DisplayName = "Master Chef",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+            await userMgr.CreateAsync(author, "Chef@123");
+            await userMgr.AddToRoleAsync(author, "Author");
+        }
+
+        // 2. Gọi GET /api/v1/authors không cần token
+        var response = await backend.Client.GetAsync("/api/v1/authors");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var authors = await response.Content.ReadFromJsonAsync<List<AuthorItemDto>>();
+        Assert.NotNull(authors);
+        Assert.Contains(authors, a => a.DisplayName == "Master Chef" && a.UserName == "masterchef");
+    }
+
     private sealed class TemporaryAuthBackend : IAsyncDisposable
     {
         public HttpClient Client { get; }
@@ -504,6 +578,7 @@ public sealed class AuthApiTests
             builder.Services.AddScoped<CulinaryBlog.Application.Contracts.IEmailService, CulinaryBlog.Infrastructure.Services.MailKitEmailService>();
             builder.Services.AddScoped<CulinaryBlog.Application.Contracts.IBackgroundJobService, CulinaryBlog.Infrastructure.Jobs.BackgroundJobService>();
             builder.Services.AddScoped<CulinaryBlog.Infrastructure.Jobs.WelcomeEmailJob>();
+            builder.Services.AddScoped<CulinaryBlog.Application.Contracts.ISupabaseStorageService, MockSupabaseStorageService>();
 
             var app = builder.Build();
             
@@ -544,6 +619,7 @@ public sealed class AuthApiTests
 
             // Map endpoints
             app.MapAuthEndpoints(apiVersionSet);
+            app.MapUserEndpoints(apiVersionSet);
 
             // Test endpoint for role-based authorization check
             app.MapGet("/api/v1/test/admin-only", () => Results.Ok(new { message = "admin-secret" }))
@@ -566,6 +642,19 @@ public sealed class AuthApiTests
             Client.Dispose();
             await _app.StopAsync();
             await _app.DisposeAsync();
+        }
+    }
+
+    private class MockSupabaseStorageService : CulinaryBlog.Application.Contracts.ISupabaseStorageService
+    {
+        public Task<string> UploadFileAsync(Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult($"https://test.supabase.co/storage/v1/object/public/culinary-blog/{fileName}");
+        }
+
+        public Task DeleteFileAsync(string fileUrl, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 

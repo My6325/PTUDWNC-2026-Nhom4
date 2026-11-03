@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Domain.Entities;
@@ -18,19 +19,22 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
     private readonly IApplicationDbContext _context;
     private readonly JwtSettings _jwtSettings;
     private readonly IClientContext _clientContext;
+    private readonly ILogger<RefreshTokenCommandHandler>? _logger;
 
     public RefreshTokenCommandHandler(
         UserManager<ApplicationUser> userManager,
         IJwtService jwtService,
         IApplicationDbContext context,
         IOptions<JwtSettings> jwtSettings,
-        IClientContext clientContext)
+        IClientContext clientContext,
+        ILogger<RefreshTokenCommandHandler>? logger = null)
     {
         _userManager = userManager;
         _jwtService = jwtService;
         _context = context;
         _jwtSettings = jwtSettings.Value;
         _clientContext = clientContext;
+        _logger = logger;
     }
 
     public async Task<AuthResponseDto> Handle(RefreshTokenCommand command, CancellationToken cancellationToken)
@@ -70,6 +74,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
+                _logger?.LogWarning("CẢNH BÁO AN NINH: Phát hiện tái sử dụng Refresh Token đã bị thu hồi cho người dùng {UserId} từ IP {IpAddress}. Toàn bộ phiên đăng nhập của người dùng này đã bị hủy.", tokenEntity.UserId, _clientContext.IpAddress);
                 throw new InvalidRefreshTokenException("Refresh token đã bị thu hồi.", "AUTH_REFRESH_TOKEN_REVOKED");
             }
         }

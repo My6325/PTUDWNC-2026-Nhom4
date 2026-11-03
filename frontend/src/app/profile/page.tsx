@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -21,6 +21,8 @@ import {
   Link as LinkIcon,
   Sparkles,
   Camera,
+  Upload,
+  Loader2,
   Lock,
   KeyRound,
   Eye,
@@ -109,6 +111,56 @@ export default function ProfilePage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Trạng thái upload ảnh đại diện (Tiêu chí 1)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
+  const [avatarUploadSuccess, setAvatarUploadSuccess] = useState<string | null>(null);
+
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    e.target.value = "";
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarUploadError("Dung lượng ảnh không được vượt quá 5MB.");
+      return;
+    }
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setAvatarUploadError("Vui lòng chọn hình ảnh định dạng JPEG, PNG hoặc WebP.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setAvatarUploadError(null);
+    setAvatarUploadSuccess(null);
+
+    try {
+      const res = await authService.uploadAvatar(file);
+      setAvatarUploadSuccess("Tải lên ảnh đại diện thành công!");
+
+      if (user) {
+        const updated = res.user || { ...user, avatarUrl: res.avatarUrl };
+        setUser(updated);
+        useAuthStore.getState().setUser(updated);
+        reset({
+          displayName: updated.displayName || "",
+          avatarUrl: updated.avatarUrl || "",
+          bio: updated.bio || "",
+        });
+      }
+    } catch (err: unknown) {
+      setAvatarUploadError(
+        extractApiErrorMessage(err, "Không thể tải ảnh đại diện lên. Vui lòng thử lại sau.")
+      );
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // Trạng thái yêu cầu nâng cấp lên Đầu bếp (Chính sách 1 Mục V)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -418,24 +470,73 @@ export default function ProfilePage() {
           {/* CỘT TRÁI: THẺ TỔNG QUAN TÀI KHOẢN */}
           <div className="md:col-span-1 space-y-6">
             <div className="rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm p-6 text-center">
-              {/* Ảnh đại diện Avatar */}
-              <div className="relative mx-auto w-24 h-24 mb-4">
+              {/* Ảnh đại diện Avatar kèm Nút Tải ảnh */}
+              <div
+                className="relative mx-auto w-24 h-24 mb-2 group cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+                title="Nhấp để tải lên ảnh đại diện mới"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarFileSelect}
+                  disabled={isUploadingAvatar}
+                />
                 {displayAvatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={displayAvatar}
                     alt={user?.displayName || "Ảnh đại diện"}
-                    className="w-24 h-24 rounded-full object-cover border-2 border-brand-500 shadow-md"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-brand-500 shadow-md group-hover:opacity-80 transition-opacity"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-brand-100 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 flex items-center justify-center font-extrabold text-2xl border-2 border-brand-400">
+                  <div className="w-24 h-24 rounded-full bg-brand-100 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 flex items-center justify-center font-extrabold text-2xl border-2 border-brand-400 group-hover:opacity-80 transition-opacity">
                     {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-10 h-10" />}
                   </div>
                 )}
-                <div className="absolute bottom-0 right-0 p-1.5 bg-brand-600 text-white rounded-full shadow-xs" title="Ảnh đại diện">
-                  <Camera className="w-3.5 h-3.5" />
-                </div>
+                {isUploadingAvatar ? (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="absolute bottom-0 right-0 p-2 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-md transition-colors" title="Chọn ảnh đại diện mới">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                )}
               </div>
+
+              {/* Nút bấm tải ảnh rõ ràng */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:underline flex items-center justify-center gap-1 mx-auto mb-3 disabled:opacity-50"
+              >
+                {isUploadingAvatar ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang tải ảnh lên...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Tải ảnh từ máy tính</span>
+                  </>
+                )}
+              </button>
+
+              {avatarUploadSuccess && (
+                <div className="mb-3 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  {avatarUploadSuccess}
+                </div>
+              )}
+              {avatarUploadError && (
+                <div className="mb-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-2 rounded-lg border border-red-200 dark:border-red-800">
+                  {avatarUploadError}
+                </div>
+              )}
 
               {/* Tên & Username */}
               <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 leading-tight">

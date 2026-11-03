@@ -62,7 +62,8 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}"));
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(path: Path.Combine("logs", "culinary-blog-.log"), rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14, outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}"));
 
 // 1.2. Cấu hình Distributed Tracing với OpenTelemetry (FR-OBS-003)
 builder.Services.AddOpenTelemetry()
