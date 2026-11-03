@@ -25,6 +25,7 @@ import {
   RotateCcw,
   Info,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { categoryService } from "@/services/categoryService";
 import { CategoryDto, CreateCategoryRequest, UpdateCategoryRequest } from "@/types/category";
@@ -64,6 +65,8 @@ export default function AdminCategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<CategoryDto | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<CategoryDto | null>(null);
   const [restoringCategory, setRestoringCategory] = useState<CategoryDto | null>(null);
+  const [hardDeletingCategory, setHardDeletingCategory] = useState<CategoryDto | null>(null);
+  const [isCleaningUp, setIsCleaningUp] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -285,6 +288,48 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  // Mở Modal Xóa vĩnh viễn (Hard Delete)
+  const handleOpenHardDeleteModal = (cat: CategoryDto) => {
+    setHardDeletingCategory(cat);
+    setModalError(null);
+  };
+
+  // Xác nhận Xóa vĩnh viễn khỏi CSDL (Hard Delete)
+  const handleHardDeleteSubmit = async () => {
+    if (!hardDeletingCategory) return;
+
+    setIsSubmitting(true);
+    setModalError(null);
+    try {
+      await categoryService.hardDeleteCategory(hardDeletingCategory.id);
+      const deletedName = hardDeletingCategory.name;
+      setHardDeletingCategory(null);
+      setSuccessMessage(`Đã xóa vĩnh viễn danh mục "${deletedName}" khỏi cơ sở dữ liệu!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await loadAllData();
+    } catch (err: unknown) {
+      setModalError(extractApiErrorMessage(err, "Không thể xóa vĩnh viễn danh mục ẩm thực."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Kích hoạt quét dọn dẹp vĩnh viễn các danh mục quá hạn 30 ngày (Admin)
+  const handleTriggerCleanup = async () => {
+    setIsCleaningUp(true);
+    setSuccessMessage(null);
+    try {
+      const res = await categoryService.triggerCleanup();
+      setSuccessMessage(res.message || "Đã quét và dọn dẹp các danh mục quá hạn 30 ngày!");
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await loadAllData();
+    } catch (err: unknown) {
+      alert(extractApiErrorMessage(err, "Không thể dọn dẹp danh mục quá hạn."));
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   // 1. Trạng thái kiểm tra quyền đăng nhập
   if (isAuthLoading) {
     return (
@@ -494,14 +539,28 @@ export default function AdminCategoriesPage() {
 
         {/* Khung cảnh báo chuyên nghiệp khi ở Tab Thùng rác */}
         {activeTab === "trash" && (
-          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 flex items-start gap-3 text-sm text-amber-900 dark:text-amber-200 animate-in fade-in">
-            <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <div className="font-bold">Chính sách lưu vết và xóa mềm (Soft Delete Retention):</div>
-              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                Các danh mục bị xóa sẽ được lưu giữ tạm thời trong <strong>Thùng rác trong vòng 30 ngày</strong>. Trong thời gian này, bạn có quyền <strong>Khôi phục (Restore)</strong> danh mục về trạng thái hoạt động bình thường. Sau 30 ngày, hệ thống sẽ tự động quét dọn và xóa vĩnh viễn.
-              </p>
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-amber-900 dark:text-amber-200 animate-in fade-in">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-bold">Chính sách lưu vết và xóa mềm (Soft Delete Retention):</div>
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                  Các danh mục bị xóa sẽ được lưu giữ tạm thời trong <strong>Thùng rác trong vòng 30 ngày</strong>. Trong thời gian này, bạn có quyền <strong>Khôi phục (Restore)</strong> hoặc bấm <strong>Xóa vĩnh viễn</strong>. Sau 30 ngày, hệ thống sẽ tự động xóa vĩnh viễn.
+                </p>
+              </div>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleTriggerCleanup}
+              isLoading={isCleaningUp}
+              className="shrink-0 text-xs bg-white dark:bg-stone-900 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950"
+              title="Kích hoạt dọn dẹp các danh mục trong thùng rác đã quá hạn 30 ngày"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500" />
+              Quét dọn dẹp quá hạn (&gt;30 ngày)
+            </Button>
           </div>
         )}
 
@@ -661,15 +720,26 @@ export default function AdminCategoriesPage() {
                         {/* Nút thao tác Admin */}
                         <td className="py-3.5 px-4 text-right">
                           {activeTab === "trash" ? (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenRestoreModal(cat)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-800 text-xs font-bold transition-colors"
-                              title="Khôi phục danh mục về trạng thái hoạt động"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Khôi phục</span>
-                            </button>
+                            <div className="inline-flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenRestoreModal(cat)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-800 text-xs font-bold transition-colors"
+                                title="Khôi phục danh mục về trạng thái hoạt động"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Khôi phục</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenHardDeleteModal(cat)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 border border-red-300 dark:border-red-800 text-xs font-bold transition-colors"
+                                title="Xóa vĩnh viễn khỏi CSDL ngay lập tức"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Xóa vĩnh viễn</span>
+                              </button>
+                            </div>
                           ) : (
                             <div className="inline-flex items-center justify-end gap-1.5">
                               <button
@@ -860,16 +930,26 @@ export default function AdminCategoriesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-500 mb-1.5 uppercase tracking-wider">
-                    Slug SEO (Bảo lưu cố định)
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5 uppercase tracking-wider">
+                    Slug hiện tại
                   </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={editingCategory.slug}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-500 text-xs font-mono cursor-not-allowed"
-                  />
+                  <div className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/80 text-stone-600 dark:text-stone-300 text-xs font-mono select-all flex items-center justify-between">
+                    <span className="truncate">{editingCategory.slug}</span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                      SEO 301
+                    </span>
+                  </div>
                 </div>
+              </div>
+
+              {/* Thông tin giải thích tính năng SlugRedirects HTTP 301 */}
+              <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <span>⚡</span> Tính năng SlugRedirects (HTTP 301):
+                </p>
+                <p className="leading-relaxed text-[11px] text-stone-600 dark:text-stone-400">
+                  Nếu bạn thay đổi tên danh mục, hệ thống sẽ tự động cập nhật Slug mới và bảo lưu Slug cũ vào danh sách chuyển hướng <strong>HTTP 301 Moved Permanently</strong>, giúp các liên kết cũ không bao giờ bị lỗi 404!
+                </p>
               </div>
 
               <div>
@@ -981,6 +1061,62 @@ export default function AdminCategoriesPage() {
                 isLoading={isSubmitting}
               >
                 Xác nhận xóa
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 5. MODAL XÓA VĨNH VIỄN DANH MỤC KHỎI CSDL (HARD DELETE)     */}
+      {/* ============================================================ */}
+      {hardDeletingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-stone-900 border border-red-200 dark:border-red-900/50 shadow-2xl p-6 sm:p-8 space-y-6">
+            <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-stone-900 dark:text-white">
+                Xóa Vĩnh Viễn Danh Mục?
+              </h3>
+              <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                Bạn có chắc chắn muốn xóa vĩnh viễn danh mục{" "}
+                <strong className="text-red-600 dark:text-red-400">
+                  &ldquo;{hardDeletingCategory.name}&rdquo;
+                </strong>{" "}
+                khỏi cơ sở dữ liệu không?
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-200 dark:border-amber-900/40 text-left">
+                ⚠️ <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác. Các món ăn thuộc danh mục này sẽ tự động chuyển về trạng thái Chưa phân loại.
+              </p>
+            </div>
+
+            {modalError && (
+              <Alert variant="error" icon={<AlertCircle className="w-4 h-4 text-red-600" />}>
+                {modalError}
+              </Alert>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setHardDeletingCategory(null)}
+                disabled={isSubmitting}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleHardDeleteSubmit}
+                isLoading={isSubmitting}
+              >
+                Xóa vĩnh viễn
               </Button>
             </div>
           </div>
