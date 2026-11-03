@@ -139,6 +139,7 @@ public sealed class RecipeCommandValidationTests
     {
         var recipe = CreateRecipe();
 
+        recipe.ChangeStatus(RecipeStatus.PendingApproval);
         recipe.ChangeStatus(RecipeStatus.Published);
         recipe.ChangeStatus(RecipeStatus.Archived);
         recipe.ChangeStatus(RecipeStatus.Draft);

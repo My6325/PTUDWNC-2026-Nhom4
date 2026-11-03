@@ -87,3 +87,13 @@ export interface ResetPasswordRequest {
   newPassword: string;
   confirmNewPassword: string;
 }
+
+export interface AuthorDto {
+  id: string;
+  userName: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  recipeCount: number;
+  createdAt: string;
+}

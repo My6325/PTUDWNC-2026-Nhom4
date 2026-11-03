@@ -45,6 +45,7 @@ export const SiteHeader: React.FC = () => {
     { label: "Trang chủ", href: "/" },
     { label: "Công thức", href: "/recipes" },
     { label: "Danh mục", href: "/categories" },
+    { label: "Đầu bếp", href: "/authors" },
   ];
 
   // Phân quyền RBAC cho giao diện: Admin, Author (Đầu bếp), User (Độc giả/Người dùng)

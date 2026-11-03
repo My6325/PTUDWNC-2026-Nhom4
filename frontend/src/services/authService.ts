@@ -11,6 +11,7 @@ import {
   ResetPasswordRequest,
   AdminUserItemDto,
   ChangeUserRoleRequest,
+  AuthorDto,
 } from "@/types/auth";
 
 export const AUTH_CHANGED_EVENT = "culinary_blog_auth_changed";
@@ -217,6 +218,33 @@ export const authService = {
     const response = await apiClient.post<{ message: string; roles: string[] }>(`/admin/users/${userId}/roles`, {
       targetRole,
     });
+    return response.data;
+  },
+
+  /**
+   * Tải lên ảnh đại diện mới lên Supabase Storage (POST /api/v1/auth/profile/avatar)
+   */
+  async uploadAvatar(file: File): Promise<{ avatarUrl: string; message: string; user: UserDto }> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<{ avatarUrl: string; message: string; user: UserDto }>(
+      "/auth/profile/avatar",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Lấy danh sách các Tác giả và Đầu bếp ẩm thực nổi bật (GET /api/v1/authors)
+   */
+  async getAuthors(): Promise<AuthorDto[]> {
+    const response = await apiClient.get<AuthorDto[]>("/authors");
     return response.data;
   },
 };
