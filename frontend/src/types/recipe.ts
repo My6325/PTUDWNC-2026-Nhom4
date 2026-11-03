@@ -15,9 +15,10 @@ export enum RecipeStatus {
   Draft = 1,
   Published = 2,
   Archived = 3,
+  PendingApproval = 4,
 }
 
-export type RecipeStatusValue = "Draft" | "Published" | "Archived" | 1 | 2 | 3;
+export type RecipeStatusValue = "Draft" | "Published" | "Archived" | "PendingApproval" | 1 | 2 | 3 | 4;
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -246,4 +247,34 @@ export interface RecipeImageResponseDto {
   thumbnailUrl?: string | null;
   isPrimary: boolean;
   orderIndex: number;
+}
+
+
+export interface AdminRecipeListDto {
+  rowVersion: string;
+  id: string;
+  title: string;
+  slug: string;
+  coverImageUrl?: string | null;
+  categoryName?: string | null;
+  authorName: string;
+  difficulty: RecipeDifficulty | RecipeDifficultyValue;
+  status: RecipeStatus | RecipeStatusValue;
+  isDeleted: boolean;
+  createdAt: string;
+  deletedAt?: string | null;
+  publishedAt?: string | null;
+}
+
+export interface GetAdminRecipesParams {
+  searchTerm?: string;
+  SearchTerm?: string;
+  status?: number | string;
+  Status?: number | string;
+  onlyDeleted?: boolean;
+  OnlyDeleted?: boolean;
+  pageIndex?: number;
+  PageIndex?: number;
+  pageSize?: number;
+  PageSize?: number;
 }

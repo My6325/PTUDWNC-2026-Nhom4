@@ -38,6 +38,7 @@ import { extractApiErrorMessage } from "@/utils/apiError";
 import { cn } from "@/utils/cn";
 import { toRecipeJsonLd } from "@/utils/recipeSeo";
 import { useAuthStore } from "@/stores/auth-store";
+import { recipeManagementService as management, recipeStatusName } from "@/services/recipeManagementService";
 
 /**
  * Component Đồng hồ bấm giờ đếm ngược cho từng bước nấu ăn
@@ -211,9 +212,9 @@ export default function RecipeDetailPage() {
     setIsPublishing(true);
     setPublishMessage(null);
     try {
-      await recipeService.publishRecipe(recipe.id);
-      setRecipe({ ...recipe, status: 2 });
-      setPublishMessage("Đã xuất bản công thức thành công! Món ăn hiện đã xuất hiện trên trang Khám phá cho mọi người xem.");
+      await management.act({ id: recipe.id, rowVersion: recipe.rowVersion ?? "" }, "submit");
+      setRecipe(await recipeService.getRecipeBySlug(slug));
+      setPublishMessage("Đã gửi công thức chờ Admin phê duyệt.");
     } catch (err: unknown) {
       alert(extractApiErrorMessage(err, "Không thể xuất bản công thức. Vui lòng thử lại."));
     } finally {
@@ -226,7 +227,7 @@ export default function RecipeDetailPage() {
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      await recipeService.deleteRecipe(recipe.id);
+      await management.act({ id: recipe.id, rowVersion: recipe.rowVersion ?? "" }, "delete");
       router.push("/recipes");
     } catch (err: unknown) {
       setDeleteError(extractApiErrorMessage(err, "Không thể xóa công thức này."));
@@ -409,10 +410,12 @@ export default function RecipeDetailPage() {
     );
   }
 
-  const jsonLd = recipe ? toRecipeJsonLd(recipe) : null;
+  const isPreview = recipeStatusName(recipe.status) !== "Published";
+  const jsonLd = isPreview ? null : toRecipeJsonLd(recipe);
 
   return (
     <div className="min-h-screen bg-surface-warm dark:bg-stone-950/40 pb-20">
+      {isPreview && <><meta name="robots" content="noindex,nofollow" /><Alert variant="warning">Bản xem trước riêng tư. Công thức này chưa được công khai.</Alert></>}
       {jsonLd && (
         <script
           type="application/ld+json"
@@ -536,10 +539,10 @@ export default function RecipeDetailPage() {
                       leftIcon={<Sparkles className="h-4 w-4" />}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
                     >
-                      Xuất bản công thức
+                      Gửi phê duyệt
                     </Button>
                   )}
-                  <Link href={`/recipes/${recipe.slug || recipe.id}/edit`}>
+                  <Link href={`/dashboard/recipes/${recipe.id}/edit`}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -639,8 +642,7 @@ export default function RecipeDetailPage() {
           </div>
         )}
 
-        {/* ========================================================
-            HỘP CÔNG THỨC CHÍNH (RECIPE CARD BOX - BUDGET BYTES STYLE)
+        {/* =================================================            HỘP CÔNG THỨC CHÍNH (RECIPE CARD BOX - BUDGET BYTES STYLE)
             ======================================================== */}
         <section
           id="recipe-card-box"

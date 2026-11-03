@@ -19,6 +19,7 @@ public sealed class DeleteRecipeStepCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var stepExists = recipe.Steps.Any(s => s.Id == command.StepId && !s.IsDeleted);
         if (!stepExists)

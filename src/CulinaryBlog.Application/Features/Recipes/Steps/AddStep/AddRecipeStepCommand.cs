@@ -21,6 +21,7 @@ public sealed class AddRecipeStepCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var request = command.Request;
         var nextStepNumber = recipe.Steps.Count(s => !s.IsDeleted) + 1;

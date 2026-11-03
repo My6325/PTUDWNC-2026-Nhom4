@@ -2,8 +2,11 @@ using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Application.Exceptions;
 using CulinaryBlog.Application.Features.Categories.Common;
+using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Entities;
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CulinaryBlog.Application.Features.Categories.Update;
@@ -38,6 +41,7 @@ public sealed class UpdateCategoryValidator : AbstractValidator<UpdateCategoryCo
 
 public sealed class UpdateCategoryCommandHandler(
     ICategoryRepository categoryRepository,
+    IApplicationDbContext dbContext,
     IUnitOfWork unitOfWork,
     IMemoryCache memoryCache)
     : IRequestHandler<UpdateCategoryCommand, CategoryDto>
@@ -48,12 +52,52 @@ public sealed class UpdateCategoryCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy danh mục với Id '{command.Id}'.");
 
         var request = command.Request;
-        category.Name = request.Name.Trim();
+        var newName = request.Name.Trim();
+        var oldSlug = category.Slug;
+        var newBaseSlug = SlugHelper.GenerateSlug(newName);
+
+        if (!string.IsNullOrEmpty(newBaseSlug))
+        {
+            var targetSlug = newBaseSlug;
+            var suffix = 2;
+            while (await categoryRepository.SlugExistsAsync(targetSlug, cancellationToken) &&
+                   !string.Equals(targetSlug, oldSlug, StringComparison.OrdinalIgnoreCase))
+            {
+                targetSlug = $"{newBaseSlug}-{suffix++}";
+            }
+
+            // Nếu slug mới khác slug ban đầu -> Lưu vết vào SlugRedirects để phục vụ điều hướng HTTP 301
+            if (!string.Equals(oldSlug, targetSlug, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var existingRedirect = await dbContext.SlugRedirects
+                        .FirstOrDefaultAsync(s => s.OldSlug == oldSlug && s.EntityType == "Category", cancellationToken);
+
+                    if (existingRedirect is null)
+                    {
+                        dbContext.SlugRedirects.Add(new SlugRedirect
+                        {
+                            EntityId = category.Id,
+                            EntityType = "Category",
+                            OldSlug = oldSlug,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+                catch
+                {
+                    // Bỏ qua nếu bảng SlugRedirects chưa được tạo trên CSDL
+                }
+
+                category.Slug = targetSlug;
+            }
+        }
+
+        category.Name = newName;
         category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         category.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
         category.OrderIndex = request.OrderIndex;
-
-        // Giữ nguyên Slug ban đầu theo đúng đặc tả SRS & WBS để bảo vệ SEO
 
         // Xác thực quy tắc nghiệp vụ Domain
         category.Validate();

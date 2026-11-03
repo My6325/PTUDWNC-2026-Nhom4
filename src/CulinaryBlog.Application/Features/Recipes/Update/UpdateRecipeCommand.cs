@@ -21,6 +21,7 @@ public sealed class UpdateRecipeCommandHandler(
             ?? throw new NotFoundException("Không tìm thấy công thức.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var request = command.Request;
         var requestedRowVersion = RecipeMappings.ToRowVersion(request.RowVersion);

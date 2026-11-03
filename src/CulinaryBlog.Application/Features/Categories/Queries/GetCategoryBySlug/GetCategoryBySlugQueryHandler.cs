@@ -9,8 +9,9 @@ namespace CulinaryBlog.Application.Features.Categories.Queries.GetCategoryBySlug
 
 /// <summary>
 /// Handler xử lý GetCategoryBySlugQuery tra cứu thông tin danh mục theo slug URL và tải kèm các bài viết liên quan.
+/// Hỗ trợ tra cứu ngược từ SlugRedirects để phát tín hiệu HTTP 301 Moved Permanently.
 /// </summary>
-public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQuery, CategoryDetailDto?>
+public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQuery, CategorySlugLookupResult?>
 {
     private readonly IApplicationDbContext _context;
 
@@ -19,7 +20,7 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
         _context = context;
     }
 
-    public async Task<CategoryDetailDto?> Handle(GetCategoryBySlugQuery request, CancellationToken cancellationToken)
+    public async Task<CategorySlugLookupResult?> Handle(GetCategoryBySlugQuery request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Slug))
         {
@@ -35,12 +36,37 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
             .AsNoTracking()
             .FirstOrDefaultAsync(c => (c.Slug == normalizedSlug || c.Slug == generatedSlug) && !c.IsDeleted, cancellationToken);
 
+        // 2. Nếu không tìm thấy trong Categories đang hoạt động, kiểm tra bảng SlugRedirects xem có phải slug cũ không
         if (category is null)
         {
+            try
+            {
+                var redirect = await _context.SlugRedirects
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => (s.OldSlug == normalizedSlug || s.OldSlug == generatedSlug) && s.EntityType == "Category", cancellationToken);
+
+                if (redirect is not null)
+                {
+                    var activeCategory = await _context.Categories
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.Id == redirect.EntityId && !c.IsDeleted, cancellationToken);
+
+                    if (activeCategory is not null)
+                    {
+                        // Phát hiện slug cũ -> Trả về slug đích để API thực hiện HTTP 301 Redirect
+                        return new CategorySlugLookupResult(RedirectToSlug: activeCategory.Slug);
+                    }
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu bảng SlugRedirects chưa được tạo trên CSDL
+            }
+
             return null;
         }
 
-        // 2. Nạp danh sách tóm tắt các món ăn Published đang trực thuộc danh mục này
+        // 3. Nạp danh sách tóm tắt các món ăn Published đang trực thuộc danh mục này
         var recipes = await _context.Recipes
             .AsNoTracking()
             .Where(r => r.CategoryId == category.Id && r.Status == RecipeStatus.Published && !r.IsDeleted)
@@ -61,8 +87,8 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
             ))
             .ToListAsync(cancellationToken);
 
-        // 3. Trả về DTO chi tiết
-        return new CategoryDetailDto(
+        // 4. Trả về DTO chi tiết hoàn chỉnh
+        var detail = new CategoryDetailDto(
             category.Id,
             category.Name,
             category.Slug,
@@ -71,5 +97,7 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
             category.OrderIndex,
             recipes
         );
+
+        return new CategorySlugLookupResult(Category: detail);
     }
 }

@@ -65,4 +65,50 @@ public class BackgroundJobService : IBackgroundJobService
             return "enqueue-failed";
         }
     }
+
+    public string EnqueueImageResize(Guid recipeImageId)
+    {
+        if (recipeImageId == Guid.Empty)
+        {
+            _logger.LogWarning("EnqueueImageResize: RecipeImageId rỗng, bỏ qua enqueue.");
+            return string.Empty;
+        }
+
+        try
+        {
+            // 1. Ưu tiên Hangfire nếu IBackgroundJobClient đã được đăng ký và storage khả dụng
+            var hangfireClient = _serviceProvider.GetService<IBackgroundJobClient>();
+            if (hangfireClient != null)
+            {
+                var jobId = hangfireClient.Enqueue<IImageResizeJob>(job => job.ExecuteAsync(recipeImageId, CancellationToken.None));
+                _logger.LogInformation("EnqueueImageResize: Đã enqueue thành công qua Hangfire (JobId: '{JobId}') cho RecipeImage '{ImageId}'.", jobId, recipeImageId);
+                return jobId;
+            }
+
+            // 2. Chế độ Fallback: Chạy ngầm trong background qua IServiceScopeFactory (không làm nghẽn luồng HTTP upload)
+            _logger.LogInformation("EnqueueImageResize: Hangfire Storage không kích hoạt. Khởi chạy ImageResizeJob qua Fallback Runner cho RecipeImage '{ImageId}'.", recipeImageId);
+
+            var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var job = scope.ServiceProvider.GetRequiredService<IImageResizeJob>();
+                    await job.ExecuteAsync(recipeImageId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi xảy ra trong quá trình thực thi ImageResizeJob fallback cho RecipeImage '{ImageId}'.", recipeImageId);
+                }
+            });
+
+            return "fallback-queued";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Thất bại khi enqueue resize ảnh cho RecipeImage '{ImageId}'.", recipeImageId);
+            return "enqueue-failed";
+        }
+    }
 }

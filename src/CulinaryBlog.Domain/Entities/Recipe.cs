@@ -24,6 +24,8 @@ public class Recipe : BaseEntity
 
     public RecipeStatus Status { get; set; } = RecipeStatus.Draft;
 
+    public string? ReviewNote { get; set; }
+
 
     public DateTime? PublishedAt { get; private set; }
 
@@ -99,10 +101,11 @@ public class Recipe : BaseEntity
     {
         var isValidTransition = (Status, targetStatus) switch
         {
-            (RecipeStatus.Draft, RecipeStatus.Published) => true,
+            (RecipeStatus.Draft, RecipeStatus.PendingApproval) => true,
+            (RecipeStatus.PendingApproval, RecipeStatus.Draft) => true,
+            (RecipeStatus.PendingApproval, RecipeStatus.Published) => true,
             (RecipeStatus.Published, RecipeStatus.Archived) => true,
             (RecipeStatus.Published, RecipeStatus.Draft) => true,
-            (RecipeStatus.Archived, RecipeStatus.Published) => true,
             (RecipeStatus.Archived, RecipeStatus.Draft) => true,
             _ => false
         };
@@ -229,23 +232,56 @@ public class Recipe : BaseEntity
         foreach (var step in Steps.Where(s => !s.IsDeleted))
         {
             step.IsDeleted = true;
-            step.DeletedAt = DateTime.UtcNow;
+            step.DeletedAt = DeletedAt;
         }
 
         foreach (var ingredient in Ingredients.Where(i => !i.IsDeleted))
         {
             ingredient.IsDeleted = true;
-            ingredient.DeletedAt = DateTime.UtcNow;
+            ingredient.DeletedAt = DeletedAt;
         }
 
         foreach (var image in Images.Where(img => !img.IsDeleted))
         {
             image.IsDeleted = true;
-            image.DeletedAt = DateTime.UtcNow;
+            image.DeletedAt = DeletedAt;
+        }
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
+
+        foreach (var step in Steps)
+        {
+            step.IsDeleted = false;
+            step.DeletedAt = null;
+        }
+
+        foreach (var ingredient in Ingredients)
+        {
+            ingredient.IsDeleted = false;
+            ingredient.DeletedAt = null;
+        }
+
+        foreach (var image in Images)
+        {
+            image.IsDeleted = false;
+            image.DeletedAt = null;
         }
     }
 
     public void Publish()
+    {
+        if (IsDeleted || Status != RecipeStatus.PendingApproval)
+            throw new InvalidRecipeStatusTransitionException(Status, RecipeStatus.Published);
+        EnsureReadyForReview();
+        ChangeStatus(RecipeStatus.Published);
+        ReviewNote = null;
+    }
+
+    public void EnsureReadyForReview()
     {
         if (!Steps.Any(step => !step.IsDeleted)
             || !Ingredients.Any(ingredient => !ingredient.IsDeleted)
@@ -254,8 +290,22 @@ public class Recipe : BaseEntity
             throw new RecipeNotEligibleForPublishException();
         }
 
-        Status = RecipeStatus.Published;
-        PublishedAt = DateTime.UtcNow;
+    }
+
+    public void RestoreDraft()
+    {
+        // Only restore children deleted by this aggregate deletion, not earlier edits.
+        foreach (var step in Steps.Where(x => x.IsDeleted && x.DeletedAt == DeletedAt))
+        { step.IsDeleted = false; step.DeletedAt = null; }
+        foreach (var item in Ingredients.Where(x => x.IsDeleted && x.DeletedAt == DeletedAt))
+        { item.IsDeleted = false; item.DeletedAt = null; }
+        foreach (var image in Images.Where(x => x.IsDeleted && x.DeletedAt == DeletedAt))
+        { image.IsDeleted = false; image.DeletedAt = null; }
+        IsDeleted = false;
+        DeletedAt = null;
+        Status = RecipeStatus.Draft;
+        PublishedAt = null;
+        ReviewNote = null;
     }
 
     private static void ValidateDetails(string? title, int prepTimeMinutes, int cookTimeMinutes)

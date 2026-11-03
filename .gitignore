@@ -93,6 +93,6 @@ temp/
 *.docx
 
 # Báo cáo và công cụ hỗ trợ bài nộp cá nhân (giữ local)
-/docs/evidence/lab5/
+/docs/evidence/
 /scripts/lab5/
 /scripts/lab6/

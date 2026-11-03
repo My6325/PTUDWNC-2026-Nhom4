@@ -20,11 +20,17 @@ public sealed class DeleteRecipeImageCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy công thức với Id '{command.RecipeId}'.");
 
         await authorizationService.EnsureCanUpdateAsync(recipe, cancellationToken);
+        CulinaryBlog.Application.Features.Recipes.Management.RecipeEditing.EnsureDraft(recipe);
 
         var image = recipe.Images.FirstOrDefault(img => img.Id == command.ImageId && !img.IsDeleted)
             ?? throw new NotFoundException($"Không tìm thấy hình ảnh với Id '{command.ImageId}'.");
 
-        // 1. Xóa tệp vật lý trên Supabase Storage
+        // Commit the draft concurrency check before deleting any stored files.
+        recipe.RemoveImage(command.ImageId);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await cacheInvalidator.InvalidateListAsync(cancellationToken);
+        await cacheInvalidator.InvalidateDetailAsync(recipe.Slug, cancellationToken);
+
         if (!string.IsNullOrWhiteSpace(image.OriginalUrl))
         {
             await storageService.DeleteFileAsync(image.OriginalUrl, cancellationToken);
@@ -38,11 +44,5 @@ public sealed class DeleteRecipeImageCommandHandler(
             await storageService.DeleteFileAsync(image.ThumbnailUrl, cancellationToken);
         }
 
-        // 2. Xóa bản ghi trong Domain (nếu là ảnh chính thì tự động gán ảnh tiếp theo làm ảnh chính)
-        recipe.RemoveImage(command.ImageId);
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        await cacheInvalidator.InvalidateListAsync(cancellationToken);
-        await cacheInvalidator.InvalidateDetailAsync(recipe.Slug, cancellationToken);
     }
 }

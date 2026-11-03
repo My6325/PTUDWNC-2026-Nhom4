@@ -9,6 +9,7 @@ namespace CulinaryBlog.Application.Features.Recipes.ChangeRecipeStatus;
 public sealed record ArchiveRecipeCommand(Guid Id) : IRequest;
 public sealed record UnarchiveRecipeCommand(Guid Id) : IRequest;
 public sealed record UnpublishRecipeCommand(Guid Id) : IRequest;
+public sealed record RestoreRecipeCommand(Guid Id) : IRequest;
 
 public sealed class ArchiveRecipeCommandHandler(IUnitOfWork unitOfWork, IRecipeAuthorizationService authorization, IRecipeCacheInvalidator cache)
     : IRequestHandler<ArchiveRecipeCommand>
@@ -36,7 +37,21 @@ public sealed class UnarchiveRecipeCommandHandler(IUnitOfWork unitOfWork, IRecip
         var recipe = await unitOfWork.Recipes.GetByIdAsync(request.Id, cancellationToken) ?? throw new NotFoundException("Không tìm thấy công thức.");
         await authorization.EnsureCanUpdateAsync(recipe, cancellationToken);
         if (recipe.Status != RecipeStatus.Archived) throw new ConflictException("RECIPE_STATUS_TRANSITION_INVALID", "Chỉ công thức đã lưu trữ mới có thể khôi phục.");
-        recipe.ChangeStatus(RecipeStatus.Published);
+        recipe.ChangeStatus(RecipeStatus.Draft);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await cache.InvalidateListAsync(cancellationToken);
+        await cache.InvalidateDetailAsync(recipe.Slug, cancellationToken);
+    }
+}
+
+public sealed class RestoreRecipeCommandHandler(IUnitOfWork unitOfWork, IRecipeCacheInvalidator cache)
+    : IRequestHandler<RestoreRecipeCommand>
+{
+    public async Task Handle(RestoreRecipeCommand request, CancellationToken cancellationToken)
+    {
+        var recipe = await unitOfWork.Recipes.GetDeletedByIdAsync(request.Id, cancellationToken)
+            ?? throw new NotFoundException("Không tìm thấy công thức trong thùng rác.");
+        recipe.Restore();
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await cache.InvalidateListAsync(cancellationToken);
         await cache.InvalidateDetailAsync(recipe.Slug, cancellationToken);
