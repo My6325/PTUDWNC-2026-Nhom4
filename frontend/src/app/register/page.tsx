@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { extractApiErrorMessage } from "@/utils/apiError";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 // Schema xác thực dữ liệu đăng ký khớp với backend FluentValidation
 const registerSchema = z
@@ -226,6 +227,25 @@ function RegisterFormContent() {
           {isSubmitting ? "Đang tạo tài khoản..." : "Đăng ký tài khoản"}
         </Button>
       </form>
+
+      {/* Đường phân cách */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-stone-200 dark:border-stone-800" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white dark:bg-stone-900 px-3 text-stone-400 font-medium">
+            Hoặc đăng ký nhanh bằng
+          </span>
+        </div>
+      </div>
+
+      {/* Nút Đăng ký Google */}
+      <GoogleSignInButton
+        mode="register"
+        redirectUrl={redirectUrl}
+        onError={(err) => setErrorMessage(err)}
+      />
 
       {/* Footer chuyển sang trang Đăng nhập */}
       <div className="mt-8 pt-6 border-t border-stone-100 dark:border-stone-800 text-center text-sm text-stone-600 dark:text-stone-400">

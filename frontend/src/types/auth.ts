@@ -15,6 +15,10 @@ export interface RegisterRequest {
   userName: string;
 }
 
+export interface GoogleLoginRequest {
+  idToken: string;
+}
+
 export interface AuthResponseDto {
   accessToken: string;
   refreshToken: string;

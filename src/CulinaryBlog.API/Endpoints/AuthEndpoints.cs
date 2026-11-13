@@ -31,10 +31,11 @@ public static class AuthEndpoints
 
         group.WithTags("Auth");
 
-        group.MapPost("/register", async (RegisterRequest request, ISender sender, CancellationToken cancellationToken) =>
+        group.MapPost("/register", async (RegisterRequest request, HttpResponse httpResponse, IOptions<JwtSettings> jwtOptions, IWebHostEnvironment env, ISender sender, CancellationToken cancellationToken) =>
         {
             var command = new RegisterCommand(request);
             var response = await sender.Send(command, cancellationToken);
+            AppendRefreshTokenCookie(httpResponse, response.RefreshToken, jwtOptions.Value, env);
             return Results.Ok(response);
         })
         .WithName("Register")
@@ -46,10 +47,11 @@ public static class AuthEndpoints
         .ProducesProblem(422)
         .ProducesProblem(429);
 
-        group.MapPost("/login", async (LoginRequest request, ISender sender, CancellationToken cancellationToken) =>
+        group.MapPost("/login", async (LoginRequest request, HttpResponse httpResponse, IOptions<JwtSettings> jwtOptions, IWebHostEnvironment env, ISender sender, CancellationToken cancellationToken) =>
         {
             var command = new LoginCommand(request);
             var response = await sender.Send(command, cancellationToken);
+            AppendRefreshTokenCookie(httpResponse, response.RefreshToken, jwtOptions.Value, env);
             return Results.Ok(response);
         })
         .WithName("Login")
@@ -62,12 +64,13 @@ public static class AuthEndpoints
         .ProducesProblem(423)
         .ProducesProblem(429);
 
-        group.MapPost("/google", async (GoogleLoginRequest request, HttpContext context, ISender sender, CancellationToken cancellationToken) =>
+        group.MapPost("/google", async (GoogleLoginRequest request, HttpContext context, HttpResponse httpResponse, IOptions<JwtSettings> jwtOptions, IWebHostEnvironment env, ISender sender, CancellationToken cancellationToken) =>
         {
             var clientIp = context.Connection.RemoteIpAddress?.ToString();
             var userAgent = context.Request.Headers.UserAgent.ToString();
             var command = new GoogleLoginCommand(request.IdToken, clientIp, userAgent);
             var response = await sender.Send(command, cancellationToken);
+            AppendRefreshTokenCookie(httpResponse, response.RefreshToken, jwtOptions.Value, env);
             return Results.Ok(response);
         })
         .WithName("GoogleLogin")
@@ -100,15 +103,7 @@ public static class AuthEndpoints
             var command = new RefreshTokenCommand(new RefreshTokenRequest(token));
             var response = await sender.Send(command, cancellationToken);
 
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                SameSite = SameSiteMode.Strict,
-                Path = "/api/v1/auth",
-                Secure = !env.IsDevelopment(),
-                Expires = DateTimeOffset.UtcNow.AddDays(jwtOptions.Value.RefreshTokenExpirationDays)
-            };
-            httpResponse.Cookies.Append("refreshToken", response.RefreshToken, cookieOptions);
+            AppendRefreshTokenCookie(httpResponse, response.RefreshToken, jwtOptions.Value, env);
 
             return Results.Ok(response);
         })
@@ -352,5 +347,18 @@ public static class AuthEndpoints
         }
 
         return (false, string.Empty, string.Empty);
+    }
+
+    private static void AppendRefreshTokenCookie(HttpResponse httpResponse, string refreshToken, JwtSettings jwtSettings, IWebHostEnvironment env)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/api/v1/auth",
+            Secure = !env.IsDevelopment(),
+            Expires = DateTimeOffset.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays)
+        };
+        httpResponse.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 }

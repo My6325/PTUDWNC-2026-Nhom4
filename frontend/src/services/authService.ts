@@ -40,6 +40,9 @@ export const authService = {
 
     if (typeof window !== "undefined") {
       localStorage.setItem("accessToken", data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userDisplayName", data.displayName);
@@ -61,10 +64,63 @@ export const authService = {
 
     if (typeof window !== "undefined") {
       localStorage.setItem("accessToken", data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userDisplayName", data.displayName);
       localStorage.setItem("userRoles", JSON.stringify(data.roles || []));
+
+      window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+    }
+
+    return data;
+  },
+
+  /**
+   * Đăng nhập hoặc đăng ký tài khoản qua Google OAuth 2.0 (POST /api/v1/auth/google)
+   */
+  async googleLogin(idToken: string): Promise<AuthResponseDto> {
+    const response = await apiClient.post<AuthResponseDto>("/auth/google", { idToken });
+    const data = response.data;
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("accessToken", data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("userDisplayName", data.displayName);
+      localStorage.setItem("userRoles", JSON.stringify(data.roles || []));
+
+      window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+    }
+
+    return data;
+  },
+
+  /**
+   * Tự động làm mới phiên làm việc bằng Refresh Token (POST /api/v1/auth/refresh)
+   */
+  async refreshToken(): Promise<AuthResponseDto> {
+    const refreshToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
+    const response = await apiClient.post<AuthResponseDto>(
+      "/auth/refresh",
+      refreshToken ? { refreshToken } : {}
+    );
+    const data = response.data;
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("accessToken", data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
+      if (data.userId) localStorage.setItem("userId", data.userId);
+      if (data.email) localStorage.setItem("userEmail", data.email);
+      if (data.displayName) localStorage.setItem("userDisplayName", data.displayName);
+      if (data.roles) localStorage.setItem("userRoles", JSON.stringify(data.roles));
 
       window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
     }
@@ -78,12 +134,14 @@ export const authService = {
   async logout(): Promise<void> {
     try {
       // Backend /auth/logout hỗ trợ đọc cookie HttpOnly refreshToken hoặc body
-      await apiClient.post("/auth/logout");
+      const refreshToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
+      await apiClient.post("/auth/logout", refreshToken ? { refreshToken } : {});
     } catch {
       // Dù API có lỗi mạng, client vẫn xóa thông tin phiên để bảo vệ người dùng
     } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
         localStorage.removeItem("userId");
         localStorage.removeItem("userEmail");
         localStorage.removeItem("userDisplayName");
