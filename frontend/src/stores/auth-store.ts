@@ -17,6 +17,7 @@ export interface AuthState {
 
 const STORAGE_KEYS = {
   TOKEN: "accessToken",
+  REFRESH_TOKEN: "refreshToken",
   USER_ID: "userId",
   EMAIL: "userEmail",
   DISPLAY_NAME: "userDisplayName",
@@ -39,6 +40,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: (authData: AuthResponseDto) => {
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEYS.TOKEN, authData.accessToken);
+      if (authData.refreshToken) {
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
+      }
       localStorage.setItem(STORAGE_KEYS.USER_ID, authData.userId);
       localStorage.setItem(STORAGE_KEYS.EMAIL, authData.email);
       localStorage.setItem(STORAGE_KEYS.DISPLAY_NAME, authData.displayName);
@@ -70,6 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_ID);
       localStorage.removeItem(STORAGE_KEYS.EMAIL);
       localStorage.removeItem(STORAGE_KEYS.DISPLAY_NAME);
