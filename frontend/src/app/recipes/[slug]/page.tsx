@@ -1,7 +1,7 @@
 "use client";
 
 import { hasNutritionValues } from "@/utils/recipeNutrition";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -31,7 +31,7 @@ import {
 import { recipeService } from "@/services/recipeService";
 import { RecipeDetailDto, RecipeStepDto } from "@/types/recipe";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { extractApiErrorMessage } from "@/utils/apiError";
@@ -196,6 +196,48 @@ export default function RecipeDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
+  const [archiveAction, setArchiveAction] = useState<"archive" | "unarchive" | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const archiveDialog = useRef<HTMLDialogElement>(null);
+  const mutationPending = isPublishing || isDeleting || isArchiving;
+
+  useEffect(() => {
+    if (!archiveAction) return;
+    const dialog = archiveDialog.current;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [archiveAction]);
+
+  const handleArchive = async () => {
+    if (!recipe || !archiveAction || mutationPending) return;
+    setIsArchiving(true);
+    setArchiveError(null);
+    let saved = false;
+    try {
+      await management.act({ id: recipe.id, rowVersion: recipe.rowVersion ?? "" }, archiveAction);
+      saved = true;
+      setRecipe(await recipeService.getRecipeBySlug(slug));
+      setPublishMessage(archiveAction === "archive"
+        ? "Đã lưu trữ công thức. Bài viết không còn hiển thị công khai."
+        : "Đã bỏ lưu trữ và chuyển về bản nháp. Hãy gửi duyệt để xuất bản lại.");
+      setArchiveAction(null);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setArchiveError(saved
+        ? "Thao tác đã được lưu nhưng chưa tải được dữ liệu mới. Hãy tải lại trang trước khi thao tác tiếp."
+        : status === 409
+          ? "Công thức đã thay đổi ở phiên khác. Hãy tải lại trang trước khi thao tác tiếp."
+          : extractApiErrorMessage(err, "Không thể thay đổi trạng thái. Vui lòng thử lại."));
+    } finally { setIsArchiving(false); }
+  };
 
   const isOwnerOrAdmin = Boolean(
     isAuthenticated &&
@@ -208,7 +250,7 @@ export default function RecipeDetailPage() {
   );
 
   const handlePublishRecipe = async () => {
-    if (!recipe) return;
+    if (!recipe || mutationPending) return;
     setIsPublishing(true);
     setPublishMessage(null);
     try {
@@ -223,7 +265,7 @@ export default function RecipeDetailPage() {
   };
 
   const handleDeleteRecipe = async () => {
-    if (!recipe) return;
+    if (!recipe || mutationPending) return;
     setIsDeleting(true);
     setDeleteError(null);
     try {
@@ -536,25 +578,33 @@ export default function RecipeDetailPage() {
                       size="sm"
                       onClick={handlePublishRecipe}
                       isLoading={isPublishing}
+                      disabled={mutationPending}
                       leftIcon={<Sparkles className="h-4 w-4" />}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
                     >
                       Gửi phê duyệt
                     </Button>
                   )}
-                  <Link href={`/dashboard/recipes/${recipe.id}/edit`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      leftIcon={<Pencil className="h-4 w-4 text-brand-600" />}
-                      className="border-brand-200 hover:bg-brand-50 text-brand-700 dark:border-brand-800 dark:text-brand-300"
-                    >
-                      Sửa
-                    </Button>
+                  <Link href={`/dashboard/recipes/${recipe.id}/edit`} aria-disabled={mutationPending}
+                    tabIndex={mutationPending ? -1 : undefined}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "border-brand-200 hover:bg-brand-50 text-brand-700 dark:border-brand-800 dark:text-brand-300", mutationPending && "pointer-events-none opacity-50")}
+                    onClick={event => { if (mutationPending) event.preventDefault(); }}>
+                    <Pencil className="h-4 w-4 text-brand-600" aria-hidden="true" />
+                    Sửa
                   </Link>
+                  {["Published", "Archived"].includes(recipeStatusName(recipe.status)) && (
+                    <Button variant="outline" size="sm" disabled={mutationPending}
+                      onClick={() => {
+                        setArchiveError(null);
+                        setArchiveAction(recipeStatusName(recipe.status) === "Published" ? "archive" : "unarchive");
+                      }}>
+                      {recipeStatusName(recipe.status) === "Published" ? "Lưu trữ" : "Bỏ lưu trữ"}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
+                    disabled={mutationPending}
                     onClick={() => {
                       setDeleteError(null);
                       setShowDeleteModal(true);
@@ -911,6 +961,33 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
+      {archiveAction && (
+        <dialog ref={archiveDialog} aria-labelledby="archive-title" aria-describedby="archive-description"
+          onKeyDown={event => {
+            if (event.key !== "Tab") return;
+            const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)");
+            if (!buttons.length) { event.preventDefault(); return; }
+            const first = buttons[0];
+            const last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+          }}
+          onCancel={event => { event.preventDefault(); if (!isArchiving) setArchiveAction(null); }}
+          className="m-auto w-[calc(100%-2rem)] max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-6 text-stone-900 shadow-2xl backdrop:bg-black/60 dark:border-stone-800 dark:bg-stone-900 dark:text-white">
+          <h2 id="archive-title" className="text-lg font-bold">{archiveAction === "archive" ? "Lưu trữ công thức?" : "Bỏ lưu trữ công thức?"}</h2>
+          <p id="archive-description" className="mt-3 text-sm leading-relaxed">
+            {archiveAction === "archive"
+              ? "Công thức sẽ bị ẩn khỏi danh sách công khai. Nội dung và ảnh vẫn được giữ lại."
+              : "Công thức sẽ chuyển về bản nháp, chưa được công khai. Bạn cần gửi duyệt để xuất bản lại."}
+          </p>
+          {archiveError && <div className="mt-4"><Alert variant="error">{archiveError}</Alert>
+            <Button variant="outline" className="mt-2" disabled={isArchiving} onClick={() => window.location.reload()}>Tải lại trang</Button></div>}
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <Button autoFocus variant="outline" disabled={isArchiving} onClick={() => setArchiveAction(null)}>Hủy</Button>
+            <Button isLoading={isArchiving} disabled={!!archiveError} onClick={handleArchive}>Xác nhận</Button>
+          </div>
+        </dialog>
+      )}
       {/* Modal xác nhận xóa công thức */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
