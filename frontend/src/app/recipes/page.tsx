@@ -43,6 +43,36 @@ function RecipesContent() {
   // State cục bộ cho input tìm kiếm
   const [searchInput, setSearchInput] = useState(currentSearchTerm);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const filterPanel = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!isMobileFilterOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (desktop.matches) setIsMobileFilterOpen(false); };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileFilterOpen(false);
+      if (event.key !== "Tab") return;
+      const controls = filterPanel.current?.querySelectorAll<HTMLElement>("button:not(:disabled), select:not(:disabled), [href], [tabindex='0']");
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.body.style.overflow = "hidden";
+    filterPanel.current?.querySelector<HTMLElement>("button")?.focus();
+    document.addEventListener("keydown", onKeyDown);
+    desktop.addEventListener("change", closeOnDesktop);
+    closeOnDesktop();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", closeOnDesktop);
+      previousFocus?.focus();
+    };
+  }, [isMobileFilterOpen]);
 
   // Data states
   const { categories, isLoading: categoriesLoading, error: categoriesError, retry: retryCategories } = useRecipeCategories();
@@ -224,12 +254,17 @@ function RecipesContent() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         {/* Bộ lọc bên trái (Desktop Sidebar & Mobile Drawer) */}
         <aside
+          ref={filterPanel}
+          role={isMobileFilterOpen ? "dialog" : undefined}
+          aria-modal={isMobileFilterOpen ? true : undefined}
+          aria-label="Bộ lọc tìm kiếm"
           className={`lg:block ${
             isMobileFilterOpen
-              ? "fixed inset-0 z-50 p-6 bg-white dark:bg-stone-900 overflow-y-auto"
+              ? "fixed inset-0 z-50 flex h-dvh flex-col bg-white dark:bg-stone-900"
               : "hidden"
-          } lg:relative lg:p-6 lg:rounded-3xl lg:border lg:border-stone-200/80 dark:lg:border-stone-800 lg:bg-white dark:lg:bg-stone-900/60 lg:shadow-sm space-y-6`}
+          } lg:relative lg:h-auto lg:p-6 lg:rounded-3xl lg:border lg:border-stone-200/80 dark:lg:border-stone-800 lg:bg-white dark:lg:bg-stone-900/60 lg:shadow-sm`}
         >
+          <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6 lg:overflow-visible lg:p-0">
           <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
             <h3 className="font-bold text-base text-stone-900 dark:text-white flex items-center gap-2">
               <Filter className="w-4 h-4 text-brand-600" /> Bộ lọc tìm kiếm
@@ -413,9 +448,10 @@ function RecipesContent() {
             </div>
           </div>
 
-          {/* Nút đóng drawer trên mobile */}
+          </div>
+          {/* Filters update the URL immediately; keep the close action visible while scrolling. */}
           {isMobileFilterOpen && (
-            <div className="pt-4 lg:hidden">
+            <div className="shrink-0 border-t border-stone-200 bg-white px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-stone-800 dark:bg-stone-900 lg:hidden">
               <Button
                 variant="primary"
                 size="md"
