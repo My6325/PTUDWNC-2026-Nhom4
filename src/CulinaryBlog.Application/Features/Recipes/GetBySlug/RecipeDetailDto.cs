@@ -26,7 +26,7 @@ public sealed record RecipeDetailDto(
 
 public sealed record RecipeAuthorDto(string Name, string? AvatarUrl);
 public sealed record RecipeCategoryDto(Guid Id, string Name, string Slug);
-public sealed record RecipeStepDto(int StepNumber, string Title, string Description, int? TimerMinutes, string? ImageUrl);
-public sealed record RecipeIngredientDto(string Name, decimal? Quantity, string? Unit, string? Notes, int OrderIndex);
+public sealed record RecipeStepDto(int StepNumber, string Title, string Description, int? TimerMinutes, string? ImageUrl, Guid? Id = null);
+public sealed record RecipeIngredientDto(string Name, decimal? Quantity, string? Unit, string? Notes, int OrderIndex, Guid? Id = null);
 public sealed record RecipeImageDto(string OriginalUrl, string? MediumUrl, string? ThumbnailUrl, bool IsPrimary, int OrderIndex);
 public sealed record RecipeNutritionDto(int? Calories, decimal? Protein, decimal? Carbohydrates, decimal? Fat, decimal? Fiber, decimal? Sodium);

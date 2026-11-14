@@ -37,11 +37,20 @@ public sealed class CreateRecipeDraftCommandHandler(
             throw new ConflictException("RECIPE_SLUG_CONFLICT", "Slug công thức đã tồn tại.");
         }
 
+        var instructions = !string.IsNullOrWhiteSpace(request.Instructions)
+            ? request.Instructions
+            : request.Steps is { Count: > 0 }
+                ? string.Join("\n", request.Steps.Select((s, i) =>
+                    s.Title.Trim().StartsWith("Bước", StringComparison.OrdinalIgnoreCase)
+                        ? s.Title.Trim()
+                        : $"Bước {i + 1}: {s.Title.Trim()}"))
+                : null;
+
         var recipe = Recipe.Create(
             request.Title,
             slug,
             request.Description,
-            request.Instructions,
+            instructions,
             request.CategoryId,
             currentUser.UserId,
             request.PrepTimeMinutes,
