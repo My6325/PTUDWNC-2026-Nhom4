@@ -35,6 +35,20 @@ public sealed record CreateRecipeDraftRequest(
     IReadOnlyList<CreateRecipeStepRequest>? Steps,
     IReadOnlyList<CreateRecipeIngredientRequest>? Ingredients);
 
+public sealed record UpdateRecipeStepItemRequest(
+    Guid? Id,
+    string Title,
+    string Description,
+    int? TimerMinutes,
+    string? ImageUrl);
+
+public sealed record UpdateRecipeIngredientItemRequest(
+    Guid? Id,
+    string Name,
+    decimal? Quantity,
+    string? Unit,
+    string? Notes);
+
 public sealed record UpdateRecipeRequest(
     string Title,
     string Description,
@@ -45,7 +59,9 @@ public sealed record UpdateRecipeRequest(
     int Servings,
     RecipeDifficulty Difficulty,
     RecipeNutritionRequest? Nutrition,
-    byte[] RowVersion);
+    byte[] RowVersion,
+    IReadOnlyList<UpdateRecipeStepItemRequest>? Steps = null,
+    IReadOnlyList<UpdateRecipeIngredientItemRequest>? Ingredients = null);
 
 public sealed record RecipeDto(
     Guid Id,

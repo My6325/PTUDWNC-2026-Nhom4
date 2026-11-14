@@ -30,7 +30,7 @@ import { categoryService } from "@/services/categoryService";
 import { recipeManagementService as management } from "@/services/recipeManagementService";
 import { recipeService } from "@/services/recipeService";
 import { CategoryDto } from "@/types/category";
-import { CreateRecipeDraftRequest, RecipeDifficulty } from "@/types/recipe";
+import { CreateRecipeDraftRequest, RecipeDifficulty, RecipeNutritionDto } from "@/types/recipe";
 import { useAuthStore } from "@/stores/auth-store";
 import { extractApiErrorMessage } from "@/utils/apiError";
 import { cn } from "@/lib/utils";
@@ -88,6 +88,23 @@ export default function CreateRecipePage() {
   // Tệp ảnh tải lên từ thiết bị
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+
+  // Thông tin dinh dưỡng (mỗi khẩu phần)
+  const [nutrition, setNutrition] = useState<{
+    calories: string;
+    protein: string;
+    carbohydrates: string;
+    fat: string;
+    fiber: string;
+    sodium: string;
+  }>({
+    calories: "",
+    protein: "",
+    carbohydrates: "",
+    fat: "",
+    fiber: "",
+    sodium: "",
+  });
 
   // Nguyên liệu động
   const [ingredients, setIngredients] = useState<IngredientFormItem[]>([
@@ -250,6 +267,16 @@ export default function CreateRecipePage() {
         notes: i.notes.trim() || undefined,
       }));
 
+    const nutritionPayload: RecipeNutritionDto = {
+      calories: nutrition.calories.trim() ? parseInt(nutrition.calories, 10) : undefined,
+      protein: nutrition.protein.trim() ? parseFloat(nutrition.protein) : undefined,
+      carbohydrates: nutrition.carbohydrates.trim() ? parseFloat(nutrition.carbohydrates) : undefined,
+      fat: nutrition.fat.trim() ? parseFloat(nutrition.fat) : undefined,
+      fiber: nutrition.fiber.trim() ? parseFloat(nutrition.fiber) : undefined,
+      sodium: nutrition.sodium.trim() ? parseFloat(nutrition.sodium) : undefined,
+    };
+    const hasNutrition = Object.values(nutritionPayload).some((v) => v !== undefined && !isNaN(v as number));
+
     const payload: CreateRecipeDraftRequest = {
       title: title.trim(),
       description: description.trim() || undefined,
@@ -260,6 +287,7 @@ export default function CreateRecipePage() {
       difficulty: difficultyMap[difficulty] ?? RecipeDifficulty.Easy,
       steps: validSteps.length > 0 ? validSteps : undefined,
       ingredients: validIngredients.length > 0 ? validIngredients : undefined,
+      nutrition: hasNutrition ? nutritionPayload : undefined,
     };
 
     setIsSubmitting(true);
@@ -315,7 +343,7 @@ export default function CreateRecipePage() {
       );
 
       setTimeout(() => {
-        router.push(shouldPublish && !publishWarning ? "/dashboard/recipes?status=PendingApproval" : `/dashboard/recipes/${created.id}/edit`);
+        router.push(`/recipes/${created.slug}`);
       }, 1500);
     } catch (err: unknown) {
       setErrorMessage(
@@ -735,6 +763,101 @@ export default function CreateRecipePage() {
                     />
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            {/* Khối 4: Thông tin dinh dưỡng */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-amber-500" />
+                  <span>4. Thông tin dinh dưỡng (Mỗi khẩu phần - Tùy chọn)</span>
+                </CardTitle>
+                <p className="text-xs text-stone-500">
+                  Cung cấp các chỉ số dinh dưỡng giúp độc giả dễ dàng cân đối khẩu phần ăn hàng ngày.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">
+                      Năng lượng (kcal)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="Ví dụ: 350"
+                      value={nutrition.calories}
+                      onChange={(e) => setNutrition({ ...nutrition, calories: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">
+                      Chất đạm (g)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ví dụ: 25.5"
+                      value={nutrition.protein}
+                      onChange={(e) => setNutrition({ ...nutrition, protein: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">
+                      Carbohydrate (g)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ví dụ: 45.0"
+                      value={nutrition.carbohydrates}
+                      onChange={(e) => setNutrition({ ...nutrition, carbohydrates: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">
+                      Chất béo (g)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ví dụ: 12.0"
+                      value={nutrition.fat}
+                      onChange={(e) => setNutrition({ ...nutrition, fat: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">
+                      Chất xơ (g)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ví dụ: 4.5"
+                      value={nutrition.fiber}
+                      onChange={(e) => setNutrition({ ...nutrition, fiber: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">
+                      Natri (mg)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ví dụ: 450"
+                      value={nutrition.sodium}
+                      onChange={(e) => setNutrition({ ...nutrition, sodium: e.target.value })}
+                    />
+                  </div>
+                </div>
               </CardContent>
               <CardFooter className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-stone-100">
                 <Button href="/recipes" variant="ghost" size="md">

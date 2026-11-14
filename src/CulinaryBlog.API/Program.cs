@@ -129,8 +129,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(allowedOrigins)
                   .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                  .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Correlation-ID", "X-Trace-ID", "traceparent")
-                  .WithExposedHeaders("X-Correlation-ID", "X-Trace-ID", "traceparent")
+                  .WithHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Correlation-ID", "X-Trace-ID", "traceparent", "If-Match", "If-None-Match")
+                  .WithExposedHeaders("X-Correlation-ID", "X-Trace-ID", "traceparent", "ETag")
                   .AllowCredentials();
         }
         else
@@ -286,6 +286,8 @@ using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await db.Database.ExecuteSqlRawAsync("""
+            ALTER TABLE "Recipes" ADD COLUMN IF NOT EXISTS "ReviewNote" text;
+
             CREATE TABLE IF NOT EXISTS "SlugRedirects" (
                 "Id" uuid NOT NULL PRIMARY KEY,
                 "EntityId" uuid NOT NULL,
