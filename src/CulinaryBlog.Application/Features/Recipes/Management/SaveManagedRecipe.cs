@@ -65,8 +65,17 @@ public sealed class SaveManagedRecipeHandler(IApplicationDbContext db, IRecipeAu
             ingredientIds.Any(id => !recipe.Ingredients.Any(x => x.Id == id && !x.IsDeleted)))
             throw new UnprocessableEntityException("RECIPE_CHILD_INVALID", "Bước hoặc nguyên liệu không thuộc công thức này.");
 
+        var instructions = !string.IsNullOrWhiteSpace(input.Instructions)
+            ? input.Instructions
+            : steps is { Count: > 0 }
+                ? string.Join("\n", steps.Select((s, i) =>
+                    s.Title.Trim().StartsWith("Bước", StringComparison.OrdinalIgnoreCase)
+                        ? s.Title.Trim()
+                        : $"Bước {i + 1}: {s.Title.Trim()}"))
+                : recipe.Instructions;
+
         // Keep the stable slug so saved links and previews continue to work after editing.
-        recipe.Update(input.Title, recipe.Slug, input.Description, input.Instructions, input.CategoryId,
+        recipe.Update(input.Title, recipe.Slug, input.Description, instructions, input.CategoryId,
             input.PrepTimeMinutes, input.CookTimeMinutes, input.Servings, input.Difficulty);
         if (input.Nutrition is { } n) recipe.SetNutrition(new RecipeNutrition
         { Calories = n.Calories, Protein = n.Protein, Carbohydrates = n.Carbohydrates, Fat = n.Fat, Fiber = n.Fiber, Sodium = n.Sodium });

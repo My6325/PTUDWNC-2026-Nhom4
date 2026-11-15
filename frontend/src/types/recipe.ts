@@ -192,6 +192,22 @@ export interface CreateRecipeDraftRequest {
   ingredients?: CreateRecipeIngredientRequest[] | null;
 }
 
+export interface UpdateRecipeStepItemRequest {
+  id?: string;
+  title: string;
+  description: string;
+  timerMinutes?: number | null;
+  imageUrl?: string | null;
+}
+
+export interface UpdateRecipeIngredientItemRequest {
+  id?: string;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  notes?: string | null;
+}
+
 export interface UpdateRecipeRequest {
   title: string;
   description?: string | null;
@@ -204,6 +220,8 @@ export interface UpdateRecipeRequest {
   nutrition?: RecipeNutritionDto | null;
   /** Base64 received from RecipeDto; send unchanged to detect concurrent updates. */
   rowVersion: string;
+  steps?: UpdateRecipeStepItemRequest[] | null;
+  ingredients?: UpdateRecipeIngredientItemRequest[] | null;
 }
 
 export interface RecipeDto {

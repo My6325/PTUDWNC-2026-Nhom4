@@ -686,9 +686,17 @@ export default function RecipeDetailPage() {
               <Info className="h-5 w-5 text-brand-600 dark:text-brand-400" />
               Tổng quan món ăn
             </h2>
-            <p className="whitespace-pre-line text-sm sm:text-base leading-relaxed">
-              {recipe.instructions}
-            </p>
+            <div className="space-y-2 text-sm sm:text-base leading-relaxed">
+              {recipe.instructions
+                .split(/\r?\n/)
+                .flatMap((line) => line.split(/(?<=[.!?])\s+(?=Bước\s+\d+:)/i))
+                .filter((step) => step.trim())
+                .map((step, idx) => (
+                  <p key={idx} className="font-medium text-stone-800 dark:text-stone-200">
+                    {step.trim()}
+                  </p>
+                ))}
+            </div>
           </div>
         )}
 

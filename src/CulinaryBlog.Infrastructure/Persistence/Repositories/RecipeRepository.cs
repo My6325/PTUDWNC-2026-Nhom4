@@ -98,9 +98,9 @@ public sealed class RecipeRepository : IRecipeRepository
             new RecipeAuthorDto(result.AuthorName ?? string.Empty, result.AuthorAvatar),
             recipe.Category is null ? null : new RecipeCategoryDto(recipe.Category.Id, recipe.Category.Name, recipe.Category.Slug),
             recipe.Steps.Where(step => !step.IsDeleted).OrderBy(step => step.StepNumber).Select(step => new RecipeStepDto(
-                step.StepNumber, step.Title, step.Description, step.TimerMinutes, step.ImageUrl)).ToArray(),
+                step.StepNumber, step.Title, step.Description, step.TimerMinutes, step.ImageUrl, step.Id)).ToArray(),
             recipe.Ingredients.Where(ingredient => !ingredient.IsDeleted).OrderBy(ingredient => ingredient.OrderIndex).Select(ingredient => new RecipeIngredientDto(
-                ingredient.Name, ingredient.Quantity, ingredient.Unit, ingredient.Notes, ingredient.OrderIndex)).ToArray(),
+                ingredient.Name, ingredient.Quantity, ingredient.Unit, ingredient.Notes, ingredient.OrderIndex, ingredient.Id)).ToArray(),
             recipe.Images.Where(image => !image.IsDeleted).OrderByDescending(image => image.IsPrimary).ThenBy(image => image.OrderIndex).Select(image => new RecipeImageDto(
                 image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl, image.IsPrimary, image.OrderIndex)).ToArray(),
             new RecipeNutritionDto(recipe.Nutrition.Calories, recipe.Nutrition.Protein, recipe.Nutrition.Carbohydrates,

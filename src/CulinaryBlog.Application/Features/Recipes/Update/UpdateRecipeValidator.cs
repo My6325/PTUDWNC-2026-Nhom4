@@ -20,5 +20,18 @@ public sealed class UpdateRecipeValidator : AbstractValidator<UpdateRecipeComman
             .NotNull()
             .Must(rowVersion => rowVersion.Length == sizeof(uint))
             .WithMessage("RowVersion phải là chuỗi Base64 biểu diễn đúng 4 byte.");
+
+        RuleForEach(command => command.Request.Steps).ChildRules(step =>
+        {
+            step.RuleFor(s => s.Title).NotEmpty().MaximumLength(200);
+            step.RuleFor(s => s.Description).NotEmpty();
+            step.RuleFor(s => s.TimerMinutes).GreaterThan(0).When(s => s.TimerMinutes.HasValue);
+        }).When(command => command.Request.Steps is not null);
+
+        RuleForEach(command => command.Request.Ingredients).ChildRules(ingredient =>
+        {
+            ingredient.RuleFor(i => i.Name).NotEmpty().MaximumLength(200);
+            ingredient.RuleFor(i => i.Quantity).GreaterThan(0).When(i => i.Quantity.HasValue);
+        }).When(command => command.Request.Ingredients is not null);
     }
 }
