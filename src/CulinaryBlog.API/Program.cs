@@ -6,12 +6,14 @@ using CulinaryBlog.API.Middlewares;
 using CulinaryBlog.API.OpenApi;
 using CulinaryBlog.Application;
 using CulinaryBlog.Application.Contracts;
+using CulinaryBlog.Application.Observability;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.HealthChecks;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seeders;
 using CulinaryBlog.API.Security;
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 using Asp.Versioning;
 using Asp.Versioning.Builder;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +26,9 @@ using Hangfire.PostgreSql;
 using CulinaryBlog.Infrastructure.Jobs;
 using CulinaryBlog.API.BackgroundJobs;
 using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Json;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Npgsql;
@@ -64,28 +69,39 @@ var logFilePath = Path.Combine(logsDirectory, "culinary-blog-.log");
 var builder = WebApplication.CreateBuilder(args);
 
 // 1.1. Cấu hình Structured Logging với Serilog và CorrelationId (FR-OBS-002)
-builder.Host.UseSerilog((context, services, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services)
-    .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}")
-    .WriteTo.File(
-        path: logFilePath,
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 30,
-        flushToDiskInterval: TimeSpan.FromSeconds(1),
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{CorrelationId}] [Trace:{TraceId}] {Message:lj}{NewLine}{Exception}"));
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration.ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console(new JsonFormatter(renderMessage: true))
+        .WriteTo.File(new JsonFormatter(renderMessage: true), logFilePath,
+            rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30,
+            flushToDiskInterval: TimeSpan.FromSeconds(1), shared: true);
+
+    var seqUrl = context.Configuration["Seq:ServerUrl"];
+    if (context.HostingEnvironment.IsDevelopment() && !string.IsNullOrWhiteSpace(seqUrl))
+    {
+        configuration.WriteTo.Seq(seqUrl, apiKey: context.Configuration["Seq:ApiKey"]);
+    }
+});
 
 // 1.2. Cấu hình Distributed Tracing với OpenTelemetry (FR-OBS-003)
+var exportTelemetry = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("CulinaryBlog.API"))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation(options =>
-        {
-            options.RecordException = true;
-        })
-        .AddHttpClientInstrumentation()
-        .AddNpgsql());
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation(options => options.RecordException = true)
+            .AddHttpClientInstrumentation()
+            .AddNpgsql();
+        if (exportTelemetry) tracing.AddOtlpExporter();
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics.AddMeter("Microsoft.AspNetCore.Hosting", RecipeMetrics.MeterName);
+        if (exportTelemetry) metrics.AddOtlpExporter();
+    });
 
 // 2. Đăng ký các dịch vụ tầng Application (MediatR, FluentValidation, Mapster)
 builder.Services.AddApplication();
@@ -251,6 +267,21 @@ if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnStr))
 
 // 10. Cấu hình Middleware pipeline theo thứ tự chuẩn
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging(options =>
+{
+    options.GetLevel = (context, elapsed, exception) =>
+        exception is not null || context.Response.StatusCode >= 500
+            ? LogEventLevel.Error
+            : elapsed > 500 ? LogEventLevel.Warning : LogEventLevel.Information;
+    options.EnrichDiagnosticContext = (diagnosticContext, context) =>
+    {
+        if (context.User.Identity?.IsAuthenticated == true &&
+            context.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId)
+        {
+            diagnosticContext.Set("UserId", userId);
+        }
+    };
+});
 app.UseExceptionHandler();
 app.UseCors("FrontendPolicy");
 app.UseRateLimiter();

@@ -8,11 +8,13 @@ public interface ICategoryRepository
 
     Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken);
 
+    Task<bool> NameExistsAsync(string name, CancellationToken cancellationToken, Guid? excludedId = null);
+
     Task AddAsync(Category category, CancellationToken cancellationToken);
 
     Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
-    Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken);
+    Task<int> CountRecipesAsync(Guid categoryId, CancellationToken cancellationToken);
 
     Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken);
 

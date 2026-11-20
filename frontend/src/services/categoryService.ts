@@ -6,6 +6,11 @@ import { CategoryDto, CategoryDetailDto, CreateCategoryRequest, UpdateCategoryRe
  * Tuân thủ chuẩn RESTful, Clean Architecture và tài liệu đặc tả dự án.
  */
 export const categoryService = {
+  async getDeleteBlockers(): Promise<string[]> {
+    const response = await apiClient.get<string[]>("/categories/admin/delete-blockers");
+    return response.data;
+  },
+
   /**
    * Lấy danh sách danh mục ẩm thực đang hoạt động (FR-CAT-001).
    * Backend trả về danh mục đã được In-Memory Cache (TTL 60 phút).
@@ -26,8 +31,11 @@ export const categoryService = {
   /**
    * Lấy thông tin chi tiết danh mục và danh sách công thức thuộc danh mục theo Slug (FR-CAT-002).
    */
-  async getCategoryBySlug(slug: string, signal?: AbortSignal): Promise<CategoryDetailDto> {
-    const response = await apiClient.get<CategoryDetailDto>(`/categories/${slug}`, { signal });
+  async getCategoryBySlug(slug: string, page: number, signal?: AbortSignal): Promise<CategoryDetailDto> {
+    const response = await apiClient.get<CategoryDetailDto>(`/categories/${encodeURIComponent(slug)}`, {
+      params: { page },
+      signal,
+    });
     return response.data;
   },
 
@@ -49,7 +57,7 @@ export const categoryService = {
 
   /**
    * Xóa mềm danh mục ẩm thực (Yêu cầu quyền Admin - FR-CAT-005).
-   * Chuyển danh mục vào Thùng rác lưu trữ 30 ngày, bảo toàn các công thức liên quan.
+   * Chuyển danh mục không còn công thức liên kết vào Thùng rác lưu trữ 30 ngày.
    */
   async deleteCategory(id: string): Promise<void> {
     await apiClient.delete(`/categories/${id}`);

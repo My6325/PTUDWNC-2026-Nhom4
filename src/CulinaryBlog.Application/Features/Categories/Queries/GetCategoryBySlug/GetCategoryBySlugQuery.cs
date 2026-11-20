@@ -17,4 +17,4 @@ public record CategorySlugLookupResult(
 /// <summary>
 /// Query tìm kiếm chi tiết danh mục ẩm thực theo slug kèm các món ăn tóm tắt thuộc danh mục (FR-CAT-002 & SlugRedirects).
 /// </summary>
-public record GetCategoryBySlugQuery(string Slug) : IRequest<CategorySlugLookupResult?>;
+public record GetCategoryBySlugQuery(string Slug, int Page = 1, int PageSize = 12) : IRequest<CategorySlugLookupResult?>;

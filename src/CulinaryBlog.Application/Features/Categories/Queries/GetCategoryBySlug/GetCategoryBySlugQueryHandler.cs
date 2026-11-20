@@ -14,10 +14,12 @@ namespace CulinaryBlog.Application.Features.Categories.Queries.GetCategoryBySlug
 public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQuery, CategorySlugLookupResult?>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetCategoryBySlugQueryHandler(IApplicationDbContext context)
+    public GetCategoryBySlugQueryHandler(IApplicationDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<CategorySlugLookupResult?> Handle(GetCategoryBySlugQuery request, CancellationToken cancellationToken)
@@ -58,7 +60,7 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
                     }
                 }
             }
-            catch
+            catch when (!cancellationToken.IsCancellationRequested)
             {
                 // Bỏ qua nếu bảng SlugRedirects chưa được tạo trên CSDL
             }
@@ -67,10 +69,23 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
         }
 
         // 3. Nạp danh sách tóm tắt các món ăn Published đang trực thuộc danh mục này
-        var recipes = await _context.Recipes
+        var authorId = _currentUser.IsAuthenticated && _currentUser.IsInRole("Author")
+            ? _currentUser.UserId
+            : null;
+        var visibleRecipes = _context.Recipes
             .AsNoTracking()
-            .Where(r => r.CategoryId == category.Id && r.Status == RecipeStatus.Published && !r.IsDeleted)
+            .Where(r => r.CategoryId == category.Id && !r.IsDeleted &&
+                (r.Status == RecipeStatus.Published ||
+                    (authorId != null && r.AuthorId == authorId && r.Status == RecipeStatus.Draft)));
+        var pageSize = Math.Clamp(request.PageSize, 1, 50);
+        var totalCount = await visibleRecipes.CountAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var page = Math.Clamp(request.Page, 1, Math.Max(totalPages, 1));
+        var recipes = await visibleRecipes
             .OrderByDescending(r => r.CreatedAt)
+            .ThenBy(r => r.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(r => new CategoryRecipeSummaryDto(
                 r.Id,
                 r.Title,
@@ -83,19 +98,16 @@ public class GetCategoryBySlugQueryHandler : IRequestHandler<GetCategoryBySlugQu
                 _context.RecipeImages
                     .Where(img => img.RecipeId == r.Id && img.IsPrimary && !img.IsDeleted)
                     .Select(img => img.MediumUrl ?? img.OriginalUrl)
-                    .FirstOrDefault()
+                    .FirstOrDefault(),
+                r.Status == RecipeStatus.Draft
             ))
             .ToListAsync(cancellationToken);
 
         // 4. Trả về DTO chi tiết hoàn chỉnh
         var detail = new CategoryDetailDto(
-            category.Id,
-            category.Name,
-            category.Slug,
-            category.Description,
-            category.ImageUrl,
-            category.OrderIndex,
-            recipes
+            new CategoryDto(category.Id, category.Name, category.Slug, category.Description,
+                category.ImageUrl, category.OrderIndex),
+            new CategoryRecipePage(recipes, totalCount, page, pageSize, totalPages)
         );
 
         return new CategorySlugLookupResult(Category: detail);

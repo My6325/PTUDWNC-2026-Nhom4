@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { AdminNavTabs } from "@/components/admin/AdminNavTabs";
+import { matchesCategoryName } from "@/utils/categorySearch";
 import { useRouter } from "next/navigation";
 import {
   FolderHeart,
-  ChefHat,
   Plus,
   Pencil,
   Trash2,
@@ -24,7 +25,6 @@ import {
   Clock,
   RotateCcw,
   Info,
-  Users,
   Sparkles,
 } from "lucide-react";
 import { categoryService } from "@/services/categoryService";
@@ -55,6 +55,7 @@ export default function AdminCategoriesPage() {
 
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [trashCategories, setTrashCategories] = useState<CategoryDto[]>([]);
+  const [deleteBlockers, setDeleteBlockers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -116,14 +117,16 @@ export default function AdminCategoriesPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [activeData, trashData] = await Promise.all([
-        categoryService.getCategories().catch(() => []),
-        categoryService.getTrashCategories().catch(() => []),
+      const [activeData, trashData, blockedIds] = await Promise.all([
+        categoryService.getCategories(),
+        categoryService.getTrashCategories(),
+        categoryService.getDeleteBlockers(),
       ]);
 
       const sortedActive = [...(activeData || [])].sort((a, b) => a.orderIndex - b.orderIndex);
       setCategories(sortedActive);
       setTrashCategories(trashData || []);
+      setDeleteBlockers(new Set(blockedIds));
     } catch (err: unknown) {
       setError(extractApiErrorMessage(err, "Không thể tải danh sách danh mục ẩm thực."));
     } finally {
@@ -141,13 +144,7 @@ export default function AdminCategoriesPage() {
   const displayedCategories = useMemo(() => {
     const sourceList = activeTab === "active" ? categories : trashCategories;
     if (!searchTerm.trim()) return sourceList;
-    const term = searchTerm.toLowerCase().trim();
-    return sourceList.filter(
-      (cat) =>
-        cat.name.toLowerCase().includes(term) ||
-        cat.slug.toLowerCase().includes(term) ||
-        (cat.description && cat.description.toLowerCase().includes(term))
-    );
+    return sourceList.filter((cat) => matchesCategoryName(cat.name, searchTerm));
   }, [activeTab, categories, trashCategories, searchTerm]);
 
   // Mở Modal Thêm mới (FR-CAT-003)
@@ -178,9 +175,9 @@ export default function AdminCategoriesPage() {
         imageUrl: formImageUrl.trim() || undefined,
       };
 
-      await categoryService.createCategory(request);
+      const created = await categoryService.createCategory(request);
       setIsCreateModalOpen(false);
-      setSuccessMessage(`Đã tạo thành công danh mục "${formName.trim()}"!`);
+      setSuccessMessage(`Đã tạo danh mục "${created.name}". Đường dẫn: /categories/${created.slug}`);
       setTimeout(() => setSuccessMessage(null), 4000);
       await loadAllData();
     } catch (err: unknown) {
@@ -214,8 +211,8 @@ export default function AdminCategoriesPage() {
     try {
       const request: UpdateCategoryRequest = {
         name: formName.trim(),
-        description: formDescription.trim() || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
+        description: formDescription.trim(),
+        imageUrl: formImageUrl.trim(),
         orderIndex: Number(formOrderIndex) || 0,
       };
 
@@ -233,6 +230,7 @@ export default function AdminCategoriesPage() {
 
   // Mở Modal Xóa (FR-CAT-005)
   const handleOpenDeleteModal = (cat: CategoryDto) => {
+    if (deleteBlockers.has(cat.id)) return;
     setDeletingCategory(cat);
     setModalError(null);
   };
@@ -251,10 +249,16 @@ export default function AdminCategoriesPage() {
       setTimeout(() => setSuccessMessage(null), 4000);
       await loadAllData();
     } catch (err: unknown) {
+      if ((err as { response?: { data?: { code?: string } } })?.response?.data?.code === "CATEGORY_HAS_RECIPES") {
+        const blockedId = deletingCategory.id;
+        setDeleteBlockers(current => new Set(current).add(blockedId));
+        setDeletingCategory(null);
+        return;
+      }
       setModalError(
         extractApiErrorMessage(
           err,
-          "Không thể xóa danh mục này vì vẫn còn công thức bài viết đang liên kết. Vui lòng chuyển hoặc xóa các bài viết trước."
+          "Không thể xóa danh mục này. Hãy kiểm tra và chuyển các công thức đang liên kết sang danh mục khác."
         )
       );
     } finally {
@@ -390,7 +394,7 @@ export default function AdminCategoriesPage() {
                   Trang chủ
                 </Link>
                 <ChevronRight className="w-3.5 h-3.5" />
-                <span className="font-medium text-stone-900 dark:text-stone-200">Khu vực Quản trị</span>
+                <Link href="/admin" className="font-medium text-stone-900 hover:underline dark:text-stone-200">Khu vực Quản trị</Link>
                 <ChevronRight className="w-3.5 h-3.5" />
                 <span className="text-brand-600 dark:text-brand-400 font-semibold">Danh mục Ẩm thực</span>
               </div>
@@ -407,11 +411,6 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div className="flex items-center gap-2.5 shrink-0">
-              <Link href="/admin/recipes">
-                <Button variant="outline" size="md" leftIcon={<ChefHat className="w-4 h-4 text-stone-500" />}>
-                  Quản lý Công thức
-                </Button>
-              </Link>
               <Button
                 variant="outline"
                 size="md"
@@ -433,19 +432,8 @@ export default function AdminCategoriesPage() {
             </div>
           </div>
 
-          {/* Sub-Navigation Tabs liên kết các phân hệ Quản trị */}
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-stone-100 dark:border-stone-800">
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 border border-brand-200/60 dark:border-brand-900/40">
-              <FolderHeart className="w-3.5 h-3.5" />
-              <span>Danh mục ẩm thực</span>
-            </div>
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Người dùng & Phân quyền RBAC</span>
-            </Link>
+          <div className="mt-4 border-t border-stone-100 pt-3 dark:border-stone-800">
+            <AdminNavTabs />
           </div>
         </div>
       </div>
@@ -516,10 +504,12 @@ export default function AdminCategoriesPage() {
           </div>
 
           {/* Ô tìm kiếm nhanh */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
-              type="text"
+              type="search"
+              aria-label="Tìm kiếm theo tên danh mục"
+              aria-describedby="category-search-results"
               placeholder="Tìm theo tên danh mục..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -529,6 +519,7 @@ export default function AdminCategoriesPage() {
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
+                aria-label="Xóa từ khóa tìm kiếm danh mục"
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
               >
                 <X className="w-4 h-4" />
@@ -536,6 +527,10 @@ export default function AdminCategoriesPage() {
             )}
           </div>
         </div>
+
+        <p id="category-search-results" role="status" className="text-sm text-stone-500 dark:text-stone-400">
+          {isLoading ? "Đang tải danh mục..." : `${displayedCategories.length} / ${activeTab === "active" ? categories.length : trashCategories.length} danh mục${searchTerm.trim() ? ` khớp với “${searchTerm.trim()}”` : ""}`}
+        </p>
 
         {/* Khung cảnh báo chuyên nghiệp khi ở Tab Thùng rác */}
         {activeTab === "trash" && (
@@ -751,7 +746,9 @@ export default function AdminCategoriesPage() {
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
-                              <button
+                              {deleteBlockers.has(cat.id) ? (
+                                <span className="text-xs text-stone-500 dark:text-stone-400">Còn công thức</span>
+                              ) : <button
                                 type="button"
                                 onClick={() => handleOpenDeleteModal(cat)}
                                 className="p-2 rounded-lg text-stone-600 hover:text-red-600 hover:bg-red-50 dark:text-stone-300 dark:hover:text-red-400 dark:hover:bg-red-950/50 transition-colors"
@@ -759,7 +756,7 @@ export default function AdminCategoriesPage() {
                                 aria-label={`Xóa ${cat.name}`}
                               >
                                 <Trash2 className="w-4 h-4" />
-                              </button>
+                              </button>}
                             </div>
                           )}
                         </td>
@@ -942,13 +939,12 @@ export default function AdminCategoriesPage() {
                 </div>
               </div>
 
-              {/* Thông tin giải thích tính năng SlugRedirects HTTP 301 */}
               <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
-                  <span>⚡</span> Tính năng SlugRedirects (HTTP 301):
+                  Địa chỉ danh mục
                 </p>
                 <p className="leading-relaxed text-[11px] text-stone-600 dark:text-stone-400">
-                  Nếu bạn thay đổi tên danh mục, hệ thống sẽ tự động cập nhật Slug mới và bảo lưu Slug cũ vào danh sách chuyển hướng <strong>HTTP 301 Moved Permanently</strong>, giúp các liên kết cũ không bao giờ bị lỗi 404!
+                  Slug và địa chỉ danh mục được giữ nguyên khi bạn đổi tên.
                 </p>
               </div>
 
@@ -1013,7 +1009,7 @@ export default function AdminCategoriesPage() {
       {/* ============================================================ */}
       {/* 3. MODAL XÓA MỀM DANH MỤC (FR-CAT-005)                         */}
       {/* ============================================================ */}
-      {deletingCategory && (
+      {deletingCategory && !deleteBlockers.has(deletingCategory.id) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-md rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl p-6 sm:p-8 space-y-6">
             <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center mx-auto">
@@ -1034,7 +1030,7 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-              ♻️ <strong>Chính sách Xóa:</strong> Danh mục sẽ được chuyển vào <strong>Thùng rác</strong> và lưu giữ trong<strong>30 ngày</strong>. Dữ liệu các công thức liên quan vẫn được bảo toàn nguyên vẹn và bạn có thể bấm <strong>Khôi phục</strong> bất cứ lúc nào.
+              Hãy chuyển các công thức đang liên kết sang danh mục khác trước khi xóa. Danh mục đã xóa có thể được khôi phục từ thùng rác trong vòng 30 ngày.
             </div>
 
             {modalError && (

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { AdminNavTabs } from "@/components/admin/AdminNavTabs";
 import { useRouter } from "next/navigation";
 import {
   ChefHat,
@@ -24,7 +25,6 @@ import {
   Eye,
   Calendar,
   Layers,
-  FolderHeart,
 } from "lucide-react";
 import { recipeManagementService as management } from "@/services/recipeManagementService";
 import { recipeService } from "@/services/recipeService";
@@ -314,7 +314,7 @@ export default function AdminRecipesPage() {
             <div className="flex items-center gap-2 text-xs text-stone-500 mb-1">
               <Link href="/" className="hover:text-stone-900 dark:hover:text-stone-200">Trang chủ</Link>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-stone-700 dark:text-stone-300 font-medium">Bảng điều khiển Quản trị</span>
+              <Link href="/admin" className="font-medium text-stone-700 hover:underline dark:text-stone-300">Quản trị</Link>
             </div>
             <Button href="/admin/recipes/review" variant="outline">Duyệt bài chờ và ghi lý do từ chối</Button>
             <h1 className="text-2xl md:text-3xl font-extrabold text-stone-900 dark:text-stone-100 flex items-center gap-2.5">
@@ -327,11 +327,6 @@ export default function AdminRecipesPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <Link href="/admin/categories">
-              <Button variant="outline" size="sm" leftIcon={<FolderHeart className="w-4 h-4 text-stone-500" />}>
-                Quản lý Danh mục
-              </Button>
-            </Link>
             <Link href="/recipes/create">
               <Button variant="default" size="sm" leftIcon={<Plus className="w-4 h-4" />} className="bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-xs">
                 Tạo công thức mới
@@ -339,6 +334,8 @@ export default function AdminRecipesPage() {
             </Link>
           </div>
         </div>
+
+        <AdminNavTabs />
 
         {/* Thông báo thành công / lỗi */}
         {successMessage && (

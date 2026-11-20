@@ -257,14 +257,17 @@ public sealed class RecipeCommandHandlerTests
         public Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken) =>
             Task.FromResult(false);
 
+        public Task<bool> NameExistsAsync(string name, CancellationToken cancellationToken, Guid? excludedId = null) =>
+            Task.FromResult(false);
+
         public Task AddAsync(Category category, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
         public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult<Category?>(null);
 
-        public Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken) =>
-            Task.FromResult(false);
+        public Task<int> CountRecipesAsync(Guid categoryId, CancellationToken cancellationToken) =>
+            Task.FromResult(0);
 
         public Task<int> GetNextOrderIndexAsync(CancellationToken cancellationToken) =>
             Task.FromResult(1);

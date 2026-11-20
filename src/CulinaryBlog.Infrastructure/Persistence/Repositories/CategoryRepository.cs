@@ -24,6 +24,15 @@ public sealed class CategoryRepository(ApplicationDbContext dbContext) : ICatego
         return dbContext.Categories.AddAsync(category, cancellationToken).AsTask();
     }
 
+    public Task<bool> NameExistsAsync(string name, CancellationToken cancellationToken, Guid? excludedId = null)
+    {
+        var normalizedName = name.Trim().ToUpperInvariant();
+        return dbContext.Categories.AnyAsync(
+            category => (!excludedId.HasValue || category.Id != excludedId) &&
+                category.Name.Trim().ToUpper() == normalizedName,
+            cancellationToken);
+    }
+
     public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Categories.FirstOrDefaultAsync(
@@ -31,10 +40,10 @@ public sealed class CategoryRepository(ApplicationDbContext dbContext) : ICatego
             cancellationToken);
     }
 
-    public Task<bool> HasRecipesAsync(Guid categoryId, CancellationToken cancellationToken)
+    public Task<int> CountRecipesAsync(Guid categoryId, CancellationToken cancellationToken)
     {
-        return dbContext.Recipes.AnyAsync(
-            recipe => recipe.CategoryId == categoryId && !recipe.IsDeleted,
+        return dbContext.Recipes.CountAsync(
+            recipe => recipe.CategoryId == categoryId,
             cancellationToken);
     }
 

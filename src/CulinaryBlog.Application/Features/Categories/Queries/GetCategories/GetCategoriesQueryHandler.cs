@@ -1,7 +1,7 @@
 using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Application.Features.Categories.Common;
-using Mapster;
+using CulinaryBlog.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -9,7 +9,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace CulinaryBlog.Application.Features.Categories.Queries.GetCategories;
 
 /// <summary>
-/// Handler xử lý GetCategoriesQuery với kỹ thuật In-Memory Cache (TTL 60 phút) và Mapster Projection.
+/// Handler đọc danh mục công khai và cache kết quả trong 60 phút kể từ lần truy cập gần nhất.
 /// </summary>
 public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, List<CategoryDto>>
 {
@@ -31,16 +31,25 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Lis
             return cachedCategories;
         }
 
-        // 2. Nếu Cache miss, truy vấn Supabase PostgreSQL qua EF Core AsNoTracking & Mapster ProjectToType
         var categories = await _context.Categories
             .AsNoTracking()
             .Where(c => !c.IsDeleted)
             .OrderBy(c => c.OrderIndex)
-            .ProjectToType<CategoryDto>()
+            .ThenBy(c => c.Name)
+            .ThenBy(c => c.Id)
+            .Select(c => new CategoryDto(c.Id, c.Name, c.Slug, c.Description, c.ImageUrl,
+                c.OrderIndex, c.CreatedAt, c.UpdatedAt, c.DeletedAt)
+            {
+                RecipeCount = _context.Recipes.Count(r =>
+                    r.CategoryId == c.Id && r.Status == RecipeStatus.Published && !r.IsDeleted)
+            })
             .ToListAsync(cancellationToken);
 
         // 3. Lưu vào Cache với thời hạn 60 phút
-        _memoryCache.Set(CategoryCacheKeys.All, categories, CacheDuration);
+        _memoryCache.Set(CategoryCacheKeys.All, categories, new MemoryCacheEntryOptions
+        {
+            SlidingExpiration = CacheDuration
+        });
 
         return categories;
     }

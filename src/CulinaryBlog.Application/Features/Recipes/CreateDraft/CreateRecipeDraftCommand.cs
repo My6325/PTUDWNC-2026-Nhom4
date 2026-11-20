@@ -86,6 +86,7 @@ public sealed class CreateRecipeDraftCommandHandler(
 
         await unitOfWork.Recipes.AddAsync(recipe, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        CulinaryBlog.Application.Observability.RecipeMetrics.Created.Add(1);
         await cacheInvalidator.InvalidateListAsync(cancellationToken);
 
         return recipe.ToDto();

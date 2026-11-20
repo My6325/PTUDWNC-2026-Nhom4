@@ -13,5 +13,6 @@ public record CategoryRecipeSummaryDto(
     int CookTimeMinutes,
     int Servings,
     string Difficulty,
-    string? PrimaryImageUrl
+    string? PrimaryImageUrl,
+    bool IsDraft
 );

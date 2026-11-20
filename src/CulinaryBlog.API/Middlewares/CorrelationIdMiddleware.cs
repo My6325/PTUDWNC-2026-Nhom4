@@ -23,19 +23,20 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
             correlationId = Guid.NewGuid().ToString("N");
         }
 
-        // 2. Gắn CorrelationId vào Response Header để Client/Trình duyệt đối soát khi gặp lỗi
-        context.Response.Headers[CorrelationIdHeader] = correlationId;
-
-        // 3. Trích xuất TraceId từ OpenTelemetry Activity (FR-OBS-003) nếu có
         var traceId = Activity.Current?.TraceId.ToString();
-        if (!string.IsNullOrWhiteSpace(traceId))
+        context.Response.OnStarting(() =>
         {
-            context.Response.Headers[TraceIdHeader] = traceId;
-        }
+            context.Response.Headers[CorrelationIdHeader] = correlationId;
+            if (traceId is not null)
+            {
+                context.Response.Headers[TraceIdHeader] = traceId;
+            }
+            return Task.CompletedTask;
+        });
 
         // 4. Đẩy CorrelationId và TraceId vào LogContext của Serilog để mọi log trong luồng xử lý đều được đánh dấu vết
         using (LogContext.PushProperty("CorrelationId", correlationId))
-        using (LogContext.PushProperty("TraceId", traceId ?? correlationId))
+        using (LogContext.PushProperty("TraceId", traceId))
         {
             await next(context);
         }

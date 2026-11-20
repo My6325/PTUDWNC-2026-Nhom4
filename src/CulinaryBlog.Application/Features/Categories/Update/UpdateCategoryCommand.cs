@@ -2,20 +2,17 @@ using CulinaryBlog.Application.Contracts;
 using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Application.Exceptions;
 using CulinaryBlog.Application.Features.Categories.Common;
-using CulinaryBlog.Domain.Common;
-using CulinaryBlog.Domain.Entities;
 using FluentValidation;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CulinaryBlog.Application.Features.Categories.Update;
 
 public sealed record UpdateCategoryRequest(
-    string Name,
-    string? Description,
-    string? ImageUrl,
-    int OrderIndex);
+    string? Name = null,
+    string? Description = null,
+    string? ImageUrl = null,
+    int? OrderIndex = null);
 
 public sealed record UpdateCategoryCommand(Guid Id, UpdateCategoryRequest Request) : IRequest<CategoryDto>;
 
@@ -28,9 +25,9 @@ public sealed class UpdateCategoryValidator : AbstractValidator<UpdateCategoryCo
             .WithMessage("Id danh mục không được để trống.");
 
         RuleFor(command => command.Request.Name)
-            .Must(name => name is not null && name.Trim().Length is >= 2 and <= 100)
+            .Must(name => name is null || name.Trim().Length is >= 2 and <= 100)
             .WithMessage("Tên danh mục phải có độ dài từ 2 đến 100 ký tự.")
-            .Must(name => name is not null && !name.Contains('<') && !name.Contains('>'))
+            .Must(name => name is null || (!name.Contains('<') && !name.Contains('>')))
             .WithMessage("Tên danh mục không được chứa thẻ HTML.");
 
         RuleFor(command => command.Request.OrderIndex)
@@ -41,7 +38,6 @@ public sealed class UpdateCategoryValidator : AbstractValidator<UpdateCategoryCo
 
 public sealed class UpdateCategoryCommandHandler(
     ICategoryRepository categoryRepository,
-    IApplicationDbContext dbContext,
     IUnitOfWork unitOfWork,
     IMemoryCache memoryCache)
     : IRequestHandler<UpdateCategoryCommand, CategoryDto>
@@ -52,52 +48,19 @@ public sealed class UpdateCategoryCommandHandler(
             ?? throw new NotFoundException($"Không tìm thấy danh mục với Id '{command.Id}'.");
 
         var request = command.Request;
-        var newName = request.Name.Trim();
-        var oldSlug = category.Slug;
-        var newBaseSlug = SlugHelper.GenerateSlug(newName);
-
-        if (!string.IsNullOrEmpty(newBaseSlug))
+        var newName = request.Name?.Trim() ?? category.Name;
+        if (!string.Equals(category.Name, newName, StringComparison.OrdinalIgnoreCase) &&
+            await categoryRepository.NameExistsAsync(newName, cancellationToken, category.Id))
         {
-            var targetSlug = newBaseSlug;
-            var suffix = 2;
-            while (await categoryRepository.SlugExistsAsync(targetSlug, cancellationToken) &&
-                   !string.Equals(targetSlug, oldSlug, StringComparison.OrdinalIgnoreCase))
-            {
-                targetSlug = $"{newBaseSlug}-{suffix++}";
-            }
-
-            // Nếu slug mới khác slug ban đầu -> Lưu vết vào SlugRedirects để phục vụ điều hướng HTTP 301
-            if (!string.Equals(oldSlug, targetSlug, StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    var existingRedirect = await dbContext.SlugRedirects
-                        .FirstOrDefaultAsync(s => s.OldSlug == oldSlug && s.EntityType == "Category", cancellationToken);
-
-                    if (existingRedirect is null)
-                    {
-                        dbContext.SlugRedirects.Add(new SlugRedirect
-                        {
-                            EntityId = category.Id,
-                            EntityType = "Category",
-                            OldSlug = oldSlug,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
-                }
-                catch
-                {
-                    // Bỏ qua nếu bảng SlugRedirects chưa được tạo trên CSDL
-                }
-
-                category.Slug = targetSlug;
-            }
+            throw new ConflictException("CATEGORY_NAME_CONFLICT", "Tên danh mục đã tồn tại.");
         }
 
         category.Name = newName;
-        category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-        category.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
-        category.OrderIndex = request.OrderIndex;
+        if (request.Description is not null)
+            category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        if (request.ImageUrl is not null)
+            category.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
+        category.OrderIndex = request.OrderIndex ?? category.OrderIndex;
 
         // Xác thực quy tắc nghiệp vụ Domain
         category.Validate();

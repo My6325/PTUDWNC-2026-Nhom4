@@ -10,6 +10,7 @@ export interface CategoryDto {
   description?: string | null;
   imageUrl?: string | null;
   orderIndex: number;
+  recipeCount?: number;
   createdAt?: string;
   updatedAt?: string | null;
   isDeleted?: boolean;
@@ -26,20 +27,18 @@ export interface CategoryRecipeSummaryDto {
   servings: number;
   difficulty: string;
   primaryImageUrl?: string | null;
+  isDraft: boolean;
 }
 
 export interface CategoryDetailDto {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string | null;
-  imageUrl?: string | null;
-  orderIndex: number;
-  recipes: CategoryRecipeSummaryDto[];
-  createdAt?: string;
-  updatedAt?: string | null;
-  isDeleted?: boolean;
-  deletedAt?: string | null;
+  category: CategoryDto;
+  recipes: {
+    items: CategoryRecipeSummaryDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
 }
 
 export interface CreateCategoryRequest {
