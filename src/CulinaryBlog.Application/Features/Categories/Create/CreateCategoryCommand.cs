@@ -48,6 +48,11 @@ public sealed class CreateCategoryCommandHandler(
             slug = $"{baseSlug}-{suffix++}";
         }
 
+        if (await categoryRepository.NameExistsAsync(name, cancellationToken))
+        {
+            throw new ConflictException("CATEGORY_NAME_CONFLICT", "Tên danh mục đã tồn tại.");
+        }
+
         var category = new Category
         {
             Name = name,

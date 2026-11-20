@@ -18,7 +18,7 @@ const actions: Record<string, [WorkflowAction, string][]> = {
   Trash: [["restore", "Khôi phục về bản nháp"]],
 };
 
-export function ManagedRecipes({ reviewQueue = false }: { reviewQueue?: boolean }) {
+export function ManagedRecipes({ reviewQueue = false, embedded = false }: { reviewQueue?: boolean; embedded?: boolean }) {
   const search = useSearchParams();
   const tab = reviewQueue ? "PendingApproval" : ((search.get("status") ?? "") in tabs ? search.get("status")! : "Draft");
   const rawPage = Number(search.get("page") ?? 1);
@@ -57,11 +57,11 @@ export function ManagedRecipes({ reviewQueue = false }: { reviewQueue?: boolean 
     } catch (err) { setError(getErrorMessage(err)); }
     finally { setBusy(false); }
   }
-  return <main className="mx-auto max-w-6xl px-4 py-10 space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div>
+  return <section className={embedded ? "space-y-6" : "mx-auto max-w-6xl px-4 py-10 space-y-6"}>
+    {!embedded && <div className="flex flex-wrap items-center justify-between gap-4"><div>
       <h1 className="text-3xl font-bold">{reviewQueue ? "Duyệt công thức" : "Món ăn của tôi"}</h1>
       <p className="mt-2 text-stone-500">{reviewQueue ? "Kiểm tra nội dung trước khi công khai. Bài bị từ chối trở về bản nháp kèm lý do." : "Lưu nháp, gửi duyệt và quản lý những công thức của bạn."}</p>
-    </div><Button href={reviewQueue ? "/dashboard/recipes" : "/dashboard/recipes/new"}>{reviewQueue ? "Món ăn của tôi" : "Viết món mới"}</Button></div>
+    </div><Button href={reviewQueue ? "/dashboard/recipes" : "/dashboard/recipes/new"}>{reviewQueue ? "Món ăn của tôi" : "Viết món mới"}</Button></div>}
     {!reviewQueue && <nav aria-label="Trạng thái công thức" className="flex flex-wrap gap-2">{Object.entries(tabs).map(([key, label]) =>
       <Button key={key} variant={key === tab ? "default" : "outline"} onClick={() => navigate(key)} disabled={busy} aria-current={key === tab ? "page" : undefined}>{label}</Button>)}</nav>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-green-800">{notice}</p>}
@@ -88,5 +88,5 @@ export function ManagedRecipes({ reviewQueue = false }: { reviewQueue?: boolean 
         </article>;
       })}</div>}
     {data && <Pagination currentPage={page} totalPages={data.totalPages} onPageChange={index => navigate(tab, index)} isLoading={loading || busy} />}
-  </main>;
+  </section>;
 }

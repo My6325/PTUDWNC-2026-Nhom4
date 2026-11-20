@@ -141,6 +141,13 @@ dotnet run             # hoặc: dotnet watch run (Hot-Reload)
 - **Tài liệu API tương tác Scalar UI:** `http://localhost:5000/scalar/v1` (hoặc vào thẳng `http://localhost:5000`)
 - **Hangfire Dashboard:** `http://localhost:5000/hangfire`
 
+#### Kiểm tra giám sát hệ thống (FR-OBS)
+
+- Mở `/health/live` để kiểm tra tiến trình API, `/health/ready` để kiểm tra Supabase PostgreSQL và `/health` để xem báo cáo tổng hợp. Readiness trả `503` khi CSDL không kết nối được.
+- Gửi một request rồi tìm sự kiện có cùng `X-Correlation-ID` trong log JSON ở console hoặc `logs/culinary-blog-*.log`. Sự kiện có method, path, status, thời gian xử lý (ms), trace ID và UserId khi đã đăng nhập. Request trên 500 ms được ghi ở mức Warning, còn lỗi 5xx ở mức Error.
+- Để xem trace và metrics trên collector, đặt `OTEL_EXPORTER_OTLP_ENDPOINT` và giao thức tương ứng trong `.env`. Histogram `http.server.request.duration` dùng đơn vị giây. Dùng số mẫu của histogram để tính số request và tỷ lệ 5xx theo `http.response.status_code`. Hai counter `culinaryblog.recipes.created` và `culinaryblog.recipes.published` tăng sau khi lưu thành công.
+- Trong Development, đặt `Seq__ServerUrl` và `Seq__ApiKey` nếu máy chủ Seq yêu cầu khóa. Console và file log hoạt động độc lập với Seq và collector.
+
 ---
 
 ### 3.4. Cài đặt và Chạy Frontend (Next.js 15 App Router)

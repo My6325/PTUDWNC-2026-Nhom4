@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CulinaryBlog.Application.DTOs;
 
 /// <summary>
@@ -14,4 +16,8 @@ public record CategoryDto(
     DateTime? CreatedAt = null,
     DateTime? UpdatedAt = null,
     DateTime? DeletedAt = null
-);
+)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? RecipeCount { get; init; }
+}

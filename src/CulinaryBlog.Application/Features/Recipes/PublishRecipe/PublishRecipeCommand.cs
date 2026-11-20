@@ -30,6 +30,7 @@ public sealed class PublishRecipeCommandHandler(
 
         recipe.Publish();
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        CulinaryBlog.Application.Observability.RecipeMetrics.Published.Add(1);
         await cacheInvalidator.InvalidateListAsync(cancellationToken);
         await cacheInvalidator.InvalidateDetailAsync(recipe.Slug, cancellationToken);
     }

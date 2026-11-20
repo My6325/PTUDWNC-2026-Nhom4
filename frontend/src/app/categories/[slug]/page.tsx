@@ -11,7 +11,6 @@ import {
   Utensils,
   BookOpen,
   FolderOpen,
-  RefreshCw,
   Sparkles,
 } from "lucide-react";
 import { categoryService } from "@/services/categoryService";
@@ -22,7 +21,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { extractApiErrorMessage } from "@/utils/apiError";
-import { cn } from "@/utils/cn";
+import { useAuthStore } from "@/stores/auth-store";
 
 /**
  * Card hiển thị món ăn tóm tắt trong danh mục (CategoryRecipeSummaryDto)
@@ -31,12 +30,13 @@ const CategoryRecipeCard: React.FC<{ recipe: CategoryRecipeSummaryDto }> = ({
   recipe,
 }) => {
   const totalMinutes = (recipe.prepTimeMinutes || 0) + (recipe.cookTimeMinutes || 0);
+  const href = recipe.isDraft ? `/dashboard/recipes/${recipe.id}/edit` : `/recipes/${recipe.slug}`;
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-xs hover:shadow-md hover:border-brand-300 dark:hover:border-brand-700/60 transition-all duration-300 hover:-translate-y-1">
       {/* Khung ảnh món ăn */}
       <Link
-        href={`/recipes/${recipe.slug}`}
+        href={href}
         className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100 dark:bg-stone-800 block"
         tabIndex={-1}
       >
@@ -69,12 +69,13 @@ const CategoryRecipeCard: React.FC<{ recipe: CategoryRecipeSummaryDto }> = ({
       <div className="flex flex-1 flex-col p-5">
         <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-stone-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
           <Link
-            href={`/recipes/${recipe.slug}`}
+            href={href}
             className="focus-visible:outline-none focus-visible:underline"
           >
             {recipe.title}
           </Link>
         </h3>
+        {recipe.isDraft && <span className="mt-1 text-xs text-stone-500 dark:text-stone-400">Bản nháp</span>}
 
         {recipe.description && (
           <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 line-clamp-2 leading-relaxed">
@@ -108,30 +109,35 @@ export default function CategoryDetailPage() {
   const params = useParams();
   const slug = typeof params?.slug === "string" ? params.slug : "";
 
-  const [category, setCategory] = useState<CategoryDetailDto | null>(null);
+  const { user, isLoading: isAuthLoading } = useAuthStore();
+  const [selection, setSelection] = useState({ slug, page: 1 });
+  const page = selection.slug === slug ? selection.page : 1;
+  const [loaded, setLoaded] = useState<{ slug: string; page: number; user: typeof user; data: CategoryDetailDto } | null>(null);
+  const detail = loaded?.slug === slug && loaded.page === page && loaded.user === user ? loaded.data : null;
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug || isAuthLoading) return;
 
-    let isMounted = true;
+    const controller = new AbortController();
     const fetchCategory = async () => {
       setIsLoading(true);
       setError(null);
       setIsNotFound(false);
       try {
-        const data = await categoryService.getCategoryBySlug(slug);
-        if (isMounted) {
-          setCategory(data);
+        const data = await categoryService.getCategoryBySlug(slug, page, controller.signal);
+        if (!controller.signal.aborted) {
+          setLoaded({ slug, page, user, data });
           // Điều hướng cập nhật URL nếu danh mục trả về có Slug mới (HTTP 301 SlugRedirect)
-          if (data.slug && data.slug.toLowerCase() !== slug.toLowerCase()) {
-            router.replace(`/categories/${data.slug}`);
+          if (data.category.slug.toLowerCase() !== slug.toLowerCase()) {
+            setSelection({ slug: data.category.slug, page: data.recipes.page });
+            router.replace(`/categories/${data.category.slug}`);
           }
         }
       } catch (err: unknown) {
-        if (!isMounted) return;
+        if (controller.signal.aborted) return;
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 404) {
           setIsNotFound(true);
@@ -144,7 +150,7 @@ export default function CategoryDetailPage() {
           );
         }
       } finally {
-        if (isMounted) {
+        if (!controller.signal.aborted) {
           setIsLoading(false);
         }
       }
@@ -152,13 +158,11 @@ export default function CategoryDetailPage() {
 
     fetchCategory();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [slug]);
+    return () => controller.abort();
+  }, [slug, page, router, user, isAuthLoading]);
 
   // Trạng thái Đang tải (Loading Skeleton)
-  if (isLoading) {
+  if (isLoading || isAuthLoading) {
     return (
       <div className="min-h-screen bg-surface-warm dark:bg-stone-950/50 py-8">
         <div className="container-custom mx-auto px-4 space-y-6">
@@ -217,7 +221,7 @@ export default function CategoryDetailPage() {
   }
 
   // Trạng thái Lỗi API
-  if (error || !category) {
+  if (error || !detail) {
     return (
       <div className="container-custom max-w-2xl mx-auto py-16 px-4">
         <Alert
@@ -239,7 +243,8 @@ export default function CategoryDetailPage() {
     );
   }
 
-  const recipeCount = category.recipes?.length || 0;
+  const { category, recipes } = detail;
+  const recipeCount = recipes.totalCount;
 
   return (
     <div className="min-h-screen bg-surface-warm dark:bg-stone-950/50 pb-20">
@@ -322,13 +327,13 @@ export default function CategoryDetailPage() {
               Công thức thuộc danh mục
             </h2>
             <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">
-              Hiển thị {recipeCount} món ngon
+              Hiển thị {recipes.items.length} / {recipeCount} công thức
             </span>
           </div>
 
-          {recipeCount > 0 ? (
+          {recipes.items.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {category.recipes.map((recipeItem) => (
+              {recipes.items.map((recipeItem) => (
                 <CategoryRecipeCard key={recipeItem.id} recipe={recipeItem} />
               ))}
             </div>
@@ -345,6 +350,19 @@ export default function CategoryDetailPage() {
                 }
               />
             </div>
+          )}
+          {recipes.totalPages > 1 && (
+            <nav aria-label="Phân trang công thức" className="flex flex-wrap items-center justify-center gap-3">
+              <Button variant="outline" disabled={recipes.page === 1}
+                onClick={() => setSelection({ slug, page: recipes.page - 1 })}>
+                Trang trước
+              </Button>
+              <span className="text-sm" aria-live="polite">Trang {recipes.page} / {recipes.totalPages}</span>
+              <Button variant="outline" disabled={recipes.page === recipes.totalPages}
+                onClick={() => setSelection({ slug, page: recipes.page + 1 })}>
+                Trang sau
+              </Button>
+            </nav>
           )}
         </div>
 

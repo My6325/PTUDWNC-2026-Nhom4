@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { AdminNavTabs } from "@/components/admin/AdminNavTabs";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -14,7 +15,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Layers,
   ArrowRightLeft,
   ChevronRight,
   Filter,
@@ -190,7 +190,7 @@ export default function AdminUsersPage() {
               Trang chủ
             </Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
-            <span className="text-stone-600 dark:text-stone-300">Quản trị hệ thống</span>
+            <Link href="/admin" className="text-stone-600 hover:underline dark:text-stone-300">Quản trị hệ thống</Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
             <span className="text-stone-900 dark:text-stone-100 font-semibold">Người dùng & Phân quyền</span>
           </nav>
@@ -215,22 +215,9 @@ export default function AdminUsersPage() {
               </div>
             </div>
           </div>
-
-          {/* Sub-Navigation Tabs */}
-          <div className="flex items-center bg-stone-100 dark:bg-stone-900 p-1 rounded-2xl border border-stone-200 dark:border-stone-800 self-start md:self-auto">
-            <Link
-              href="/admin/categories"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Danh mục ẩm thực</span>
-            </Link>
-            <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-stone-800 text-brand-600 dark:text-brand-400 shadow-xs">
-              <Users className="w-3.5 h-3.5" />
-              <span>Người dùng & RBAC</span>
-            </div>
-          </div>
         </div>
+
+        <AdminNavTabs />
 
         {/* Thông báo thao tác */}
         {error && (

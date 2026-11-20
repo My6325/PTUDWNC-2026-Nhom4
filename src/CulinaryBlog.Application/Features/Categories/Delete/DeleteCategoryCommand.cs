@@ -30,8 +30,13 @@ public sealed class DeleteCategoryCommandHandler(
         var category = await categoryRepository.GetByIdAsync(command.Id, cancellationToken)
             ?? throw new NotFoundException($"Không tìm thấy danh mục với Id '{command.Id}'.");
 
-        // Thực hiện xóa mềm (Soft Delete): đưa danh mục vào Thùng rác lưu trữ 30 ngày
-        // Giữ nguyên vẹn liên kết với các công thức để quản trị viên có thể Khôi phục (Restore) bất cứ lúc nào
+        var recipeCount = await categoryRepository.CountRecipesAsync(category.Id, cancellationToken);
+        if (recipeCount > 0)
+        {
+            throw new ConflictException("CATEGORY_HAS_RECIPES",
+                $"Danh mục còn chứa {recipeCount} công thức. Hãy chuyển chúng sang danh mục khác trước khi xóa.");
+        }
+
         category.IsDeleted = true;
         category.DeletedAt = DateTime.UtcNow;
 

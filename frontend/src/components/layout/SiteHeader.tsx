@@ -52,17 +52,17 @@ export const SiteHeader: React.FC = () => {
   const isAdmin = user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
   const isAuthor = user?.roles?.some((r) => r.toLowerCase() === "author") ?? false;
   const canCreateRecipe = isAdmin || isAuthor;
-  if (isAuthenticated && canCreateRecipe) navLinks.push({ label: "Món ăn của tôi", href: "/dashboard/recipes" });
+  if (isAuthenticated && isAuthor && !isAdmin) navLinks.push({ label: "Món ăn của tôi", href: "/dashboard/recipes" });
   if (isAuthenticated && isAdmin) navLinks.push({ label: "Duyệt bài", href: "/admin/recipes/review" });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-white/95 dark:bg-stone-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-stone-900/80 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
         <div className="flex items-center justify-between h-16 md:h-20 gap-4">
           {/* Logo Brand */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 text-stone-900 dark:text-stone-100 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1"
+            className="flex shrink-0 items-center gap-2.5 text-stone-900 dark:text-stone-100 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1"
           >
             <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-600/20">
               <ChefHat className="w-6 h-6" />
@@ -99,7 +99,7 @@ export const SiteHeader: React.FC = () => {
           </nav>
 
           {/* Desktop Search Bar */}
-          <div className="hidden 2xl:flex flex-1 max-w-xs xl:max-w-sm mx-4">
+          <div className="hidden min-[1700px]:flex min-w-0 flex-1 max-w-xs mx-4">
             <form onSubmit={handleSearchSubmit} className="relative w-full" role="search">
               <input
                 type="search"
@@ -114,24 +114,10 @@ export const SiteHeader: React.FC = () => {
           </div>
 
           {/* User Account & Actions - Phân rõ 4 trạng thái: Guest, Admin, Author, User */}
-          <div className="hidden xl:flex items-center gap-2">
+          <div className="hidden xl:flex shrink-0 items-center gap-2 whitespace-nowrap">
             {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                {/* 1. Nút Quản trị - CHỈ DÀNH RIÊNG CHO ADMIN */}
-                {isAdmin && (
-                  <Button
-                    href="/admin/categories"
-                    variant="outline"
-                    size="sm"
-                    className="border-brand-500/50 text-brand-600 dark:text-brand-400 bg-brand-50/70 dark:bg-brand-950/40 font-semibold shadow-sm hover:bg-brand-100 dark:hover:bg-brand-900/40"
-                    leftIcon={<Shield className="w-3.5 h-3.5" />}
-                    title="Truy cập khu vực Quản trị hệ thống & Danh mục"
-                  >
-                    Quản trị
-                  </Button>
-                )}
-
-                {/* 2. Nút Viết món mới - CHỈ HIỂN THỊ VỚI ĐẦU BẾP (AUTHOR) VÀ QUẢN TRỊ VIÊN (ADMIN) */}
+              <div className="flex shrink-0 items-center gap-2">
+                {/* Nút Viết món mới - CHỈ HIỂN THỊ VỚI ĐẦU BẾP (AUTHOR) VÀ QUẢN TRỊ VIÊN (ADMIN) */}
                 {canCreateRecipe && (
                   <Button
                     href="/recipes/create"
@@ -144,7 +130,7 @@ export const SiteHeader: React.FC = () => {
                   </Button>
                 )}
 
-                {/* 3. Nút Hồ sơ người dùng kèm Role Badge nhận diện trực quan */}
+                {/* Nút Hồ sơ người dùng kèm Role Badge nhận diện trực quan */}
                 <Button
                   href="/profile"
                   variant="ghost"
@@ -178,7 +164,7 @@ export const SiteHeader: React.FC = () => {
                   )}
                 </Button>
 
-                {/* 4. Nút Đăng xuất */}
+                {/* Nút Đăng xuất */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -250,18 +236,6 @@ export const SiteHeader: React.FC = () => {
             <div className="pt-2 border-t border-surface-border flex flex-col gap-2">
               {isAuthenticated ? (
                 <>
-                  {isAdmin && (
-                    <Button
-                      href="/admin/categories"
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start border-brand-500/50 text-brand-600 dark:text-brand-400 bg-brand-50/70 dark:bg-brand-950/40 font-semibold"
-                      leftIcon={<Shield className="w-4 h-4" />}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Bảng Quản trị (Admin)
-                    </Button>
-                  )}
                   {canCreateRecipe && (
                     <Button
                       href="/recipes/create"

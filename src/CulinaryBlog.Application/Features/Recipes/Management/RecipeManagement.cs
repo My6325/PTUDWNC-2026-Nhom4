@@ -150,6 +150,7 @@ public sealed class RecipeWorkflowHandler(IApplicationDbContext db, ICurrentUser
         recipe.UpdatedAt = DateTime.UtcNow;
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateConcurrencyException) { throw new RecipeConcurrencyConflictException(); }
+        if (request.Action == "publish") CulinaryBlog.Application.Observability.RecipeMetrics.Published.Add(1);
         await cache.InvalidateListAsync(ct);
         await cache.InvalidateDetailAsync(recipe.Slug, ct);
     }

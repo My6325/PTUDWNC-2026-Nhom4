@@ -4,6 +4,7 @@ using CulinaryBlog.Application.DTOs;
 using CulinaryBlog.Application.Features.Categories.Create;
 using CulinaryBlog.Application.Features.Categories.Delete;
 using CulinaryBlog.Application.Features.Categories.HardDelete;
+using CulinaryBlog.Application.Features.Categories.Queries;
 using CulinaryBlog.Application.Features.Categories.Queries.GetCategories;
 using CulinaryBlog.Application.Features.Categories.Queries.GetCategoryBySlug;
 using CulinaryBlog.Application.Features.Categories.Queries.GetTrashCategories;
@@ -54,7 +55,7 @@ public static class CategoryEndpoints
         })
         .WithName("GetCategories")
         .WithSummary("Lấy danh sách tất cả các danh mục ẩm thực đang hoạt động")
-        .WithDescription("Trả về danh sách danh mục ẩm thực đã sắp xếp theo OrderIndex. Tích hợp In-Memory Cache (TTL 60 phút).")
+        .WithDescription("Trả về danh mục theo OrderIndex rồi theo tên, kèm số công thức đã xuất bản. Cache hết hạn sau 60 phút không truy cập.")
         .Produces<List<CategoryDto>>(StatusCodes.Status200OK);
 
         // 3. GET /api/v1/categories/trash (Lấy danh sách danh mục trong Thùng rác [Admin])
@@ -71,24 +72,31 @@ public static class CategoryEndpoints
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         .ProducesProblem(StatusCodes.Status403Forbidden);
 
-        // 4. GET /api/v1/categories/{slug} (FR-CAT-002: Lấy chi tiết danh mục kèm bài viết tóm tắt & HTTP 301 Redirect)
-        group.MapGet("/{slug}", async (string slug, ISender sender, CancellationToken cancellationToken) =>
+        group.MapGet("/admin/delete-blockers", async (ISender sender, HttpContext context, CancellationToken ct) =>
         {
-            var result = await sender.Send(new GetCategoryBySlugQuery(slug), cancellationToken);
+            context.Response.Headers.CacheControl = "private, no-store";
+            return Results.Ok(await sender.Send(new GetCategoryDeleteBlockers(), ct));
+        })
+        .RequireAuthorization(policy => policy.RequireRole("Admin"))
+        .WithName("GetCategoryDeleteBlockers")
+        .Produces<List<Guid>>(StatusCodes.Status200OK);
+
+        // 4. GET /api/v1/categories/{slug} (FR-CAT-002: Lấy chi tiết danh mục kèm bài viết tóm tắt & HTTP 301 Redirect)
+        group.MapGet("/{slug}", async (string slug, int? page, int? pageSize, ISender sender,
+            HttpContext context, CancellationToken cancellationToken) =>
+        {
+            context.Response.Headers.CacheControl = "private, no-store";
+            var result = await sender.Send(new GetCategoryBySlugQuery(slug, page ?? 1, pageSize ?? 12), cancellationToken);
             if (result is null)
             {
-                return Results.NotFound(new
-                {
-                    status = 404,
-                    title = "Not Found",
-                    detail = $"Không tìm thấy danh mục ẩm thực với slug '{slug}'"
-                });
+                return Results.Problem(statusCode: StatusCodes.Status404NotFound,
+                    detail: $"Không tìm thấy danh mục ẩm thực với slug '{slug}'.");
             }
 
             if (!string.IsNullOrEmpty(result.RedirectToSlug))
             {
                 // Điều hướng HTTP 301 Moved Permanently theo chuẩn SEO khi truy cập vào slug cũ
-                return Results.Redirect($"/api/v1/categories/{result.RedirectToSlug}", permanent: true);
+                return Results.Redirect($"/api/v1/categories/{result.RedirectToSlug}{context.Request.QueryString}", permanent: true);
             }
 
             return Results.Ok(result.Category);
@@ -107,11 +115,12 @@ public static class CategoryEndpoints
         })
         .RequireAuthorization(policy => policy.RequireRole("Admin"))
         .WithName("UpdateCategory")
-        .WithSummary("Cập nhật thông tin danh mục ẩm thực (Tự động lưu vết Slug cũ nếu đổi tên)")
+        .WithSummary("Cập nhật thông tin danh mục ẩm thực và giữ nguyên slug")
         .Produces<CategoryDto>(StatusCodes.Status200OK)
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         .ProducesProblem(StatusCodes.Status403Forbidden)
         .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status409Conflict)
         .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         // 6. DELETE /api/v1/categories/{id:guid} (FR-CAT-005: Xóa mềm danh mục ẩm thực chuyển vào Thùng rác [Admin])

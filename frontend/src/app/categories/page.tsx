@@ -188,7 +188,9 @@ export default function CategoriesPage() {
                   )}
 
                   <div className="mt-auto pt-4 flex items-center justify-between text-xs font-semibold text-brand-600 dark:text-brand-400">
-                    <span>Khám phá món ăn</span>
+                    <span>
+                      {category.recipeCount === undefined ? "Khám phá món ăn" : `${category.recipeCount} công thức`}
+                    </span>
                     <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
