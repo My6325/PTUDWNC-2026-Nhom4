@@ -4,10 +4,12 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FolderHeart,
+  ChevronDown,
   ChevronRight,
   ArrowRight,
   Utensils,
   RefreshCw,
+  Search,
   Sparkles,
 } from "lucide-react";
 import { categoryService } from "@/services/categoryService";
@@ -17,10 +19,16 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { extractApiErrorMessage } from "@/utils/apiError";
-import { cn } from "@/utils/cn";
+import { matchesCategoryName } from "@/utils/categorySearch";
+
+type CategorySort = "default" | "name-asc" | "name-desc";
+
+const categoryNameCollator = new Intl.Collator("vi");
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [sortBy, setSortBy] = useState<CategorySort>("default");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +56,17 @@ export default function CategoriesPage() {
     fetchCategories();
   }, []);
 
+  const displayedCategories = categories.filter((category) =>
+    matchesCategoryName(category.name, searchTerm)
+  );
+  if (sortBy !== "default") {
+    displayedCategories.sort((a, b) =>
+      sortBy === "name-asc"
+        ? categoryNameCollator.compare(a.name, b.name)
+        : categoryNameCollator.compare(b.name, a.name)
+    );
+  }
+
   return (
     <div className="min-h-screen bg-surface-warm dark:bg-stone-950/50 pb-20">
       {/* Breadcrumb Navigation */}
@@ -70,7 +89,7 @@ export default function CategoriesPage() {
 
       <div className="container-custom mx-auto px-4 pt-10">
         {/* Header giới thiệu */}
-        <div className="max-w-2xl mb-10 space-y-3">
+        <div className="mb-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 text-xs font-bold border border-brand-200 dark:border-brand-800/60">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Bộ sưu tập món ngon</span>
@@ -79,8 +98,7 @@ export default function CategoriesPage() {
             Danh mục ẩm thực
           </h1>
           <p className="text-stone-600 dark:text-stone-400 text-base leading-relaxed">
-            Khám phá các công thức nấu ăn phong phú được phân loại khoa học theo
-            từng chủ đề, nguyên liệu và phong cách bữa ăn hàng ngày.
+            Khám phá công thức theo chủ đề, nguyên liệu và bữa ăn.
           </p>
         </div>
 
@@ -138,10 +156,48 @@ export default function CategoriesPage() {
           </div>
         )}
 
-        {/* Danh sách danh mục ẩm thực */}
         {!isLoading && !error && categories.length > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-4">
+            <div className="relative w-full sm:mr-auto sm:max-w-xs">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+              <input
+                type="search"
+                aria-label="Tìm danh mục"
+                placeholder="Tìm danh mục"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="w-full rounded-xl border border-stone-200 bg-white py-2 pl-9 pr-3 text-sm text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+              />
+            </div>
+            <label htmlFor="category-sort" className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+              Sắp xếp
+            </label>
+            <div className="relative">
+              <select
+                id="category-sort"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value as CategorySort)}
+                className="cursor-pointer appearance-none rounded-xl border border-stone-200 bg-white py-2 pl-3 pr-9 text-sm text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+              >
+                <option value="default">Mặc định</option>
+                <option value="name-asc">Tên A–Z</option>
+                <option value="name-desc">Tên Z–A</option>
+              </select>
+              <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !error && categories.length > 0 && displayedCategories.length === 0 && (
+          <p role="status" className="py-8 text-center text-sm text-stone-600 dark:text-stone-400">
+            Không tìm thấy danh mục phù hợp.
+          </p>
+        )}
+
+        {/* Danh sách danh mục ẩm thực */}
+        {!isLoading && !error && displayedCategories.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
+            {displayedCategories.map((category) => (
               <Link
                 key={category.id}
                 href={`/categories/${category.slug}`}
