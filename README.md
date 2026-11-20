@@ -14,7 +14,7 @@
 * **Mức độ** (CRUD Danh mục, Thuật toán Slug, Health Checks, Structured Logging và Distributed Tracing).
 * **Chi tiết chức năng (theo đúng SRS v1.0.0):**
   - `FR-CAT-001`: Xem Danh sách Danh mục (Get Categories, IMemoryCache 60m).
-  - `FR-CAT-002`: Xem Chi tiết Danh mục (Get Category by Slug qua `/api/v1/categories/{slug}`, nạp danh sách tóm tắt các món thuộc danh mục; lưu ý: chức năng xem chi tiết công thức nấu ăn chuyên sâu FR-RCP-002 do TV4 phụ trách).
+  - `FR-CAT-002`: Xem Chi tiết Danh mục (Get Category by Slug qua `/api/v1/categories/{slug}`, nạp danh sách tóm tắt các món thuộc danh mục).
   - `FR-CAT-003`: Tạo Danh mục Mới [Admin] (Create Category, auto-slugify).
   - `FR-CAT-004`: Cập nhật Danh mục [Admin] (Update Category, giữ nguyên Slug).
   - `FR-CAT-005`: Xóa Danh mục [Admin] (Delete Category, cấm xóa khi còn công thức).
